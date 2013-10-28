@@ -43,6 +43,10 @@
 
 \cppcode{half-plane-intersection-nlogn.cpp}
 
+\subsection{Farmland}
+
+\cppcode{lq-farmland.cpp}
+
 \section{数据结构}
 
 \subsection{$k$d树}
@@ -79,6 +83,14 @@
 
 \section{图论}
 
+\subsection{扩展KM}
+
+\cppcode{lq-extended-km.cpp}
+
+\subsection{费用流}
+
+\cppcode{lwh-zkw-flow.cpp}
+
 \section{数论}
 
 \subsection{Millar-rabin}
@@ -99,7 +111,7 @@
 ($n, m > 0, a, b \geq 0$)
 \cppcode{lattice-count.cpp}
 
-\section{Miscellaneous}
+\section{杂类}
 
 \subsection{环状最长公共子串}
 
@@ -121,7 +133,6 @@
 有余弦定理$$\cos a = \cos b \cos c + \sin b \sin c \cos A$$
 正弦定理$$\frac{\sin A}{\sin a} = \frac{\sin B}{\sin b} = \frac{\sin C}{\sin c}$$
 三角形面积是$A + B + C - \pi$
-
 
 \subsection{四面体体积公式}
 
@@ -149,5 +160,14 @@ $$p_k = \sum_{i = 1}^n{x_i^k}$$
 
 特别地，对于$$|\mathbf{A} - \lambda \mathbf{E}| = (-1)^n(a_n + a_{n - 1} \lambda + \cdots + a_1 \lambda^{n - 1} + a_0 \lambda^n)$$
 有$$p_k = \mathrm{Tr}(\mathbf{A}^k)$$
+
+\subsection{vimrc}
+
+\begin{minted}{vim}
+set nu ai ci si et ts=4 sts=4 sw=4
+nmap <F2> :vs %<.in <CR>
+nmap <F5> :!./%< < %<.in <CR>
+nmap <F9> :make %< <CR>
+\end{minted}
 
 \end{document}
