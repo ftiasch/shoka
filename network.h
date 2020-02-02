@@ -17,7 +17,7 @@ public:
 
 } // namespace network
 
-template <typename Derived = network::IntValue> class NetworkDinic {
+template <typename Derived = network::IntValue<int>> class NetworkDinic {
 public:
   using ValueType = typename Derived::ValueType;
 
