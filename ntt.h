@@ -65,13 +65,6 @@ private:
     }
   }
 
-  static void prepare_roots(int n, int *roots, int g) {
-    roots[0] = 1;
-    for (int i = 1; i < n; ++i) {
-      roots[i] = static_cast<int64_t>(roots[i - 1]) * g % MOD;
-    }
-  }
-
   struct FiniteField {
     static constexpr int primitive_root() {
       int g = 2;
