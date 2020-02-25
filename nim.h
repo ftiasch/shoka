@@ -45,19 +45,18 @@ template <> struct QuadraticMemorizedNim<0> {
 
 // k == 4
 template <u64 G> struct LinearMemorizedNim {
-  static const int K = 4;
-  static const int N = (1 << (1 << K)) - 1;
+  static const int N = 1 << 16;
 
   LinearMemorizedNim() : exp(), log() {
     static Reducer<4, Reducer<3, QuadraticMemorizedNim<3>>> reduced;
     log[exp[0] = 1] = 0;
-    for (int i = 1; i < N; ++i) {
+    for (int i = 1; i < N - 1; ++i) {
       log[exp[i] = reduced.multiply(exp[i - 1], G)] = i;
     }
   }
 
   u64 multiply(u64 a, u64 b) const {
-    return a == 0 || b == 0 ? 0 : exp[(log[a] + log[b]) % N];
+    return a == 0 || b == 0 ? 0 : exp[(log[a] + log[b]) % (N - 1)];
   }
 
 private:
