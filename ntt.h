@@ -1,5 +1,6 @@
 template <int N, int MOD> struct NTT {
   void transform(int n, int *a) {
+    // revbin(n, a);
     for (int m = 1; m < n; m <<= 1) {
       int64_t root = power(G, (MOD - 1) / (m << 1));
       twiddles[0] = 1;
@@ -33,6 +34,7 @@ template <int N, int MOD> struct NTT {
         }
       }
     }
+    // revbin(n, a);
   }
 
   void convolute(int n, int *a, int *b, int *out) {
@@ -46,6 +48,16 @@ template <int N, int MOD> struct NTT {
   }
 
 private:
+  void revbin(int n, int *a) {
+    for (int i = 1, j = 0; i < n - 1; ++i) {
+      for (int s = n; j ^= s >>= 1, ~j & s;)
+        ;
+      if (i < j) {
+        swap(p[i], p[j]);
+      }
+    }
+  }
+
   static constexpr int power(int a, int n) {
     int res = 1;
     while (n) {
