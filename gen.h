@@ -12,6 +12,20 @@ template <typename Int> static std::set<Int> rand_subset(Int n, int k) {
   return set;
 }
 
+std::vector<int> rand_tree(int n, int r) {
+  std::vector<int> parent(n, -1);
+  int y = r;
+  for (int _ = 1; _ < n; ++_) {
+    int x = rnd.next(0, n - 1);
+    while (x == r || ~parent[x]) {
+      y = x;
+      x = rnd.next(0, n - 1);
+    }
+    parent[x] = y;
+  }
+  return parent;
+}
+
 static std::string rand_parenthesis(int n) {
   std::vector<bool> bits((n << 1) + 1);
   for (int i = 0; i <= n; ++i) {
