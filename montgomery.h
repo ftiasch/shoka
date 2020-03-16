@@ -14,9 +14,9 @@ struct u128 {
     return {high, low};
 #else
     uint64_t a = x & UINT32_MAX, b = x >> 32u, c = y & UINT32_MAX, d = y >> 32u,
-             ac = a * c, bc = b * c, ad = a * d, bd = b * d,
+             ac = a * c, bc = b * c, ad = a * d,
              z = (bc & UINT32_MAX) + (ad & UINT32_MAX) + (ac >> 32u);
-    return {bd + (bc >> 32u) + (ad >> 32u) + (z >> 32u),
+    return {b * d + (bc >> 32u) + (ad >> 32u) + (z >> 32u),
             (z & UINT32_MAX) << 32u | (ac & UINT32_MAX)};
 #endif
   }
