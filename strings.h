@@ -1,12 +1,5 @@
 namespace strings {
 
-struct DefaultCharRank {
-  int operator[](int i) const { return s[i] - 'a'; }
-  const char *s;
-};
-
-} // namespace strings
-
 template <int N> struct PrefixTable {
   void compute(int n, const char *s) {
     z[0] = 0;
@@ -24,6 +17,13 @@ template <int N> struct PrefixTable {
 
   int z[N];
 };
+
+struct DefaultCharRank {
+  int operator[](int i) const { return s[i] - 'a'; }
+  const char *s;
+};
+
+} // namespace strings
 
 template <int N, int C, typename CharRank = strings::DefaultCharRank>
 struct SA {
@@ -87,6 +87,81 @@ private:
 
   int n;
   int count[std::max(N, C)], tsa[N], trk[N];
+};
+
+template <typename SA, template <typename, int> class RMQT>
+struct LCPTable : SA {
+  void compute(int _n, const char *s) {
+    n = _n;
+    SA::compute(n, s);
+    int lcp = 0;
+    for (int i = 0; i < n; ++i) {
+      if (SA::rk[i]) {
+        lcp -= !!lcp;
+        int j = SA::sa[SA::rk[i] - 1];
+        while (i + lcp < n && j + lcp < n && s[i + lcp] == s[j + lcp]) {
+          lcp++;
+        }
+        height[SA::rk[i] - 1] = lcp;
+      }
+    }
+    rmq.compute(n - 1, height);
+  }
+
+  int lcp(int i, int j) const {
+    if (i == j) {
+      return n - i;
+    }
+    i = SA::rk[i], j = SA::rk[j];
+    if (i > j) {
+      std::swap(i, j);
+    }
+    return rmq.rmq(i, j);
+  }
+
+private:
+  static const int N = SA::N;
+
+  int n, height[N - 1];
+  RMQT<int, N - 1> rmq;
+};
+
+template <typename T, int N> struct SparseTable {
+  SparseTable() {
+    log[1] = 0;
+    for (int i = 1; i < N; ++i) {
+      log[i + 1] = log[i] + (1 << log[i] + 1 <= i);
+    }
+  }
+
+  void compute(int n, const T *value) {
+    l = log2n(n);
+    memcpy(st[0], value, sizeof(T) * n);
+    for (int i = 1; i < l; ++i) {
+      for (int j = 0; j + (1 << i) <= n; ++j) {
+        st[i][j] = std::min(st[i - 1][j], st[i - 1][j + (1 << i - 1)]);
+      }
+    }
+  }
+
+  T rmq(int a, int b) const {
+    int l = log[b - a];
+    return std::min(st[l][a], st[l][b - (1 << l)]);
+  }
+
+private:
+  static constexpr int log2n(int n) {
+    int k = 1;
+    while (1 << k - 1 < n) {
+      k++;
+    }
+    return k;
+  }
+
+  static const int L = log2n(N);
+
+  int l, log[N + 1];
+  T st[L][N];
 };
 
 template <int N, int C> struct SAM {
