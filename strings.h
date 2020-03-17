@@ -89,17 +89,16 @@ private:
 template <typename SA, template <typename, int> class RMQT>
 struct LCPTable : SA {
   void compute(int _n, const char *s) {
-    n = _n;
-    SA::compute(n, s);
+    n = _n, SA::compute(n, s);
     int lcp = 0;
     for (int i = 0; i < n; ++i) {
       if (SA::rk[i]) {
-        lcp -= !!lcp;
         int j = SA::sa[SA::rk[i] - 1];
         while (i + lcp < n && j + lcp < n && s[i + lcp] == s[j + lcp]) {
           lcp++;
         }
         height[SA::rk[i] - 1] = lcp;
+        lcp = std::max(lcp - 1, 0);
       }
     }
     rmq.compute(n - 1, height);
@@ -110,10 +109,7 @@ struct LCPTable : SA {
       return n - i;
     }
     i = SA::rk[i], j = SA::rk[j];
-    if (i > j) {
-      std::swap(i, j);
-    }
-    return rmq.rmq(i, j);
+    return i < j ? rmq.rmq(i, j) : rmq.rmq(j, i);
   }
 
 private:
@@ -126,14 +122,13 @@ private:
 template <typename T, int N> struct SparseTable {
   SparseTable() {
     log[1] = 0;
-    for (int i = 1; i < N; ++i) {
-      log[i + 1] = log[i] + (1 << log[i] + 1 <= i);
+    for (int i = 2; i <= N; ++i) {
+      log[i] = 31 - __builtin_clz(i - 1);
     }
   }
 
   void compute(int n, const T *value) {
-    l = log2n(n);
-    memcpy(st[0], value, sizeof(T) * n);
+    l = log2n(n), memcpy(st[0], value, sizeof(T) * n);
     for (int i = 1; i < l; ++i) {
       for (int j = 0; j + (1 << i) <= n; ++j) {
         st[i][j] = std::min(st[i - 1][j], st[i - 1][j + (1 << i - 1)]);
@@ -142,18 +137,12 @@ template <typename T, int N> struct SparseTable {
   }
 
   T rmq(int a, int b) const {
-    int l = log[b - a];
-    return std::min(st[l][a], st[l][b - (1 << l)]);
+    const auto s = st[log[b - 1]];
+    return std::min(s[a], s[b - (1 << l)]);
   }
 
 private:
-  static constexpr int log2n(int n) {
-    int k = 1;
-    while (1 << k - 1 < n) {
-      k++;
-    }
-    return k;
-  }
+  static constexpr int log2n(int n) { return 32 - __builtin_clz(n - 1); }
 
   static const int L = log2n(N);
 
