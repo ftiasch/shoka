@@ -1,5 +1,3 @@
-namespace strings {
-
 template <int N> struct PrefixTable {
   void compute(int n, const char *s) {
     z[0] = 0;
@@ -23,9 +21,7 @@ struct DefaultCharRank {
   const char *s;
 };
 
-} // namespace strings
-
-template <int N, int C, typename CharRank = strings::DefaultCharRank>
+template <int N, int C, typename CharRank = DefaultCharRank>
 struct SA {
   void compute(int _n, const char *s) {
     n = _n;
