@@ -21,8 +21,9 @@ struct DefaultCharRank {
   const char *s;
 };
 
-template <int N, int C, typename CharRank = DefaultCharRank>
-struct SA {
+template <int _N, int C, typename CharRank = DefaultCharRank> struct SA {
+  static const int N = _N;
+
   void compute(int _n, const char *s) {
     n = _n;
     sort(C, IdOrder{}, CharRank{s}, sa);
