@@ -1,5 +1,5 @@
 template <int N, int MOD> struct NTT {
-  void transform(int n, int *a) {
+  void dit(int n, int *a) {
     // revbin(n, a);
     for (int m = 1; m < n; m <<= 1) {
       int64_t root = power(G, (MOD - 1) / (m << 1));
@@ -18,7 +18,7 @@ template <int N, int MOD> struct NTT {
     }
   }
 
-  void itransform(int n, int *a) {
+  void dif(int n, int *a) {
     for (int m = n; m >>= 1;) {
       int64_t root = power(G, MOD - 1 - (MOD - 1) / (m << 1));
       twiddles[0] = 1;
@@ -38,24 +38,13 @@ template <int N, int MOD> struct NTT {
   }
 
   void convolute(int n, int *a, int *b, int *out) {
-    itransform(n, a);
-    itransform(n, b);
-    int64_t inv_n = power(n, MOD - 2);
+    dif(n, a);
+    dif(n, b);
+    uint64_t inv_n = power(n, MOD - 2);
     for (int i = 0; i < n; ++i) {
       out[i] = inv_n * a[i] % MOD * b[i] % MOD;
     }
-    transform(n, out);
-  }
-
-private:
-  void revbin(int n, int *a) {
-    for (int i = 1, j = 0; i < n - 1; ++i) {
-      for (int s = n; j ^= s >>= 1, ~j & s;)
-        ;
-      if (i < j) {
-        swap(p[i], p[j]);
-      }
-    }
+    dit(n, out);
   }
 
   static constexpr int power(int a, int n) {
@@ -74,6 +63,17 @@ private:
     x += a;
     if (x >= MOD) {
       x -= MOD;
+    }
+  }
+
+private:
+  void revbin(int n, int *a) {
+    for (int i = 1, j = 0; i < n - 1; ++i) {
+      for (int s = n; j ^= s >>= 1, ~j & s;)
+        ;
+      if (i < j) {
+        std::swap(a[i], a[j]);
+      }
     }
   }
 
