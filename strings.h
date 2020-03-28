@@ -179,12 +179,12 @@ template <typename T, int N> struct SparseTable {
       }
     }
   }
-
+  
   T rmq(int a, int b) const {
-    const auto s = st[log[b - 1]];
-    return std::min(s[a], s[b - (1 << l)]);
+    const int l = log[b - a];
+    return std::min(st[l][a], st[l][b - (1 << l)]);
   }
-
+  
 private:
   static constexpr int log2n(int n) { return 32 - __builtin_clz(n - 1); }
 
