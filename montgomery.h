@@ -77,8 +77,61 @@ private:
   static const u64 INV = modinv();
   static const u64 R = rpower(64);
   static const u64 R2 = rpower(128);
+};
 
-  u64 x;
+template <u32 MOD> struct Montgomery32T {
+  static_assert(MOD <= std::numeric_limits<u32>::max() >> 1, "");
+
+  static u32 from_monty(u32 x) { return reduce(x); }
+
+  static u32 multiply(u32 x, u32 y) { return reduce(static_cast<u64>(x) * y); }
+
+  static u32 to_monty(u32 x) { return multiply(x, R2); }
+
+  static u32 inverse(u32 a) {
+    u32 result = R;
+    u32 n = MOD - 2;
+    while (n) {
+      if (n & 1) {
+        result = multiply(result, a);
+      }
+      a = multiply(a, a);
+      n >>= 1;
+    }
+    return result;
+  }
+
+  static constexpr u32 modinv() {
+    u32 result = 1;
+    for (int i = 0; i < 5; ++i) {
+      result *= 2 - MOD * result;
+    }
+    return -result;
+  }
+
+  static constexpr u32 rpower(int n) {
+    u32 result = 1;
+    for (int i = 0; i < n; ++i) {
+      result += result;
+      if (result >= MOD) {
+        result -= MOD;
+      }
+    }
+    return result;
+  }
+
+  static u32 reduce(u64 x) {
+    u64 y = (((x & UINT32_MAX) * INV) & UINT32_MAX) * MOD;
+    u32 result = x + y >> 32U;
+    if (result >= MOD) {
+      result -= MOD;
+    }
+    return result;
+  }
+
+  static const u32 INV = modinv();
+  static const u32 R = rpower(32);
+  static const u32 R2 = rpower(64);
 };
 
 } // namespace montgomery
