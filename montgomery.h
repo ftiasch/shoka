@@ -82,6 +82,48 @@ private:
 template <u32 MOD> struct Montgomery32T {
   static_assert(MOD <= std::numeric_limits<u32>::max() >> 1, "");
 
+  Montgomery32T() : x(0) {}
+
+  Montgomery32T(u32 x) : x(to_monty(x)) {}
+
+  u32 get() const { return from_monty(x); }
+
+  Montgomery32T &operator+=(const Montgomery32T &other) {
+    x += other.x;
+    if (x >= MOD) {
+      x -= MOD;
+    }
+    return *this;
+  }
+
+  Montgomery32T operator+(const Montgomery32T &other) {
+    auto copy = *this;
+    return copy += other;
+  }
+
+  Montgomery32T &operator-=(const Montgomery32T &other) {
+    x += MOD - other.x;
+    if (x >= MOD) {
+      x -= MOD;
+    }
+    return *this;
+  }
+
+  Montgomery32T operator-(const Montgomery32T &other) {
+    auto copy = *this;
+    return copy -= other;
+  }
+
+  Montgomery32T operator*=(const Montgomery32T &other) {
+    x = multiply(x, other.x);
+    return *this;
+  }
+
+  Montgomery32T operator*(const Montgomery32T &other) {
+    auto copy = *this;
+    return copy *= other;
+  }
+
   static u32 from_monty(u32 x) { return reduce(x); }
 
   static u32 multiply(u32 x, u32 y) { return reduce(static_cast<u64>(x) * y); }
@@ -128,6 +170,8 @@ template <u32 MOD> struct Montgomery32T {
     }
     return result;
   }
+
+  u32 x;
 
   static const u32 INV = modinv();
   static const u32 R = rpower(32);
