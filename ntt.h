@@ -1,73 +1,62 @@
-template <int N, int MOD> struct NTT {
-  void dit(int n, int *a) {
-    // revbin(n, a);
+#include <algorithm>
+#include <cstdint>
+#include <vector>
+
+using u32 = uint32_t;
+using u64 = uint64_t;
+
+template <typename ModT> struct NTT {
+  static const u32 MOD = ModT::MOD;
+
+  NTT(int n) : n(n), twiddles(n) {}
+
+  void dit(ModT *a) {
     for (int m = 1; m < n; m <<= 1) {
-      int64_t root = power(G, (MOD - 1) / (m << 1));
-      twiddles[0] = 1;
+      ModT root = power(G, (MOD - 1) / (m << 1));
+      twiddles[0] = ModT(1);
       for (int i = 1; i < m; ++i) {
-        twiddles[i] = twiddles[i - 1] * root % MOD;
+        twiddles[i] = twiddles[i - 1] * root;
       }
       for (int i = 0; i < n; i += m << 1) {
         for (int r = i; r < i + m; ++r) {
-          int tmp = static_cast<int64_t>(twiddles[r - i]) * a[r + m] % MOD;
+          ModT tmp = twiddles[r - i] * a[r + m];
           a[r + m] = a[r];
-          add(a[r + m], MOD - tmp);
-          add(a[r], tmp);
+          a[r + m] -= tmp;
+          a[r] += tmp;
         }
       }
     }
   }
 
-  void dif(int n, int *a) {
+  void dif(ModT *a) {
     for (int m = n; m >>= 1;) {
-      int64_t root = power(G, MOD - 1 - (MOD - 1) / (m << 1));
-      twiddles[0] = 1;
+      ModT root = power(G, MOD - 1 - (MOD - 1) / (m << 1));
+      twiddles[0] = ModT(1);
       for (int i = 1; i < m; ++i) {
-        twiddles[i] = twiddles[i - 1] * root % MOD;
+        twiddles[i] = twiddles[i - 1] * root;
       }
       for (int i = 0; i < n; i += m << 1) {
         for (int r = i; r < i + m; ++r) {
-          int tmp = a[r];
-          add(tmp, MOD - a[r + m]);
-          add(a[r], a[r + m]);
-          a[r + m] = static_cast<int64_t>(twiddles[r - i]) * tmp % MOD;
+          ModT tmp = a[r];
+          tmp -= a[r + m];
+          a[r] += a[r + m];
+          a[r + m] = twiddles[r - i] * tmp;
         }
       }
     }
-    // revbin(n, a);
   }
 
-  void convolute(int n, int *a, int *b, int *out) {
-    dif(n, a);
-    dif(n, b);
-    uint64_t inv_n = power(n, MOD - 2);
+  void convolute(ModT *a, ModT *b, ModT *out) {
+    dif(a);
+    dif(b);
+    ModT inv_n = power(ModT(n), MOD - 2);
     for (int i = 0; i < n; ++i) {
-      out[i] = inv_n * a[i] % MOD * b[i] % MOD;
+      out[i] = inv_n * a[i] * b[i];
     }
-    dit(n, out);
+    dit(out);
   }
 
-  static constexpr int power(int a, int n) {
-    int res = 1;
-    while (n) {
-      if (n & 1) {
-        res = 1ULL * res * a % MOD;
-      }
-      a = 1ULL * a * a % MOD;
-      n >>= 1;
-    }
-    return res;
-  }
-
-  static void add(int &x, int a) {
-    x += a;
-    if (x >= MOD) {
-      x -= MOD;
-    }
-  }
-
-private:
-  void revbin(int n, int *a) {
+  void revbin(ModT *a) {
     for (int i = 1, j = 0; i < n - 1; ++i) {
       for (int s = n; j ^= s >>= 1, ~j & s;)
         ;
@@ -77,20 +66,37 @@ private:
     }
   }
 
+private:
+  int n;
+  std::vector<ModT> twiddles;
+
+  static constexpr ModT power(ModT a, int n) {
+    ModT res(1);
+    while (n) {
+      if (n & 1) {
+        res *= a;
+      }
+      a *= a;
+      n >>= 1;
+    }
+    return res;
+  }
+
+private:
   struct FiniteField {
-    static constexpr int primitive_root() {
+    static constexpr ModT primitive_root() {
       int g = 2;
-      while (!is_primitive_root(g)) {
+      while (!is_primitive_root(ModT(g))) {
         g++;
       }
-      return g;
+      return ModT(g);
     }
 
   private:
-    static constexpr bool is_primitive_root(int g) {
+    static constexpr bool is_primitive_root(ModT g) {
       for (int d = 2; d * d <= MOD - 1; ++d) {
         if ((MOD - 1) % d == 0 &&
-            (power(g, d) == 1 || power(g, (MOD - 1) / d) == 1)) {
+            (power(g, d).get() == 1 || power(g, (MOD - 1) / d).get() == 1)) {
           return false;
         }
       }
@@ -98,6 +104,5 @@ private:
     }
   };
 
-  static const int G = FiniteField::primitive_root();
-  int twiddles[N];
+  static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
