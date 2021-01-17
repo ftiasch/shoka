@@ -1,4 +1,6 @@
-#include <bits/stdc++.h>
+#include <cstdint>
+#include <limits>
+#include <utility>
 
 namespace montgomery {
 
@@ -23,136 +25,60 @@ struct u128 {
   u64 high, low;
 };
 
-template <u64 MOD> struct MontgomeryT {
-  static_assert(MOD <= std::numeric_limits<u64>::max() >> 1, "");
+template <int RBIT, typename Digit, Digit MOD, typename Derived>
+struct MontgomeryT {
+  static_assert(MOD <= std::numeric_limits<Digit>::max() >> 2,
+                "4 * MOD <= MAX");
 
-  static u64 from_monty(u64 x) { return reduce(u128{0, x}); }
+  MontgomeryT(Digit x = 0) : x(Derived::mont_multiply(x, R2)) {}
 
-  static u64 multiply(u64 x, u64 y) { return reduce(u128::multiply(x, y)); }
-
-  static u64 to_monty(u64 x) { return multiply(x, R2); }
-
-  static u64 inverse(u64 a) {
-    u64 result = R;
-    u64 n = MOD - 2;
-    while (n) {
-      if (n & 1) {
-        result = multiply(result, a);
-      }
-      a = multiply(a, a);
-      n >>= 1;
+  Digit get() const {
+    Digit y = Derived::reduce(x);
+    if (y >= MOD) {
+      y -= MOD;
     }
-    return result;
+    return y;
   }
 
-private:
-  static constexpr u64 modinv() {
-    u64 result = 1;
-    for (int i = 0; i < 6; ++i) {
-      result *= 2 - MOD * result;
-    }
-    return -result;
-  }
-
-  static constexpr u64 rpower(int n) {
-    u64 result = 1;
-    for (int i = 0; i < n; ++i) {
-      result += result;
-      if (result >= MOD) {
-        result -= MOD;
-      }
-    }
-    return result;
-  }
-
-  static u64 reduce(u128 x) {
-    u128 y = u128::multiply(u128::multiply(x.low, INV).low, MOD);
-    u64 result = x.high + y.high + (x.low > ~y.low);
-    if (result >= MOD) {
-      result -= MOD;
-    }
-    return result;
-  }
-
-  static const u64 INV = modinv();
-  static const u64 R = rpower(64);
-  static const u64 R2 = rpower(128);
-};
-
-template <u32 MOD> struct Montgomery32T {
-  static_assert(MOD <= std::numeric_limits<u32>::max() >> 1, "");
-
-  Montgomery32T() : x(0) {}
-
-  Montgomery32T(u32 x) : x(to_monty(x)) {}
-
-  u32 get() const { return from_monty(x); }
-
-  Montgomery32T &operator+=(const Montgomery32T &other) {
+  MontgomeryT &operator+=(const MontgomeryT &other) {
     x += other.x;
-    if (x >= MOD) {
-      x -= MOD;
+    if (x >= MOD2) {
+      x -= MOD2;
     }
     return *this;
   }
 
-  Montgomery32T operator+(const Montgomery32T &other) {
-    auto copy = *this;
+  MontgomeryT operator+(const MontgomeryT &other) {
+    MontgomeryT copy = *this;
     return copy += other;
   }
 
-  Montgomery32T &operator-=(const Montgomery32T &other) {
-    x += MOD - other.x;
-    if (x >= MOD) {
-      x -= MOD;
+  MontgomeryT &operator-=(const MontgomeryT &other) {
+    x += MOD2 - other.x;
+    if (x >= MOD2) {
+      x -= MOD2;
     }
     return *this;
   }
 
-  Montgomery32T operator-(const Montgomery32T &other) {
-    auto copy = *this;
+  MontgomeryT operator-(const MontgomeryT &other) {
+    MontgomeryT copy = *this;
     return copy -= other;
   }
 
-  Montgomery32T operator*=(const Montgomery32T &other) {
-    x = multiply(x, other.x);
+  MontgomeryT operator*=(const MontgomeryT &other) {
+    x = Derived::mont_multiply(x, other.x);
     return *this;
   }
 
-  Montgomery32T operator*(const Montgomery32T &other) {
-    auto copy = *this;
+  MontgomeryT operator*(const MontgomeryT &other) {
+    MontgomeryT copy = *this;
     return copy *= other;
   }
 
-  static u32 from_monty(u32 x) { return reduce(x); }
-
-  static u32 multiply(u32 x, u32 y) { return reduce(static_cast<u64>(x) * y); }
-
-  static u32 to_monty(u32 x) { return multiply(x, R2); }
-
-  static u32 inverse(u32 a) {
-    u32 result = R;
-    u32 n = MOD - 2;
-    while (n) {
-      if (n & 1) {
-        result = multiply(result, a);
-      }
-      a = multiply(a, a);
-      n >>= 1;
-    }
-    return result;
-  }
-
-  static constexpr u32 modinv() {
-    u32 result = 1;
-    for (int i = 0; i < 5; ++i) {
-      result *= 2 - MOD * result;
-    }
-    return -result;
-  }
-
-  static constexpr u32 rpower(int n) {
-    u32 result = 1;
+private:
+  static constexpr Digit rpower(int n) {
+    Digit result = 1;
     for (int i = 0; i < n; ++i) {
       result += result;
       if (result >= MOD) {
@@ -162,20 +88,55 @@ template <u32 MOD> struct Montgomery32T {
     return result;
   }
 
-  static u32 reduce(u64 x) {
-    u64 y = (((x & UINT32_MAX) * INV) & UINT32_MAX) * MOD;
-    u32 result = x + y >> 32U;
-    if (result >= MOD) {
-      result -= MOD;
-    }
-    return result;
+  static const Digit MOD2 = MOD << 1;
+  static const Digit R = rpower(RBIT);
+  static const Digit R2 = rpower(RBIT << 1);
+
+  Digit x;
+};
+
+template <typename Digit> static constexpr Digit modinv(Digit MOD, int n) {
+  Digit result = 1;
+  for (int i = 0; i < n; ++i) {
+    result *= 2 - MOD * result;
+  }
+  return -result;
+}
+
+template <u32 MOD>
+struct Montgomery32T : public MontgomeryT<32, u32, MOD, Montgomery32T<MOD>> {
+  Montgomery32T(u32 x) : MontgomeryT<32, u32, MOD, Montgomery32T<MOD>>(x) {}
+
+  static u32 mont_multiply(u32 x, u32 y) {
+    return reduce(static_cast<u64>(x) * y);
   }
 
-  u32 x;
+  static u32 reduce(u32 x) { return reduce(static_cast<u64>(x)); }
 
-  static const u32 INV = modinv();
-  static const u32 R = rpower(32);
-  static const u32 R2 = rpower(64);
+  static u64 reduce(u64 x) {
+    u64 y = (((x & UINT32_MAX) * INV) & UINT32_MAX) * MOD;
+    return (x + y) >> 32U;
+  }
+
+  static const u32 INV = modinv<u32>(MOD, 5);
+};
+
+template <u64 MOD>
+struct Montgomery64T : public MontgomeryT<64, u64, MOD, Montgomery64T<MOD>> {
+  Montgomery64T(u64 x) : MontgomeryT<64, u64, MOD, Montgomery64T<MOD>>(x) {}
+
+  static u64 mont_multiply(u64 x, u64 y) {
+    return reduce(u128::multiply(x, y));
+  }
+
+  static u64 reduce(u64 x) { return reduce(u128{0, x}); }
+
+  static u64 reduce(u128 x) {
+    u128 y = u128::multiply(u128::multiply(x.low, INV).low, MOD);
+    return x.high + y.high + (x.low > ~y.low);
+  }
+
+  static const u64 INV = modinv<u64>(MOD, 6);
 };
 
 } // namespace montgomery
