@@ -2,12 +2,20 @@ template <typename NestedT> struct HeavyLightDecomposition {
   using Tree = std::vector<std::vector<int>>;
 
   explicit HeavyLightDecomposition(int n, const Tree &tree, int root)
-      : path(n), depth(n), lowest(n), highest(n) {
+      : path(n, nullptr), depth(n), lowest(n), highest(n) {
     build(tree, -1, root);
     for (int u = 0; u < n; ++u) {
       lowest[u] = lowest[highest[u]];
       if (highest[u] == u) {
         path[u] = new NestedT{depth[u] - get_lowest_depth(u)};
+      }
+    }
+  }
+
+  ~HeavyLightDecomposition() {
+    for (auto &&p : path) {
+      if (p != nullptr) {
+        delete p;
       }
     }
   }
