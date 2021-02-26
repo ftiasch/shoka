@@ -1,2 +1,4 @@
-/build
-/todo
+/.ccls-cache/
+/build/
+/compile_commands.json
+/todo/
