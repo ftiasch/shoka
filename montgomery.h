@@ -51,7 +51,7 @@ struct MontgomeryT {
     return *this;
   }
 
-  constexpr MontgomeryT operator+(const MontgomeryT &other) {
+  constexpr MontgomeryT operator+(const MontgomeryT &other) const {
     MontgomeryT copy = *this;
     return copy += other;
   }
@@ -64,7 +64,7 @@ struct MontgomeryT {
     return *this;
   }
 
-  constexpr MontgomeryT operator-(const MontgomeryT &other) {
+  constexpr MontgomeryT operator-(const MontgomeryT &other) const {
     MontgomeryT copy = *this;
     return copy -= other;
   }
@@ -74,7 +74,7 @@ struct MontgomeryT {
     return *this;
   }
 
-  constexpr MontgomeryT operator*(const MontgomeryT &other) {
+  constexpr MontgomeryT operator*(const MontgomeryT &other) const {
     MontgomeryT copy = *this;
     return copy *= other;
   }
