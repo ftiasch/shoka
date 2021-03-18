@@ -1,5 +1,5 @@
-struct IO {
-  IO(FILE *in_ = stdin) : in(in_) {}
+struct FastIn {
+  FastIn(FILE *in_ = stdin) : in(in_) {}
 
   char next_char() {
     if (head == length) {
