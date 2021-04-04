@@ -22,6 +22,7 @@ std::vector<int> rand_tree(int n, int r) {
       x = rnd.next(0, n - 1);
     }
     parent[x] = y;
+    y = x;
   }
   return parent;
 }
