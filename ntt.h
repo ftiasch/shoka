@@ -5,7 +5,6 @@
 using u32 = uint32_t;
 using u64 = uint64_t;
 
-
 template <typename ModT> struct NTT {
   static const u32 MOD = ModT::MOD;
 
@@ -13,7 +12,7 @@ template <typename ModT> struct NTT {
 
   void resize(int n) {
     this->n = n;
-    inv_n = power(ModT(n), MOD - 2);
+    inv_n = ModT(n).inv();
     dit_twiddles.resize(n);
     dif_twiddles.resize(n);
     ModT root = power(G, (MOD - 1) / n);
@@ -24,7 +23,7 @@ template <typename ModT> struct NTT {
       }
       root *= root;
     }
-    root = power(G, MOD - 1 - (MOD - 1) / n);
+    root = power(G, (MOD - 1) / n).inv();
     for (int m = n; m >>= 1;) {
       dif_twiddles[m] = ModT(1);
       for (int i = 1; i < m; ++i) {
@@ -34,7 +33,7 @@ template <typename ModT> struct NTT {
     }
   }
 
-  void dit(ModT *a) {
+  void dit(ModT *a) const {
     for (int m = 1; m < n; m <<= 1) {
       for (int i = 0; i < n; i += m << 1) {
         for (int r = i; r < i + m; ++r) {
@@ -47,7 +46,7 @@ template <typename ModT> struct NTT {
     }
   }
 
-  void dif(ModT *a) {
+  void dif(ModT *a) const {
     for (int m = n; m >>= 1;) {
       for (int i = 0; i < n; i += m << 1) {
         for (int r = i; r < i + m; ++r) {
@@ -60,7 +59,7 @@ template <typename ModT> struct NTT {
     }
   }
 
-  void convolute(ModT *a, ModT *b, ModT *out) {
+  void convolute(ModT *a, ModT *b, ModT *out) const {
     dif(a);
     dif(b);
     for (int i = 0; i < n; ++i) {
@@ -69,15 +68,57 @@ template <typename ModT> struct NTT {
     dit(out);
   }
 
-  void revbin(ModT *a) {
-    for (int i = 1, j = 0; i < n - 1; ++i) {
-      for (int s = n; j ^= s >>= 1, ~j & s;)
-        ;
-      if (i < j) {
-        std::swap(a[i], a[j]);
+  static void dit(int n, ModT *a) {
+    for (int m = 1; m < n; m <<= 1) {
+      const ModT root = power(G, (MOD - 1) / (m << 1));
+      for (int i = 0; i < n; i += m << 1) {
+        ModT twiddle(1);
+        for (int r = i; r < i + m; ++r) {
+          ModT tmp = twiddle * a[r + m];
+          a[r + m] = a[r];
+          a[r + m] -= tmp;
+          a[r] += tmp;
+          twiddle *= root;
+        }
       }
     }
   }
+
+  static void dif(int n, ModT *a) {
+    for (int m = n; m >>= 1;) {
+      const ModT root = power(G, MOD - 1 - (MOD - 1) / (m << 1));
+      for (int i = 0; i < n; i += m << 1) {
+        ModT twiddle(1);
+        for (int r = i; r < i + m; ++r) {
+          ModT tmp = a[r];
+          tmp -= a[r + m];
+          a[r] += a[r + m];
+          a[r + m] = twiddle * tmp;
+          twiddle *= root;
+        }
+      }
+    }
+  }
+
+  static void convolute(int n, ModT *a, ModT *b, ModT *out) {
+    dif(n, a);
+    dif(n, b);
+    const ModT inv_n = ModT(n).inv();
+    for (int i = 0; i < n; ++i) {
+      out[i] = inv_n * a[i] * b[i];
+    }
+    dit(n, out);
+  }
+
+  // void revbin(ModT *a) {
+  //   for (int i = 1, j = 0; i < n - 1; ++i) {
+  //     for (int s = n; j ^= s >>= 1, ~j & s;)
+  //       ;
+  //     if (i < j) {
+  //       std::swap(a[i], a[j]);
+  //     }
+  //   }
+  // }
 
 private:
   static constexpr ModT power(ModT a, int n) {

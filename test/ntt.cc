@@ -6,14 +6,12 @@
 #include <random>
 
 static const int MOD = 998244353;
-static const int N = 1 << 14;
+static const int N = 1 << 8;
 
-TEST(NTT, Test) {
+TEST(NTT, Convolution) {
   using ModT = montgomery::Montgomery32T<MOD>;
 
-  NTT<ModT> ntt(N);
-
-  std::vector<ModT> a(N), b(N), answer(N), out(N);
+  std::vector<ModT> a(N), b(N), answer(N);
   std::mt19937 gen(0);
   for (int i = 0; i < N; ++i) {
     a[i] = ModT(gen() % MOD);
@@ -24,8 +22,22 @@ TEST(NTT, Test) {
       answer[(i + j) % N] += a[i] * b[j];
     }
   }
-  ntt.convolute(a.data(), b.data(), out.data());
-  for (int i = 0; i < N; ++i) {
-    ASSERT_EQ(answer[i].get(), out[i].get());
+
+  {
+    std::vector<ModT> copy_a(a), copy_b(b), out(N);
+    NTT<ModT> ntt(N);
+    ntt.convolute(copy_a.data(), copy_b.data(), out.data());
+    for (int i = 0; i < N; ++i) {
+      ASSERT_EQ(answer[i].get(), out[i].get());
+    }
+  }
+
+  {
+    std::vector<ModT> copy_a(a), copy_b(b), out(N);
+    NTT<ModT> ntt(N);
+    NTT<ModT>::convolute(N, copy_a.data(), copy_b.data(), out.data());
+    for (int i = 0; i < N; ++i) {
+      ASSERT_EQ(answer[i].get(), out[i].get());
+    }
   }
 }
