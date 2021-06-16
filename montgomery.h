@@ -79,7 +79,7 @@ struct MontgomeryT {
     return copy *= other;
   }
 
-  const MontgomeryT pow(u64 n) const {
+  constexpr MontgomeryT pow(u64 n) const {
     MontgomeryT base = *this;
     MontgomeryT result{1};
     while (n) {
@@ -92,7 +92,7 @@ struct MontgomeryT {
     return result;
   }
 
-  const MontgomeryT inv() const { return pow(MOD - 2); }
+  constexpr MontgomeryT inv() const { return pow(MOD - 2); }
 
 private:
   static constexpr Digit rpower(int n) {
