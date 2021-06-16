@@ -1,5 +1,5 @@
-#include "../montgomery.h"
 #include "../ntt.h"
+#include "../montgomery.h"
 
 #include "gtest/gtest.h"
 
@@ -13,7 +13,7 @@ TEST(NTT, Test) {
 
   NTT<ModT> ntt(N);
 
-  std::vector<ModT> a(N), b(N), ans(N), out(N);
+  std::vector<ModT> a(N), b(N), answer(N), out(N);
   std::mt19937 gen(0);
   for (int i = 0; i < N; ++i) {
     a[i] = ModT(gen() % MOD);
@@ -21,11 +21,11 @@ TEST(NTT, Test) {
   }
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < N; ++j) {
-      ans[(i + j) % N] += a[i] * b[j];
+      answer[(i + j) % N] += a[i] * b[j];
     }
   }
   ntt.convolute(a.data(), b.data(), out.data());
   for (int i = 0; i < N; ++i) {
-    ASSERT_EQ(ans[i].get(), out[i].get());
+    ASSERT_EQ(answer[i].get(), out[i].get());
   }
 }
