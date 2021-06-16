@@ -8,7 +8,7 @@
 using namespace ntt;
 
 static const int MOD = 998244353;
-static const int N = 1 << 4;
+static const int N = 1 << 8;
 
 using ModT = montgomery::Montgomery32T<MOD>;
 
@@ -54,7 +54,8 @@ TEST(NTT, Inverse) {
   poly_inv(N, p.data(), q.data());
   std::vector<ModT> out(N << 1);
   NTT<ModT>::convolute(N << 1, p.data(), q.data(), out.data());
-  for (int i = 0; i < N << 1; ++i) {
-    std::cerr << out[i].get() << " \n"[i + 1 == (N << 1)];
+  ASSERT_EQ(out[0].get(), 1);
+  for (int i = 1; i < N; ++i) {
+    ASSERT_EQ(out[i].get(), 0);
   }
 }

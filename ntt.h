@@ -212,7 +212,7 @@ template <typename NTT> struct Inverse {
       for (int i = m; i < _2m; ++i) {
         q[i] -= dif_p[i];
       }
-      inv_2m *= inv_2m;
+      inv_2m *= ModT{2}.inv();
     }
   }
 
