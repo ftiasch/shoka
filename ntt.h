@@ -175,49 +175,84 @@ private:
   static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
 
+template <typename T> struct Span {
+  Span(T *data, size_t size) : data_{data}, size_{size} {}
+
+  T *const data() const { return data_; }
+
+  size_t size() const { return size_; }
+
+private:
+  T *data_;
+  size_t size_;
+};
+
+template <typename NTT>
+static void inverse(Span<typename NTT::ModT> buffer, int n,
+                    const typename NTT::ModT *p, typename NTT::ModT *q) {
+  using ModT = typename NTT::ModT;
+  if (static_cast<int>(buffer.size()) < 2 * n) {
+    throw std::invalid_argument("insufficient buffer");
+  }
+  assert_power_of_two(n);
+  if (p[0].get() == 0) {
+    throw std::invalid_argument("coefficient[0] == 0");
+  }
+  std::fill(q, q + n, ModT{0});
+  q[0] = p[0].inv();
+  ModT *const dif_q = buffer.data();
+  ModT *const dif_p = buffer.data() + n;
+  ModT inv_2m = ModT{2}.inv();
+  for (int m = 1; m < n; m <<= 1) {
+    const int _2m = m << 1;
+    std::copy(q, q + _2m, dif_q);
+    NTT::dif(_2m, dif_q);
+    std::copy(p, p + _2m, dif_p);
+    NTT::dif(_2m, dif_p);
+    for (int i = 0; i < _2m; ++i) {
+      dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
+    }
+    NTT::dit(_2m, dif_p);
+    std::fill(dif_p, dif_p + m, ModT{0});
+    NTT::dif(_2m, dif_p);
+    for (int i = 0; i < _2m; ++i) {
+      dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
+    }
+    NTT::dit(_2m, dif_p);
+    for (int i = m; i < _2m; ++i) {
+      q[i] -= dif_p[i];
+    }
+    inv_2m *= ModT{2}.inv();
+  }
+}
+
 template <typename NTT> struct Inverse {
   using ModT = typename NTT::ModT;
 
-  Inverse(int max_n) : max_n{max_n}, buffer(max_n << 1) {}
+  Inverse(int max_n) : buffer(max_n << 1) {}
 
   void operator()(int n, const ModT *p, ModT *q) {
-    if (n > max_n) {
-      throw std::invalid_argument("n > max_n");
-    }
-    assert_power_of_two(n);
-    if (p[0].get() == 0) {
-      throw std::invalid_argument("coefficient[0] == 0");
-    }
-    std::fill(q, q + n, ModT{0});
-    q[0] = p[0].inv();
-    ModT *const dif_q = buffer.data();
-    ModT *const dif_p = buffer.data() + max_n;
-    ModT inv_2m = ModT{2}.inv();
-    for (int m = 1; m < n; m <<= 1) {
-      const int _2m = m << 1;
-      std::copy(q, q + _2m, dif_q);
-      NTT::dif(_2m, dif_q);
-      std::copy(p, p + _2m, dif_p);
-      NTT::dif(_2m, dif_p);
-      for (int i = 0; i < _2m; ++i) {
-        dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
-      }
-      NTT::dit(_2m, dif_p);
-      std::fill(dif_p, dif_p + m, ModT{0});
-      NTT::dif(_2m, dif_p);
-      for (int i = 0; i < _2m; ++i) {
-        dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
-      }
-      NTT::dit(_2m, dif_p);
-      for (int i = m; i < _2m; ++i) {
-        q[i] -= dif_p[i];
-      }
-      inv_2m *= ModT{2}.inv();
-    }
+    return inverse<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
   }
 
-  const int max_n;
+private:
   std::vector<ModT> buffer;
 };
+
+// template <typename NTT> struct Logarithm {
+//   using ModT = typename NTT::ModT;
+
+//   Logarithm(int max_n) : max_n{max_n}, inverse{max_n}, buffer(max_n * 3) {}
+
+//   void operator()(int n, const ModT *p, ModT *out) {
+//     ModT *const log_p = buffer.data();
+//     inverse(n, p, log_p);
+//   }
+
+// private:
+//   const int max_n;
+//   Inverse<NTT> inverse;
+//   std::vector<ModT> buffer;
+// };
 
 } // namespace ntt
