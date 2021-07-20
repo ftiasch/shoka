@@ -1,3 +1,5 @@
+#include "mod.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -24,10 +26,10 @@ template <typename ModT_> struct NTT {
   void resize(int n) {
     assert_power_of_two(n);
     this->n = n;
-    inv_n = ModT(n).inv();
+    inv_n = ModT(n).inverse();
     dit_twiddles.resize(n);
     dif_twiddles.resize(n);
-    ModT root = power(G, (MOD - 1) / n);
+    ModT root = G.power((MOD - 1) / n);
     for (int m = n; m >>= 1;) {
       dit_twiddles[m] = ModT{1};
       for (int i = 1; i < m; ++i) {
@@ -35,7 +37,7 @@ template <typename ModT_> struct NTT {
       }
       root *= root;
     }
-    root = power(G, (MOD - 1) / n).inv();
+    root = G.power((MOD - 1) / n).inverse();
     for (int m = n; m >>= 1;) {
       dif_twiddles[m] = ModT{1};
       for (int i = 1; i < m; ++i) {
@@ -83,7 +85,7 @@ template <typename ModT_> struct NTT {
   static void dit(int n, ModT *a) {
     assert_power_of_two(n);
     for (int m = 1; m < n; m <<= 1) {
-      const ModT root = power(G, (MOD - 1) / (m << 1));
+      const ModT root = G.power((MOD - 1) / (m << 1));
       for (int i = 0; i < n; i += m << 1) {
         ModT twiddle(1);
         for (int r = i; r < i + m; ++r) {
@@ -117,7 +119,7 @@ template <typename ModT_> struct NTT {
   static void convolute(int n, ModT *a, ModT *b, ModT *out) {
     dif(n, a);
     dif(n, b);
-    const ModT inv_n = ModT(n).inv();
+    const ModT inv_n = ModT(n).inverse();
     for (int i = 0; i < n; ++i) {
       out[i] = inv_n * a[i] * b[i];
     }
@@ -199,10 +201,10 @@ static void inverse(Span<typename NTT::ModT> buffer, int n,
     throw std::invalid_argument("coefficient[0] == 0");
   }
   std::fill(q, q + n, ModT{0});
-  q[0] = p[0].inv();
+  q[0] = p[0].inverse();
   ModT *const dif_q = buffer.data();
   ModT *const dif_p = buffer.data() + n;
-  ModT inv_2m = ModT{2}.inv();
+  ModT inv_2m = ModT{2}.inverse();
   for (int m = 1; m < n; m <<= 1) {
     const int _2m = m << 1;
     std::copy(q, q + _2m, dif_q);
@@ -222,8 +224,35 @@ static void inverse(Span<typename NTT::ModT> buffer, int n,
     for (int i = m; i < _2m; ++i) {
       q[i] -= dif_p[i];
     }
-    inv_2m *= ModT{2}.inv();
+    inv_2m *= ModT{2}.inverse();
   }
+}
+
+template <typename NTT>
+static void differentiate(int n, const typename NTT::ModT *p,
+                          typename NTT::ModT *dp) {
+  using ModT = typename NTT::ModT;
+  for (int i = 0; i < n; ++i) {
+    dp[i] = i + 1 < n ? ModT{i + 1} * p[i + 1] : ModT{0};
+  }
+}
+
+template <typename NTT>
+static void integrate(Span<typename NTT::ModT> buffer, int n,
+                      const typename NTT::ModT *p, typename NTT::ModT *dp) {
+  using ModT = typename NTT::ModT;
+  if (p[n - 1] != ModT{0}) {
+    throw std::invalid_argument("p[n - 1] != 0");
+  }
+  ModT *const inv = buffer.data();
+  for (int i = 1; i < n; ++i) {
+    inv[i] =
+        i == 1 ? ModT{1} : ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
+  }
+  for (int i = n; i-- > 1;) {
+    dp[i] = inv[i] * p[i - 1];
+  }
+  dp[0] = ModT{0};
 }
 
 template <typename NTT> struct Inverse {
@@ -239,19 +268,22 @@ private:
   std::vector<ModT> buffer;
 };
 
+// TODO
 // template <typename NTT> struct Logarithm {
 //   using ModT = typename NTT::ModT;
 
-//   Logarithm(int max_n) : max_n{max_n}, inverse{max_n}, buffer(max_n * 3) {}
+//   Logarithm() : buffer(max_n << 2) {}
 
+//   // log p = int{p' / p}
 //   void operator()(int n, const ModT *p, ModT *out) {
-//     ModT *const log_p = buffer.data();
-//     inverse(n, p, log_p);
+//     ModT *const inv_p = buffer.data();
+//     ModT *const dp = buffer.data() + (n << 1);
+//     inverse<NTT>(Span<ModT>{buffer.data(), 2 * n}, n, p, inv_p);
+//     differentiate<NTT>(n, p, dp);
 //   }
 
 // private:
 //   const int max_n;
-//   Inverse<NTT> inverse;
 //   std::vector<ModT> buffer;
 // };
 

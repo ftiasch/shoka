@@ -1,4 +1,3 @@
-#include "../montgomery.h"
 #include "../mod.h"
 
 #include <random>

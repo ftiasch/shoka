@@ -1,5 +1,5 @@
 #include "../ntt.h"
-#include "../montgomery.h"
+#include "../mod.h"
 
 #include "gtest/gtest.h"
 
