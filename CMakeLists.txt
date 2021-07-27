@@ -21,6 +21,7 @@ endif()
 include(GoogleTest)
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 17)
+include_directories(picobench/include)
 
+add_subdirectory(benchmark)
 add_subdirectory(test)
