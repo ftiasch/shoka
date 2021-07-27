@@ -1,28 +1,28 @@
+#include "../ntt.h"
+#include "../mod.h"
+
 #define PICOBENCH_IMPLEMENT_WITH_MAIN
 #include "picobench/picobench.hpp"
 
 #include <vector>
-#include <cstdlib> // for rand
 
-// Benchmarking function written by the user:
-static void rand_vector(picobench::state& s)
-{
-    std::vector<int> v;
-    for (auto _ : s)
-    {
-        v.push_back(rand());
-    }
-}
-PICOBENCH(rand_vector); // Register the above function with picobench
+static const int MOD = 998244353;
 
-// Another benchmarking function:
-static void rand_vector_reserve(picobench::state& s)
-{
-    std::vector<int> v;
-    v.reserve(s.iterations());
-    for (auto _ : s)
-    {
-        v.push_back(rand());
-    }
+using ModT = montgomery::Montgomery32T<MOD>;
+
+using namespace ntt;
+
+static void poly_inv(picobench::state &s) {
+  int n = 1 << s.iterations();
+  std::vector<ModT> p(n), q(n);
+  std::mt19937 gen(0);
+  for (int i = 0; i < n; ++i) {
+    p[i] = ModT(gen() % MOD);
+  }
+  Inverse<NTT<ModT>> poly_inv(n);
+  s.start_timer();
+  poly_inv(n, p.data(), q.data());
+  s.stop_timer();
 }
-PICOBENCH(rand_vector_reserve);
+
+PICOBENCH(poly_inv);
