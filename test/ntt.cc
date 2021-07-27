@@ -50,7 +50,7 @@ TEST(NTT, Inverse) {
   for (int i = 0; i < N; ++i) {
     p[i] = ModT(gen() % MOD);
   }
-  Inverse<NTT<ModT>> poly_inv(N);
+  InverseV0<NTT<ModT>> poly_inv(N);
   poly_inv(N, p.data(), q.data());
   std::vector<ModT> out(N << 1);
   NTT<ModT>::convolute(N << 1, p.data(), q.data(), out.data());

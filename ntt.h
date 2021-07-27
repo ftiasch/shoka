@@ -193,7 +193,7 @@ private:
 };
 
 template <typename NTT>
-static void inverse(Span<typename NTT::ModT> buffer, int n,
+static void inversev0(Span<typename NTT::ModT> buffer, int n,
                     const typename NTT::ModT *p, typename NTT::ModT *q) {
   using ModT = typename NTT::ModT;
   if (static_cast<int>(buffer.size()) < 2 * n) {
@@ -258,13 +258,13 @@ static void integrate(Span<typename NTT::ModT> buffer, int n,
   dp[0] = ModT{0};
 }
 
-template <typename NTT> struct Inverse {
+template <typename NTT> struct InverseV0 {
   using ModT = typename NTT::ModT;
 
-  Inverse(int max_n) : buffer(max_n << 1) {}
+  InverseV0(int max_n) : buffer(max_n << 1) {}
 
   void operator()(int n, const ModT *p, ModT *q) {
-    return inverse<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
+    return inversev0<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
   }
 
 private:
