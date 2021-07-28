@@ -4,6 +4,10 @@
 
 #include "gtest/gtest.h"
 
+DECLARE_NON_CONST_MODT(ModT);
+
+namespace {
+
 static const int MOD = 998244353;
 
 TEST(Montgomery, Test) {
@@ -38,8 +42,6 @@ TEST(ModT, Test) {
   ASSERT_EQ(mc.get(), (uint64_t)a * b % MOD);
 }
 
-DECLARE_NON_CONST_MODT(ModT);
-
 TEST(ModT, NonConstModTest) {
   ModT::MOD = MOD;
 
@@ -55,3 +57,5 @@ TEST(ModT, NonConstModTest) {
   ModT mc = ma * mb;
   ASSERT_EQ(mc.get(), (uint64_t)a * b % MOD);
 }
+
+} // namespace

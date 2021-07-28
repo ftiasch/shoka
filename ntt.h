@@ -11,8 +11,8 @@
 
 namespace ntt {
 
-using u32 = uint32_t;
-using u64 = uint64_t;
+// using u32 = uint32_t;
+// using u64 = uint64_t;
 
 static void assert_power_of_two(int n) {
   if (n & (n - 1)) {
@@ -20,93 +20,13 @@ static void assert_power_of_two(int n) {
   }
 }
 
-template <typename T> struct Span {
-  Span(T *data, size_t size) : data_{data}, size_{size} {}
-
-  T *const data() const { return data_; }
-
-  size_t size() const { return size_; }
-
-  void ensure(size_t n) const {
-    if (static_cast<int>(size()) < n) {
-      throw std::invalid_argument("insufficient buffer");
-    }
-  }
-
-private:
-  T *data_;
-  size_t size_;
-};
-
 template <typename ModT_> struct NTT {
   using ModT = ModT_;
-  static const u32 MOD = ModT::MOD;
-
-  NTT(int n) : n(n), dit_twiddles(n), dif_twiddles(n) { resize(n); }
-
-  void resize(int n) {
-    assert_power_of_two(n);
-    this->n = n;
-    inv_n = ModT(n).inverse();
-    dit_twiddles.resize(n);
-    dif_twiddles.resize(n);
-    ModT root = G.power((MOD - 1) / n);
-    for (int m = n; m >>= 1;) {
-      dit_twiddles[m] = ModT{1};
-      for (int i = 1; i < m; ++i) {
-        dit_twiddles[m + i] = dit_twiddles[m + i - 1] * root;
-      }
-      root *= root;
-    }
-    root = G.power((MOD - 1) / n).inverse();
-    for (int m = n; m >>= 1;) {
-      dif_twiddles[m] = ModT{1};
-      for (int i = 1; i < m; ++i) {
-        dif_twiddles[m + i] = dif_twiddles[m + i - 1] * root;
-      }
-      root *= root;
-    }
-  }
-
-  void dit(ModT *a) const {
-    for (int m = 1; m < n; m <<= 1) {
-      for (int i = 0; i < n; i += m << 1) {
-        for (int r = i; r < i + m; ++r) {
-          ModT tmp = dit_twiddles[m + r - i] * a[r + m];
-          a[r + m] = a[r];
-          a[r + m] -= tmp;
-          a[r] += tmp;
-        }
-      }
-    }
-  }
-
-  void dif(ModT *a) const {
-    for (int m = n; m >>= 1;) {
-      for (int i = 0; i < n; i += m << 1) {
-        for (int r = i; r < i + m; ++r) {
-          ModT tmp = a[r];
-          tmp -= a[r + m];
-          a[r] += a[r + m];
-          a[r + m] = dif_twiddles[m + r - i] * tmp;
-        }
-      }
-    }
-  }
-
-  void convolute(ModT *a, ModT *b, ModT *out) const {
-    dif(a);
-    dif(b);
-    for (int i = 0; i < n; ++i) {
-      out[i] = inv_n * a[i] * b[i];
-    }
-    dit(out);
-  }
 
   static void dit(int n, ModT *a) {
     assert_power_of_two(n);
     for (int m = 1; m < n; m <<= 1) {
-      const ModT root = G.power((MOD - 1) / (m << 1));
+      const ModT root = G.power((ModT::MOD - 1) / (m << 1));
       for (int i = 0; i < n; i += m << 1) {
         ModT twiddle(1);
         for (int r = i; r < i + m; ++r) {
@@ -123,7 +43,7 @@ template <typename ModT_> struct NTT {
   static void dif(int n, ModT *a) {
     assert_power_of_two(n);
     for (int m = n; m >>= 1;) {
-      const ModT root = power(G, MOD - 1 - (MOD - 1) / (m << 1));
+      const ModT root = G.power(ModT::MOD - 1 - (ModT::MOD - 1) / (m << 1));
       for (int i = 0; i < n; i += m << 1) {
         ModT twiddle(1);
         for (int r = i; r < i + m; ++r) {
@@ -137,39 +57,7 @@ template <typename ModT_> struct NTT {
     }
   }
 
-  static void convolute(int n, ModT *a, ModT *b, ModT *out) {
-    dif(n, a);
-    dif(n, b);
-    const ModT inv_n = ModT(n).inverse();
-    for (int i = 0; i < n; ++i) {
-      out[i] = inv_n * a[i] * b[i];
-    }
-    dit(n, out);
-  }
-
-  // void revbin(ModT *a) {
-  //   for (int i = 1, j = 0; i < n - 1; ++i) {
-  //     for (int s = n; j ^= s >>= 1, ~j & s;)
-  //       ;
-  //     if (i < j) {
-  //       std::swap(a[i], a[j]);
-  //     }
-  //   }
-  // }
-
 private:
-  static constexpr ModT power(ModT a, int n) {
-    ModT res(1);
-    while (n) {
-      if (n & 1) {
-        res *= a;
-      }
-      a *= a;
-      n >>= 1;
-    }
-    return res;
-  }
-
   struct FiniteField {
     static constexpr ModT primitive_root() {
       int g = 2;
@@ -181,9 +69,10 @@ private:
 
   private:
     static constexpr bool is_primitive_root(ModT g) {
-      for (int d = 2; d * d <= MOD - 1; ++d) {
-        if ((MOD - 1) % d == 0 &&
-            (power(g, d).get() == 1 || power(g, (MOD - 1) / d).get() == 1)) {
+      for (int d = 2; d * d <= ModT::MOD - 1; ++d) {
+        if ((ModT::MOD - 1) % d == 0 &&
+            (g.power(d).get() == 1 ||
+             g.power((ModT::MOD - 1) / d).get() == 1)) {
           return false;
         }
       }
@@ -191,174 +80,65 @@ private:
     }
   };
 
-  int n;
-  ModT inv_n;
-  std::vector<ModT> dit_twiddles, dif_twiddles;
-
   static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
 
-template <typename NTT>
-static void inversev0(Span<typename NTT::ModT> buffer, int n,
-                      const typename NTT::ModT *p, typename NTT::ModT *q) {
-  using ModT = typename NTT::ModT;
-  buffer.ensure(n << 1);
-  assert_power_of_two(n);
-  if (p[0].get() == 0) {
-    throw std::invalid_argument("coefficient[0] == 0");
-  }
-  std::fill(q, q + n, ModT{0});
-  q[0] = p[0].inverse();
-  ModT *const dif_q = buffer.data();
-  ModT *const dif_p = buffer.data() + n;
-  ModT inv_2m = ModT{2}.inverse();
-  for (int m = 1; m < n; m <<= 1) {
-    const int _2m = m << 1;
-    std::copy(q, q + _2m, dif_q);
-    NTT::dif(_2m, dif_q);
-    std::copy(p, p + _2m, dif_p);
-    NTT::dif(_2m, dif_p);
-    for (int i = 0; i < _2m; ++i) {
-      dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
-    }
-    NTT::dit(_2m, dif_p);
-    std::fill(dif_p, dif_p + m, ModT{0});
-    NTT::dif(_2m, dif_p);
-    for (int i = 0; i < _2m; ++i) {
-      dif_p[i] = inv_2m * dif_p[i] * dif_q[i];
-    }
-    NTT::dit(_2m, dif_p);
-    for (int i = m; i < _2m; ++i) {
-      q[i] -= dif_p[i];
-    }
-    inv_2m *= ModT{2}.inverse();
-  }
-}
-
-template <typename NTT>
-static void inverse(Span<typename NTT::ModT> buffer, int n,
-                    const typename NTT::ModT *p, typename NTT::ModT *q) {
-  inversev0<NTT>(buffer, n, p, q);
-}
-
-template <typename NTT> struct InverseV0 {
+template <typename NTT> class Poly {
+private:
   using ModT = typename NTT::ModT;
 
-  InverseV0(int max_n) : buffer(max_n << 1) {}
+public:
+  Poly(int max_n_) : max_n(max_n_), buffer(4, std::vector<ModT>(max_n)) {}
 
-  void operator()(int n, const ModT *p, ModT *q) {
-    return inverse<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
+  void multiply(std::vector<ModT> &out, const std::vector<ModT> &f,
+                const std::vector<ModT> &g) {
+    ModT *b0 = buffer[0].data();
+    ModT *b1 = buffer[1].data();
+
+    int n = f.size() + g.size() - 1;
+    int n2 = get_n(n);
+    assign(n2, b0, f);
+    NTT::dif(n2, b0);
+    assign(n2, b1, g);
+    NTT::dif(n2, b1);
+    const ModT inv_n = ModT(n2).inverse();
+    for (int i = 0; i < n2; ++i) {
+      b0[i] = inv_n * b0[i] * b1[i];
+    }
+    NTT::dit(n2, b0);
+    out.resize(n);
+    for (int i = 0; i < n; ++i) {
+      out[i] = b0[i];
+    }
   }
+
+  // void inverse(int n, ModT *out, const ModT *f) {}
+
+  // void divide(int n, ModT *out, const ModT *f, const ModT *g) {}
+
+  // void log(int n, ModT *out, const ModT *f) {}
+
+  // void exp(int n, ModT *out, const ModT *f) {}
 
 private:
-  std::vector<ModT> buffer;
-};
+  static void assign(int n, ModT *buffer, const std::vector<ModT> &f) {
+    std::copy(f.begin(), f.end(), buffer);
+    std::fill(buffer + f.size(), buffer + n, ModT(0));
+  }
 
-template <typename NTT> using Inverse = InverseV0<NTT>;
-
-// p / q = p * q^{-1}
-template <typename NTT> struct DivideV0 {
-  using ModT = typename NTT::ModT;
-
-  DivideV0(int max_n) : buffer(max_n << 2) {}
-
-  // r = p / q
-  void operator()(int n, const ModT *p, const ModT *q, ModT *r) {
-    ModT *p_buf = buffer.data();
-    ModT *q_inv = buffer.data() + (n << 1);
-    inverse<NTT>(Span<ModT>(buffer.data(), n << 1), n, q, q_inv);
-    std::fill(q_inv + n, q_inv + (n << 1), ModT{0});
-    std::copy(p, p + n, p_buf);
-    std::fill(p_buf + n, p_buf + (n << 1), ModT{0});
-    NTT::dif(n << 1, p_buf);
-    NTT::dif(n << 1, q_inv);
-    const ModT inv_2n = ModT(2 * n).inverse();
-    for (int i = 0; i < n << 1; ++i) {
-      p_buf[i] = inv_2n * p_buf[i] * q_inv[i];
+  int get_n(int n) const {
+    int n2 = 1;
+    while (n2 < n) {
+      n2 <<= 1;
     }
-    NTT::dit(n << 1, p_buf);
-    std::copy(p_buf, p_buf + n, r);
+    if (n2 > max_n) {
+      throw std::invalid_argument("insufficient buffer");
+    }
+    return n2;
   }
 
-private:
-  std::vector<ModT> buffer;
+  int max_n;
+  std::vector<std::vector<ModT>> buffer;
 };
-
-template <typename NTT>
-static void dividev1(Span<typename NTT::ModT> buffer, int n,
-                     const typename NTT::ModT *p, const typename NTT::ModT *q,
-                     typename NTT::ModT *r) {
-  // TODO
-}
-
-template <typename NTT>
-static void divide(Span<typename NTT::ModT> buffer, int n,
-                   const typename NTT::ModT *p, const typename NTT::ModT *q,
-                   typename NTT::ModT *r) {
-  dividev1<NTT>(buffer, n, p, q, r);
-}
-
-// p / q = p * q^{-1}
-template <typename NTT> struct DivideV1 {
-  using ModT = typename NTT::ModT;
-
-  DivideV1(int max_n) : buffer(max_n << 2) {}
-
-  // r = p / q
-  void operator()(int n, const ModT *p, const ModT *q, ModT *r) {
-    dividev1<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q, r);
-  }
-
-private:
-  std::vector<ModT> buffer;
-};
-
-template <typename NTT> using Divide = DivideV1<NTT>;
-
-template <typename NTT>
-static void differentiate(int n, const typename NTT::ModT *p,
-                          typename NTT::ModT *dp) {
-  using ModT = typename NTT::ModT;
-  for (int i = 0; i < n; ++i) {
-    dp[i] = i + 1 < n ? ModT{i + 1} * p[i + 1] : ModT{0};
-  }
-}
-
-template <typename NTT>
-static void integrate(Span<typename NTT::ModT> buffer, int n,
-                      const typename NTT::ModT *p, typename NTT::ModT *dp) {
-  using ModT = typename NTT::ModT;
-  if (p[n - 1] != ModT{0}) {
-    throw std::invalid_argument("p[n - 1] != 0");
-  }
-  ModT *const inv = buffer.data();
-  for (int i = 1; i < n; ++i) {
-    inv[i] =
-        i == 1 ? ModT{1} : ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
-  }
-  for (int i = n; i-- > 1;) {
-    dp[i] = inv[i] * p[i - 1];
-  }
-  dp[0] = ModT{0};
-}
-
-// TODO
-// template <typename NTT> struct Logarithm {
-//   using ModT = typename NTT::ModT;
-
-//   Logarithm() : buffer(max_n << 2) {}
-
-//   // log p = int{p' / p}
-//   void operator()(int n, const ModT *p, ModT *out) {
-//     ModT *const inv_p = buffer.data();
-//     ModT *const dp = buffer.data() + (n << 1);
-//     inverse<NTT>(Span<ModT>{buffer.data(), 2 * n}, n, p, inv_p);
-//     differentiate<NTT>(n, p, dp);
-//   }
-
-// private:
-//   const int max_n;
-//   std::vector<ModT> buffer;
-// };
 
 } // namespace ntt

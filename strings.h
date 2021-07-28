@@ -1,3 +1,7 @@
+#pragma once
+
+#include <queue>
+
 template <int N, int C> struct AhoCorasick {
   AhoCorasick() : n(1) {
     memset(weight, 0, sizeof(weight));

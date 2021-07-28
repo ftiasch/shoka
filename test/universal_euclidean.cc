@@ -2,6 +2,8 @@
 
 #include "gtest/gtest.h"
 
+namespace {
+
 static const int M = 50;
 
 struct Monoid {
@@ -31,3 +33,5 @@ TEST(UniversalEuclidean, Test) {
     }
   }
 }
+
+} // namespace
