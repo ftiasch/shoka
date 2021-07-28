@@ -20,6 +20,24 @@ static void assert_power_of_two(int n) {
   }
 }
 
+template <typename T> struct Span {
+  Span(T *data, size_t size) : data_{data}, size_{size} {}
+
+  T *const data() const { return data_; }
+
+  size_t size() const { return size_; }
+
+  void ensure(size_t n) const {
+    if (static_cast<int>(size()) < n) {
+      throw std::invalid_argument("insufficient buffer");
+    }
+  }
+
+private:
+  T *data_;
+  size_t size_;
+};
+
 template <typename ModT_> struct NTT {
   using ModT = ModT_;
   static const u32 MOD = ModT::MOD;
@@ -129,6 +147,22 @@ template <typename ModT_> struct NTT {
     dit(n, out);
   }
 
+  // static void convolute(Span<typename NTT::ModT> buffer_, int n, const ModT
+  // *a,
+  //                       const ModT *b, ModT *out) {
+  //   buffer_.ensure(n);
+  //   typename NTT::ModT buffer = buffer_.data();
+  //   std::copy(a, a + n, out);
+  //   dif(n, out);
+  //   std::copy(b, b + n, buffer);
+  //   dif(n, buffer.data());
+  //   const ModT inv_n = ModT(n).inverse();
+  //   for (int i = 0; i < n; ++i) {
+  //     out[i] = inv_n * out[i] * buffer[i];
+  //   }
+  //   dit(n, out);
+  // }
+
   // void revbin(ModT *a) {
   //   for (int i = 1, j = 0; i < n - 1; ++i) {
   //     for (int s = n; j ^= s >>= 1, ~j & s;)
@@ -180,25 +214,11 @@ private:
   static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
 
-template <typename T> struct Span {
-  Span(T *data, size_t size) : data_{data}, size_{size} {}
-
-  T *const data() const { return data_; }
-
-  size_t size() const { return size_; }
-
-private:
-  T *data_;
-  size_t size_;
-};
-
 template <typename NTT>
 static void inversev0(Span<typename NTT::ModT> buffer, int n,
-                    const typename NTT::ModT *p, typename NTT::ModT *q) {
+                      const typename NTT::ModT *p, typename NTT::ModT *q) {
   using ModT = typename NTT::ModT;
-  if (static_cast<int>(buffer.size()) < 2 * n) {
-    throw std::invalid_argument("insufficient buffer");
-  }
+  buffer.ensure(n << 1);
   assert_power_of_two(n);
   if (p[0].get() == 0) {
     throw std::invalid_argument("coefficient[0] == 0");
@@ -229,6 +249,12 @@ static void inversev0(Span<typename NTT::ModT> buffer, int n,
     }
     inv_2m *= ModT{2}.inverse();
   }
+}
+
+template <typename NTT>
+static void inverse(Span<typename NTT::ModT> buffer, int n,
+                    const typename NTT::ModT *p, typename NTT::ModT *q) {
+  inversev0<NTT>(buffer, n, p, q);
 }
 
 template <typename NTT>
@@ -264,12 +290,43 @@ template <typename NTT> struct InverseV0 {
   InverseV0(int max_n) : buffer(max_n << 1) {}
 
   void operator()(int n, const ModT *p, ModT *q) {
-    return inversev0<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
+    return inverse<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q);
   }
 
 private:
   std::vector<ModT> buffer;
 };
+
+template <typename NTT> using Inverse = InverseV0<NTT>;
+
+template <typename NTT> struct DivideV0 {
+  using ModT = typename NTT::ModT;
+
+  DivideV0(int max_n) : buffer(max_n << 2) {}
+
+  // r = p / q
+  void operator()(int n, const ModT *p, const ModT *q, ModT *r) {
+    ModT *p_buf = buffer.data();
+    ModT *q_inv = buffer.data() + (n << 1);
+    inverse<NTT>(Span<ModT>(buffer.data(), n << 1), n, q, q_inv);
+    std::fill(q_inv + n, q_inv + (n << 1), ModT{0});
+    std::copy(p, p + n, p_buf);
+    std::fill(p_buf + n, p_buf + (n << 1), ModT{0});
+    NTT::dif(n << 1, p_buf);
+    NTT::dif(n << 1, q_inv);
+    const ModT inv_2n = ModT(2 * n).inverse();
+    for (int i = 0; i < n << 1; ++i) {
+      p_buf[i] = inv_2n * p_buf[i] * q_inv[i];
+    }
+    NTT::dit(n << 1, p_buf);
+    std::copy(p_buf, p_buf + n, r);
+  }
+
+private:
+  std::vector<ModT> buffer;
+};
+
+template <typename NTT> using Divide = DivideV0<NTT>;
 
 // TODO
 // template <typename NTT> struct Logarithm {
