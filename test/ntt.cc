@@ -19,6 +19,15 @@ std::vector<ModT> random_poly(int n) {
   return result;
 }
 
+std::vector<ModT> random_poly1(int n) {
+  std::vector<ModT> result(n);
+  result[0] = ModT(1 + mt() % (MOD - 1));
+  for (int i = 1; i < n; ++i) {
+    result[i] = ModT(mt() % MOD);
+  }
+  return result;
+}
+
 static const int n = (1 << 10) - 233;
 
 ntt::Poly<ntt::NTT<ModT>> poly(1 << 10);
@@ -38,5 +47,25 @@ TEST(NTT, Multiplication) {
   ASSERT_EQ(fg.size(), answer.size());
   for (int i = 0; i < answer.size(); ++i) {
     ASSERT_EQ(fg[i].get(), answer[i].get());
+  }
+}
+
+TEST(NTT, Inversion) {
+  std::vector<ModT> f = random_poly1(n);
+  std::vector<ModT> f_inv;
+  poly.inverse(n, f_inv, f);
+
+  std::vector<ModT> answer(n);
+  answer[0] = f[0].inverse();
+  for (int i = 1; i < n; ++i) {
+    answer[i] = ModT(0);
+    for (int j = 0; j < i; ++j) {
+      answer[i] -= f[i - j] * answer[j];
+    }
+    answer[i] *= answer[0];
+  }
+  ASSERT_EQ(f_inv.size(), answer.size());
+  for (int i = 0; i < answer.size(); ++i) {
+    ASSERT_EQ(f_inv[i].get(), answer[i].get());
   }
 }

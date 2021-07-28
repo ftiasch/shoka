@@ -112,7 +112,37 @@ public:
     }
   }
 
-  // void inverse(int n, ModT *out, const ModT *f) {}
+  void inverse(int n, std::vector<ModT> &out, const std::vector<ModT> &f) {
+    ModT *b0 = buffer[0].data();
+    ModT *b1 = buffer[1].data();
+
+    int n2 = get_n(n);
+    out.resize(1);
+    out[0] = f[0].inverse();
+    ModT inv_2m(1);
+    for (int m = 1; m < n; m <<= 1) {
+      assign(m << 1, b0, f);
+      NTT::dif(m << 1, b0);
+      assign(m << 1, b1, out);
+      NTT::dif(m << 1, b1);
+      inv_2m *= ModT(2).inverse();
+      for (int i = 0; i < m << 1; ++i) {
+        b0[i] = inv_2m * b0[i] * b1[i];
+      }
+      NTT::dit(m << 1, b0);
+      std::fill(b0, b0 + m, ModT(0));
+      NTT::dif(m << 1, b0);
+      for (int i = 0; i < m << 1; ++i) {
+        b0[i] = inv_2m * b0[i] * b1[i];
+      }
+      NTT::dit(m << 1, b0);
+      out.resize(m << 1);
+      for (int i = m; i < m << 1; ++i) {
+        out[i] = ModT(0) - b0[i];
+      }
+    }
+    out.resize(n);
+  }
 
   // void divide(int n, ModT *out, const ModT *f, const ModT *g) {}
 
@@ -122,8 +152,9 @@ public:
 
 private:
   static void assign(int n, ModT *buffer, const std::vector<ModT> &f) {
-    std::copy(f.begin(), f.end(), buffer);
-    std::fill(buffer + f.size(), buffer + n, ModT(0));
+    const int deg = std::min(static_cast<int>(f.size()), n);
+    std::copy(f.data(), f.data() + deg, buffer);
+    std::fill(buffer + deg, buffer + n, ModT(0));
   }
 
   int get_n(int n) const {
