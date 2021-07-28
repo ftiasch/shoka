@@ -47,7 +47,8 @@ TEST(NTT, Convolution) {
 TEST(NTT, Inverse) {
   std::vector<ModT> p(N << 1), q(N << 1);
   std::mt19937 gen(0);
-  for (int i = 0; i < N; ++i) {
+  p[0] = ModT(gen() % (MOD - 1) + 1);
+  for (int i = 1; i < N; ++i) {
     p[i] = ModT(gen() % MOD);
   }
   InverseV0<NTT<ModT>> poly_inv(N);
