@@ -28,4 +28,5 @@ template <typename Divide> static void poly_div(picobench::state &s) {
   s.stop_timer();
 }
 
-PICOBENCH(poly_div<DivideV0<NTT<ModT>>>);
+PICOBENCH(poly_div<DivideV0<NTT<ModT>>>).label("v0").baseline();
+PICOBENCH(poly_div<DivideV1<NTT<ModT>>>).label("v1");

@@ -147,22 +147,6 @@ template <typename ModT_> struct NTT {
     dit(n, out);
   }
 
-  // static void convolute(Span<typename NTT::ModT> buffer_, int n, const ModT
-  // *a,
-  //                       const ModT *b, ModT *out) {
-  //   buffer_.ensure(n);
-  //   typename NTT::ModT buffer = buffer_.data();
-  //   std::copy(a, a + n, out);
-  //   dif(n, out);
-  //   std::copy(b, b + n, buffer);
-  //   dif(n, buffer.data());
-  //   const ModT inv_n = ModT(n).inverse();
-  //   for (int i = 0; i < n; ++i) {
-  //     out[i] = inv_n * out[i] * buffer[i];
-  //   }
-  //   dit(n, out);
-  // }
-
   // void revbin(ModT *a) {
   //   for (int i = 1, j = 0; i < n - 1; ++i) {
   //     for (int s = n; j ^= s >>= 1, ~j & s;)
@@ -257,33 +241,6 @@ static void inverse(Span<typename NTT::ModT> buffer, int n,
   inversev0<NTT>(buffer, n, p, q);
 }
 
-template <typename NTT>
-static void differentiate(int n, const typename NTT::ModT *p,
-                          typename NTT::ModT *dp) {
-  using ModT = typename NTT::ModT;
-  for (int i = 0; i < n; ++i) {
-    dp[i] = i + 1 < n ? ModT{i + 1} * p[i + 1] : ModT{0};
-  }
-}
-
-template <typename NTT>
-static void integrate(Span<typename NTT::ModT> buffer, int n,
-                      const typename NTT::ModT *p, typename NTT::ModT *dp) {
-  using ModT = typename NTT::ModT;
-  if (p[n - 1] != ModT{0}) {
-    throw std::invalid_argument("p[n - 1] != 0");
-  }
-  ModT *const inv = buffer.data();
-  for (int i = 1; i < n; ++i) {
-    inv[i] =
-        i == 1 ? ModT{1} : ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
-  }
-  for (int i = n; i-- > 1;) {
-    dp[i] = inv[i] * p[i - 1];
-  }
-  dp[0] = ModT{0};
-}
-
 template <typename NTT> struct InverseV0 {
   using ModT = typename NTT::ModT;
 
@@ -299,6 +256,7 @@ private:
 
 template <typename NTT> using Inverse = InverseV0<NTT>;
 
+// p / q = p * q^{-1}
 template <typename NTT> struct DivideV0 {
   using ModT = typename NTT::ModT;
 
@@ -326,7 +284,63 @@ private:
   std::vector<ModT> buffer;
 };
 
-template <typename NTT> using Divide = DivideV0<NTT>;
+template <typename NTT>
+static void dividev1(Span<typename NTT::ModT> buffer, int n,
+                     const typename NTT::ModT *p, const typename NTT::ModT *q,
+                     typename NTT::ModT *r) {
+  // TODO
+}
+
+template <typename NTT>
+static void divide(Span<typename NTT::ModT> buffer, int n,
+                   const typename NTT::ModT *p, const typename NTT::ModT *q,
+                   typename NTT::ModT *r) {
+  dividev1<NTT>(buffer, n, p, q, r);
+}
+
+// p / q = p * q^{-1}
+template <typename NTT> struct DivideV1 {
+  using ModT = typename NTT::ModT;
+
+  DivideV1(int max_n) : buffer(max_n << 2) {}
+
+  // r = p / q
+  void operator()(int n, const ModT *p, const ModT *q, ModT *r) {
+    dividev1<NTT>(Span<ModT>{buffer.data(), buffer.size()}, n, p, q, r);
+  }
+
+private:
+  std::vector<ModT> buffer;
+};
+
+template <typename NTT> using Divide = DivideV1<NTT>;
+
+template <typename NTT>
+static void differentiate(int n, const typename NTT::ModT *p,
+                          typename NTT::ModT *dp) {
+  using ModT = typename NTT::ModT;
+  for (int i = 0; i < n; ++i) {
+    dp[i] = i + 1 < n ? ModT{i + 1} * p[i + 1] : ModT{0};
+  }
+}
+
+template <typename NTT>
+static void integrate(Span<typename NTT::ModT> buffer, int n,
+                      const typename NTT::ModT *p, typename NTT::ModT *dp) {
+  using ModT = typename NTT::ModT;
+  if (p[n - 1] != ModT{0}) {
+    throw std::invalid_argument("p[n - 1] != 0");
+  }
+  ModT *const inv = buffer.data();
+  for (int i = 1; i < n; ++i) {
+    inv[i] =
+        i == 1 ? ModT{1} : ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
+  }
+  for (int i = n; i-- > 1;) {
+    dp[i] = inv[i] * p[i - 1];
+  }
+  dp[0] = ModT{0};
+}
 
 // TODO
 // template <typename NTT> struct Logarithm {
