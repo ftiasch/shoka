@@ -115,47 +115,67 @@ public:
     assert_power_of_two(n);
     assert_max_n(n);
 
-    ModT *b0 = buffer[0].data();
-    ModT *b1 = buffer[1].data();
+    ModT *const b0 = buffer[0].data();
+    ModT *const b1 = buffer[1].data();
 
     out[0] = f[0].inverse();
-    ModT inv_2m(1);
-    for (int m = 1; m < n; m <<= 1) {
-      copy_and_fill(m << 1, b0, n, f);
-      NTT::dif(m << 1, b0);
-      copy_and_fill(m << 1, b1, m, out);
-      NTT::dif(m << 1, b1);
-      inv_2m *= ModT(2).inverse();
-      dot_product(m << 1, inv_2m, b0, b0, b1);
-      NTT::dit(m << 1, b0);
-      std::fill(b0, b0 + m, ModT(0));
-      NTT::dif(m << 1, b0);
-      dot_product(m << 1, inv_2m, b0, b0, b1);
-      NTT::dit(m << 1, b0);
-      for (int i = m; i < m << 1; ++i) {
+    ModT inv_m(1);
+    for (int m = 2; m <= n; m <<= 1) {
+      copy_and_fill(m, b0, n, f);
+      NTT::dif(m, b0);
+      copy_and_fill(m, b1, m, out);
+      NTT::dif(m, b1);
+      inv_m *= ModT(2).inverse();
+      dot_product(m, inv_m, b0, b0, b1);
+      NTT::dit(m, b0);
+      std::fill(b0, b0 + (m >> 1), ModT(0));
+      NTT::dif(m, b0);
+      dot_product(m, inv_m, b0, b0, b1);
+      NTT::dit(m, b0);
+      for (int i = m >> 1; i < m; ++i) {
         out[i] = ModT(0) - b0[i];
       }
     }
   }
 
-  // g / f
-  // void divide(int n, std::vector<ModT>& out, const std::vector<ModT>& g,
-  // const std::vector<ModT>& f) {
-  //   ModT *b0 = buffer[0].data();
-  //   ModT *b1 = buffer[1].data();
+  // f / g
+  void divide(int n, ModT *out, const ModT *f, const ModT *g) {
+    assert_power_of_two(n);
+    assert_max_n(n);
 
-  //   int m = get_n(n) >> 1;
-  //   inverse(m, out, f);
-  //   out.resize(m << 1);
-  //   NTT::dif(m << 1, out.data());
-  //   assign(m << 1, b0, g);
-  //   NTT::dif(m << 1, b0);
-  //   const ModT inv_2m = ModT(m << 1).inverse();
-  //   for (int i = 0; i < m << 1; ++ i) {
-  //     b0[i] = inv_2m * b0[i] * out[i];
-  //   }
-  //   NTT::dit(m << 1, b0);
-  // }
+    ModT *const b0 = buffer[0].data();
+    ModT *const b1 = buffer[1].data();
+    ModT *const g_inv = buffer[2].data();
+
+    int m = n >> 1;
+    inverse(m, g_inv, g);
+    std::fill(g_inv + m, g_inv + n, ModT(0));
+    NTT::dif(n, g_inv);
+    copy_and_fill(n, b0, m, f);
+    NTT::dif(n, b0);
+    const ModT inv_n = ModT(n).inverse();
+    dot_product(n, inv_n, b0, b0, g_inv);
+    NTT::dit(n, b0);
+
+    std::copy(b0, b0 + m, out);
+
+    std::fill(b0 + m, b0 + n, ModT(0));
+    NTT::dif(n, b0);
+    copy_and_fill(n, b1, n, g);
+    NTT::dif(n, b1);
+    dot_product(n, inv_n, b0, b0, b1);
+    NTT::dit(n, b0);
+    std::fill(b0, b0 + m, ModT(0));
+    for (int i = m; i < n; ++i) {
+      b0[i] -= f[i];
+    }
+    NTT::dif(n, b0);
+    dot_product(n, inv_n, b0, b0, g_inv);
+    NTT::dit(n, b0);
+    for (int i = m; i < n; ++i) {
+      out[i] = ModT(0) - b0[i];
+    }
+  }
 
   // void log(int n, ModT *out, const ModT *f) {}
 

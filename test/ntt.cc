@@ -68,3 +68,25 @@ TEST(NTT, Inversion) {
     ASSERT_EQ(f_inv[i].get(), answer[i].get());
   }
 }
+
+// TODO: Remainder
+
+TEST(NTT, Division) {
+  std::vector<ModT> f = random_poly(n);
+  std::vector<ModT> g = random_poly1(n);
+  std::vector<ModT> quotient(n);
+  poly.divide(n, quotient.data(), f.data(), g.data());
+
+  std::vector<ModT> answer(n);
+  const ModT g0_inv = g[0].inverse();
+  for (int i = 0; i < n; ++i) {
+    answer[i] = f[i];
+    for (int j = 0; j < i; ++j) {
+      answer[i] -= g[i - j] * answer[j];
+    }
+    answer[i] *= g0_inv;
+  }
+  for (int i = 0; i < n; ++i) {
+    ASSERT_EQ(quotient[i].get(), answer[i].get());
+  }
+}
