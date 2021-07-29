@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -215,7 +216,7 @@ public:
       ModT *const b2 = buffer[2].data();
       ModT *const b3 = buffer[3].data();
 
-      out[0] = b1[0] = b2[0] = ModT(1);
+      out[0] = b1[0] = b1[1] = b2[0] = ModT(1);
       ModT inv_m(1);
       for (int m = 1; m < (n >> 1); m <<= 1) {
         const ModT inv_2m = inv_m * ModT(2).inverse();
