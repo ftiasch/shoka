@@ -88,11 +88,13 @@ private:
   using ModT = typename NTT::ModT;
 
 public:
-  Poly(int max_n_)
-      : max_n(max_n_), inv(max_n), buffer(4, std::vector<ModT>(max_n)) {
+  Poly(int max_n_) : max_n(max_n_), inv(max_n) {
     inv[1] = ModT(1);
     for (int i = 2; i < max_n; ++i) {
       inv[i] = ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
+    }
+    for (int i = 0; i < 4; ++i) {
+      buffer[i].resize(max_n);
     }
   }
 
@@ -147,40 +149,44 @@ public:
 
   // f / g
   void divide(int n, ModT *out, const ModT *f, const ModT *g) {
-    assert_power_of_two(n);
-    assert_max_n(n);
+    if (n == 1) {
+      out[0] = f[0] * g[0].inverse();
+    } else {
+      assert_power_of_two(n);
+      assert_max_n(n);
 
-    ModT *const b0 = buffer[0].data();
-    ModT *const b1 = buffer[1].data();
-    ModT *const inv_g = buffer[2].data();
+      ModT *const b0 = buffer[0].data();
+      ModT *const b1 = buffer[1].data();
+      ModT *const inv_g = buffer[2].data();
 
-    int m = n >> 1;
-    inverse(m, inv_g, g);
-    std::fill(inv_g + m, inv_g + n, ModT(0));
-    NTT::dif(n, inv_g);
-    copy_and_fill(n, b0, m, f);
-    NTT::dif(n, b0);
-    const ModT inv_n = ModT(n).inverse();
-    dot_product(n, inv_n, b0, b0, inv_g);
-    NTT::dit(n, b0);
+      int m = n >> 1;
+      inverse(m, inv_g, g);
+      std::fill(inv_g + m, inv_g + n, ModT(0));
+      NTT::dif(n, inv_g);
+      copy_and_fill(n, b0, m, f);
+      NTT::dif(n, b0);
+      const ModT inv_n = ModT(n).inverse();
+      dot_product(n, inv_n, b0, b0, inv_g);
+      NTT::dit(n, b0);
 
-    std::copy(b0, b0 + m, out);
+      std::copy(b0, b0 + m, out);
 
-    std::fill(b0 + m, b0 + n, ModT(0));
-    NTT::dif(n, b0);
-    copy_and_fill(n, b1, n, g);
-    NTT::dif(n, b1);
-    dot_product(n, inv_n, b0, b0, b1);
-    NTT::dit(n, b0);
-    std::fill(b0, b0 + m, ModT(0));
-    for (int i = m; i < n; ++i) {
-      b0[i] -= f[i];
-    }
-    NTT::dif(n, b0);
-    dot_product(n, inv_n, b0, b0, inv_g);
-    NTT::dit(n, b0);
-    for (int i = m; i < n; ++i) {
-      out[i] = ModT(0) - b0[i];
+      std::fill(b0 + m, b0 + n, ModT(0));
+      NTT::dif(n, b0);
+      copy_and_fill(n, b1, n, g);
+      NTT::dif(n, b1);
+      dot_product(n, inv_n, b0, b0, b1);
+      NTT::dit(n, b0);
+      std::fill(b0, b0 + m, ModT(0));
+      for (int i = m; i < n; ++i) {
+        b0[i] -= f[i];
+      }
+      NTT::dif(n, b0);
+      dot_product(n, inv_n, b0, b0, inv_g);
+      NTT::dit(n, b0);
+      for (int i = m; i < n; ++i) {
+        out[i] = ModT(0) - b0[i];
+      }
     }
   }
 
@@ -200,7 +206,20 @@ public:
     out[0] = ModT(0);
   }
 
-  // void exp(int n, ModT *out, const ModT *f) {}
+  // void exp(int n, ModT *out, const ModT *f) {
+  //   assert_power_of_two(n);
+  //   assert_max_n(n);
+
+  //   ModT *const b0 = buffer[0].data();
+  //   ModT *const b1 = buffer[1].data();
+  //   ModT *const b2 = buffer[2].data();
+  //   ModT *const b3 = buffer[3].data();
+
+  //   out[0] = b1[0] = b2[0] = ModT(1);
+  //   for (int m = 1; m < (n >> 1); m <<= 1) {
+  //   }
+  //   // TODO
+  // }
 
 private:
   static int min_power_of_two(int n) {
@@ -232,7 +251,7 @@ private:
 
   int max_n;
   std::vector<ModT> inv;
-  std::vector<std::vector<ModT>> buffer;
+  std::array<std::vector<ModT>, 4> buffer;
 };
 
 } // namespace ntt

@@ -28,14 +28,14 @@ std::vector<ModT> random_poly1(int n) {
   return result;
 }
 
-static const int n = 1 << 10;
+static const int K = 10;
 
-ntt::Poly<ntt::NTT<ModT>> poly(n);
+ntt::Poly<ntt::NTT<ModT>> poly(1 << K);
 
 TEST(NTT, Multiplication) {
-  for (int _ = 0; _ < 10; ++_) {
-    std::vector<ModT> f = random_poly((n >> 1) - 1);
-    std::vector<ModT> g = random_poly((n >> 1) - 2);
+  for (int k = K; k >= 1; --k) {
+    std::vector<ModT> f = random_poly(1 << (k - 1));
+    std::vector<ModT> g = random_poly(1 << (k - 1));
     std::vector<ModT> fg;
     poly.multiply(fg, f, g);
 
@@ -53,7 +53,8 @@ TEST(NTT, Multiplication) {
 }
 
 TEST(NTT, Inversion) {
-  for (int _ = 0; _ < 10; ++_) {
+  for (int k = K; k >= 0; --k) {
+    const int n = 1 << k;
     std::vector<ModT> f = random_poly1(n);
     std::vector<ModT> inv_f(n);
     poly.inverse(n, inv_f.data(), f.data());
@@ -73,10 +74,11 @@ TEST(NTT, Inversion) {
   }
 }
 
-// TODO: Remainder
+// // TODO: Remainder
 
 TEST(NTT, Division) {
-  for (int _ = 0; _ < 10; ++_) {
+  for (int k = K; k >= 0; --k) {
+    const int n = 1 << k;
     std::vector<ModT> f = random_poly(n);
     std::vector<ModT> g = random_poly1(n);
     std::vector<ModT> quotient(n);
@@ -98,7 +100,8 @@ TEST(NTT, Division) {
 }
 
 TEST(NTT, Logarithm) {
-  for (int _ = 0; _ < 10; ++_) {
+  for (int k = K; k >= 0; --k) {
+    const int n = 1 << k;
     std::vector<ModT> f = random_poly(n);
     f[0] = ModT(1);
     std::vector<ModT> log_f(n);
@@ -125,20 +128,21 @@ TEST(NTT, Logarithm) {
 //     std::vector<ModT> f = random_poly(n);
 //     f[0] = ModT(0);
 //     std::vector<ModT> exp_f(n);
-//     poly.exp(n, exp.data(), f.data());
+//     poly.exp(n, exp_f.data(), f.data());
 
-//     std::vector<ModT> answer(n, ModT(0));
+//     std::vector<ModT> answer(n, ModT(0)), g(f);
 //     for (int i = 1; i < n; ++i) {
-//       answer[i] = ModT(i) * f[i];
-//       for (int j = 1; j <= i; ++j) {
-//         answer[i] -= f[j] * answer[i - j];
-//       }
+//       g[i] *= ModT(i);
 //     }
+//     answer[0] = ModT(1);
 //     for (int i = 1; i < n; ++i) {
+//       for (int j = 0; j < i; ++j) {
+//         answer[i] += g[j + 1] * answer[i - 1 - j];
+//       }
 //       answer[i] *= ModT(i).inverse();
 //     }
 //     for (int i = 0; i < n; ++i) {
-//       ASSERT_EQ(log_f[i].get(), answer[i].get());
+//       ASSERT_EQ(exp_f[i].get(), answer[i].get());
 //     }
 //   }
 // }
