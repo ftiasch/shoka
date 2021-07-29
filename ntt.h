@@ -88,7 +88,13 @@ private:
   using ModT = typename NTT::ModT;
 
 public:
-  Poly(int max_n_) : max_n(max_n_), buffer(4, std::vector<ModT>(max_n)) {}
+  Poly(int max_n_)
+      : max_n(max_n_), inv(max_n), buffer(4, std::vector<ModT>(max_n)) {
+    inv[1] = ModT(1);
+    for (int i = 2; i < max_n; ++i) {
+      inv[i] = ModT(ModT::MOD - ModT::MOD / i) * inv[ModT::MOD % i];
+    }
+  }
 
   void multiply(std::vector<ModT> &out, const std::vector<ModT> &f,
                 const std::vector<ModT> &g) {
@@ -178,7 +184,21 @@ public:
     }
   }
 
-  // void log(int n, ModT *out, const ModT *f) {}
+  void log(int n, ModT *out, const ModT *f) {
+    assert_power_of_two(n);
+    assert_max_n(n);
+    // log f = \int f' / f
+    ModT *const d_f = buffer[3].data();
+    d_f[n - 1] = ModT(0);
+    for (int i = 1; i < n; ++i) {
+      d_f[i - 1] = ModT(i) * f[i];
+    }
+    divide(n, out, d_f, f);
+    for (int i = n; i-- > 1;) {
+      out[i] = out[i - 1] * inv[i];
+    }
+    out[0] = ModT(0);
+  }
 
   // void exp(int n, ModT *out, const ModT *f) {}
 
@@ -211,6 +231,7 @@ private:
   }
 
   int max_n;
+  std::vector<ModT> inv;
   std::vector<std::vector<ModT>> buffer;
 };
 
