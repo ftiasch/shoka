@@ -123,26 +123,27 @@ TEST(NTT, Logarithm) {
   }
 }
 
-// TEST(NTT, Exponentiation) {
-//   for (int _ = 0; _ < 10; ++_) {
-//     std::vector<ModT> f = random_poly(n);
-//     f[0] = ModT(0);
-//     std::vector<ModT> exp_f(n);
-//     poly.exp(n, exp_f.data(), f.data());
+TEST(NTT, Exponentiation) {
+  for (int k = K; k >= 0; --k) {
+    const int n = 1 << k;
+    std::vector<ModT> f = random_poly(n);
+    f[0] = ModT(0);
+    std::vector<ModT> exp_f(n);
+    poly.exp(n, exp_f.data(), f.data());
 
-//     std::vector<ModT> answer(n, ModT(0)), g(f);
-//     for (int i = 1; i < n; ++i) {
-//       g[i] *= ModT(i);
-//     }
-//     answer[0] = ModT(1);
-//     for (int i = 1; i < n; ++i) {
-//       for (int j = 0; j < i; ++j) {
-//         answer[i] += g[j + 1] * answer[i - 1 - j];
-//       }
-//       answer[i] *= ModT(i).inverse();
-//     }
-//     for (int i = 0; i < n; ++i) {
-//       ASSERT_EQ(exp_f[i].get(), answer[i].get());
-//     }
-//   }
-// }
+    std::vector<ModT> answer(n, ModT(0)), g(n);
+    for (int i = 1; i < n; ++i) {
+      g[i] = ModT(i) * f[i];
+    }
+    answer[0] = ModT(1);
+    for (int i = 1; i < n; ++i) {
+      for (int j = 0; j < i; ++j) {
+        answer[i] += g[j + 1] * answer[i - 1 - j];
+      }
+      answer[i] *= ModT(i).inverse();
+    }
+    for (int i = 0; i < n; ++i) {
+      ASSERT_EQ(exp_f[i].get(), answer[i].get()) << "k=" << k << "|i=" << i;
+    }
+  }
+}
