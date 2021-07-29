@@ -33,60 +33,71 @@ static const int n = 1 << 10;
 ntt::Poly<ntt::NTT<ModT>> poly(n);
 
 TEST(NTT, Multiplication) {
-  std::vector<ModT> f = random_poly((n >> 1) - 1);
-  std::vector<ModT> g = random_poly((n >> 1) - 2);
-  std::vector<ModT> fg;
-  poly.multiply(fg, f, g);
+  for (int _ = 0; _ < 10; ++_) {
+    std::vector<ModT> f = random_poly((n >> 1) - 1);
+    std::vector<ModT> g = random_poly((n >> 1) - 2);
+    std::vector<ModT> fg;
+    poly.multiply(fg, f, g);
 
-  std::vector<ModT> answer(f.size() + g.size() - 1);
-  for (int i = 0; i < f.size(); ++i) {
-    for (int j = 0; j < g.size(); ++j) {
-      answer[i + j] += f[i] * g[j];
+    std::vector<ModT> answer(f.size() + g.size() - 1);
+    for (int i = 0; i < f.size(); ++i) {
+      for (int j = 0; j < g.size(); ++j) {
+        answer[i + j] += f[i] * g[j];
+      }
     }
-  }
-  ASSERT_EQ(fg.size(), answer.size());
-  for (int i = 0; i < answer.size(); ++i) {
-    ASSERT_EQ(fg[i].get(), answer[i].get());
+    ASSERT_EQ(fg.size(), answer.size());
+    for (int i = 0; i < answer.size(); ++i) {
+      ASSERT_EQ(fg[i].get(), answer[i].get());
+    }
   }
 }
 
 TEST(NTT, Inversion) {
-  std::vector<ModT> f = random_poly1(n);
-  std::vector<ModT> f_inv(n);
-  poly.inverse(n, f_inv.data(), f.data());
+  for (int _ = 0; _ < 10; ++_) {
+    std::vector<ModT> f = random_poly1(n);
+    std::vector<ModT> inv_f(n);
+    poly.inverse(n, inv_f.data(), f.data());
 
-  std::vector<ModT> answer(n);
-  answer[0] = f[0].inverse();
-  for (int i = 1; i < n; ++i) {
-    answer[i] = ModT(0);
-    for (int j = 0; j < i; ++j) {
-      answer[i] -= f[i - j] * answer[j];
+    std::vector<ModT> answer(n);
+    answer[0] = f[0].inverse();
+    for (int i = 1; i < n; ++i) {
+      answer[i] = ModT(0);
+      for (int j = 0; j < i; ++j) {
+        answer[i] -= f[i - j] * answer[j];
+      }
+      answer[i] *= answer[0];
     }
-    answer[i] *= answer[0];
-  }
-  for (int i = 0; i < n; ++i) {
-    ASSERT_EQ(f_inv[i].get(), answer[i].get());
+    for (int i = 0; i < n; ++i) {
+      ASSERT_EQ(inv_f[i].get(), answer[i].get());
+    }
   }
 }
 
 // TODO: Remainder
 
 TEST(NTT, Division) {
-  std::vector<ModT> f = random_poly(n);
-  std::vector<ModT> g = random_poly1(n);
-  std::vector<ModT> quotient(n);
-  poly.divide(n, quotient.data(), f.data(), g.data());
+  for (int _ = 0; _ < 10; ++_) {
+    std::vector<ModT> f = random_poly(n);
+    std::vector<ModT> g = random_poly1(n);
+    std::vector<ModT> quotient(n);
+    poly.divide(n, quotient.data(), f.data(), g.data());
 
-  std::vector<ModT> answer(n);
-  const ModT g0_inv = g[0].inverse();
-  for (int i = 0; i < n; ++i) {
-    answer[i] = f[i];
-    for (int j = 0; j < i; ++j) {
-      answer[i] -= g[i - j] * answer[j];
+    std::vector<ModT> answer(n);
+    const ModT inv_g0 = g[0].inverse();
+    for (int i = 0; i < n; ++i) {
+      answer[i] = f[i];
+      for (int j = 0; j < i; ++j) {
+        answer[i] -= g[i - j] * answer[j];
+      }
+      answer[i] *= inv_g0;
     }
-    answer[i] *= g0_inv;
-  }
-  for (int i = 0; i < n; ++i) {
-    ASSERT_EQ(quotient[i].get(), answer[i].get());
+    for (int i = 0; i < n; ++i) {
+      ASSERT_EQ(quotient[i].get(), answer[i].get());
+    }
   }
 }
+
+// TEST(NTT, Logarithm) {
+//   std::vector<ModT> f = random_poly1(n);
+//   std::vector<ModT> log_f;
+// }

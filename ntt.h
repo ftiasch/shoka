@@ -118,6 +118,7 @@ public:
     ModT *const b0 = buffer[0].data();
     ModT *const b1 = buffer[1].data();
 
+    std::fill(out, out + n, ModT(0));
     out[0] = f[0].inverse();
     ModT inv_m(1);
     for (int m = 2; m <= n; m <<= 1) {
@@ -145,16 +146,16 @@ public:
 
     ModT *const b0 = buffer[0].data();
     ModT *const b1 = buffer[1].data();
-    ModT *const g_inv = buffer[2].data();
+    ModT *const inv_g = buffer[2].data();
 
     int m = n >> 1;
-    inverse(m, g_inv, g);
-    std::fill(g_inv + m, g_inv + n, ModT(0));
-    NTT::dif(n, g_inv);
+    inverse(m, inv_g, g);
+    std::fill(inv_g + m, inv_g + n, ModT(0));
+    NTT::dif(n, inv_g);
     copy_and_fill(n, b0, m, f);
     NTT::dif(n, b0);
     const ModT inv_n = ModT(n).inverse();
-    dot_product(n, inv_n, b0, b0, g_inv);
+    dot_product(n, inv_n, b0, b0, inv_g);
     NTT::dit(n, b0);
 
     std::copy(b0, b0 + m, out);
@@ -170,7 +171,7 @@ public:
       b0[i] -= f[i];
     }
     NTT::dif(n, b0);
-    dot_product(n, inv_n, b0, b0, g_inv);
+    dot_product(n, inv_n, b0, b0, inv_g);
     NTT::dit(n, b0);
     for (int i = m; i < n; ++i) {
       out[i] = ModT(0) - b0[i];
