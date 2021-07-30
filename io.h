@@ -1,3 +1,9 @@
+#pragma once
+
+#include <cctype>
+#include <cstdint>
+#include <cstdio>
+
 struct FastIn {
   FastIn(FILE *in_ = stdin) : in(in_) {}
 
