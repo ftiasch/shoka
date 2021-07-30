@@ -1,7 +1,7 @@
 #include <vector>
 
 struct PrimeGen : public std::vector<int> {
-  PrimeGen(int m) : min_div_(m) {
+  PrimeGen(int m) : std::vector<int>(), min_div_(m, -1) {
     for (int d = 2; d < m; ++d) {
       if (min_div_[d] == -1) {
         min_div_[d] = d;
