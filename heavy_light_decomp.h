@@ -35,25 +35,25 @@ template <typename NestedT> struct HeavyLightDecomposition {
     while (highest[a] != highest[b]) {
       if (get_lowest_depth(a) > get_lowest_depth(b)) {
         const int base = depth[highest[a]];
-        h.update<0>(path[highest[a]], base - depth[a],
-                    base - get_lowest_depth(a) - 1);
+        h.template update<0>(path[highest[a]], base - depth[a],
+                             base - get_lowest_depth(a) - 1);
         a = lowest[a];
       } else {
         const int base = depth[highest[b]];
-        h.update<1>(path[highest[b]], base - depth[b],
-                    base - get_lowest_depth(b) - 1);
+        h.template update<1>(path[highest[b]], base - depth[b],
+                             base - get_lowest_depth(b) - 1);
         b = lowest[b];
       }
     }
     if (include_lca || a != b) {
       if (depth[a] > depth[b]) {
         const int base = depth[highest[a]];
-        h.update<0>(path[highest[a]], base - depth[a],
-                    base - depth[b] - (!include_lca));
+        h.template update<0>(path[highest[a]], base - depth[a],
+                             base - depth[b] - (!include_lca));
       } else {
         const int base = depth[highest[b]];
-        h.update<1>(path[highest[b]], base - depth[b],
-                    base - depth[a] - (!include_lca));
+        h.template update<1>(path[highest[b]], base - depth[b],
+                             base - depth[a] - (!include_lca));
       }
     }
     return h;
