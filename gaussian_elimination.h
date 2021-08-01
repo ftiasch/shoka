@@ -1,45 +1,34 @@
-Mod power(Mod a, int n) {
-  Mod result{1};
-  while (n) {
-    if (n & 1) {
-      result *= a;
-    }
-    a *= a;
-    n >>= 1;
-  }
-  return result;
-}
+#include <vector>
 
-Mod inverse(Mod a) { return power(a, Mod::MOD - 2); }
+template <typename ModT> struct Gaussian {
+  using Matrix = std::vector<std::vector<ModT>>;
 
-using Matrix = std::vector<std::vector<Mod>>;
-
-std::vector<Mod> gaussian_eliminate(int n, Matrix coef) {
-  for (int j = 0; j < n; ++j) {
-    int pivot = j;
-    while (pivot < n && coef[pivot][j].get() == 0) {
-      pivot++;
-    }
-    assert(pivot < n);
-    std::swap(coef[j], coef[pivot]);
-    {
-      Mod normalizer = inverse(coef[j][j]);
-      for (int k = j; k <= n; ++k) {
-        coef[j][k] *= normalizer;
+  static ModT det(Matrix a) {
+    const int n = a.size();
+    ModT result(1);
+    for (int j = 0; j < n; ++j) {
+      int pivot = j;
+      while (pivot < n && a[pivot][j].get() == 0) {
+        pivot++;
       }
-    }
-    for (int i = 0; i < n; ++i) {
-      if (i != j) {
-        Mod scale = coef[i][j];
-        for (int k = j; k <= n; ++k) {
-          coef[i][k] -= scale * coef[j][k];
+      if (pivot == n) {
+        return ModT(0);
+      }
+      if (j < pivot) {
+        result *= ModT(ModT::MOD - 1);
+        std::swap(a[j], a[pivot]);
+      }
+      ModT normalizer = a[j][j].inverse();
+      for (int i = j + 1; i < n; ++i) {
+        if (a[i][j].get()) {
+          ModT scale = a[i][j] * normalizer;
+          for (int k = j; k < n; ++k) {
+            a[i][k] -= scale * a[j][k];
+          }
         }
       }
+      result *= a[j][j];
     }
+    return result;
   }
-  std::vector<Mod> result(n);
-  for (int i = 0; i < n; ++i) {
-    result[i] = coef[i][n];
-  }
-  return result;
-}
+};
