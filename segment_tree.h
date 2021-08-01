@@ -1,7 +1,7 @@
 #include <memory>
 #include <vector>
 
-template <typename Node, typename Derived> struct SegmentTreeBase {
+template <typename Node, typename Impl> struct SegmentTreeBase {
   SegmentTreeBase(int n_) : n(n_), nodes(n << 1) {}
 
   template <typename Handler> Handler traverse(Handler &&h) {
@@ -35,10 +35,10 @@ private:
     int m = (l + r) >> 1;
     auto &ln = get_node(l, m);
     auto &rn = get_node(m + 1, r);
-    Derived::propagate(l, m, r, n, ln, rn);
+    Impl::propagate(l, m, r, n, ln, rn);
     auto h1 = traverse<Handler, all>(std::move(h), l, m, a, b);
     auto h2 = traverse<Handler, all>(std::move(h1), m + 1, r, a, b);
-    Derived::collect(l, m, r, n, ln, rn);
+    Impl::collect(l, m, r, n, ln, rn);
     return h2;
   }
 
