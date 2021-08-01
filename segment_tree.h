@@ -4,78 +4,50 @@
 template <typename Node, typename Impl> struct SegmentTreeBase {
   SegmentTreeBase(int n_) : n(n_), nodes(n << 1) {}
 
-  template <typename Handler> Handler traverse(Handler &&h) {
-    return traverse<Handler, true>(std::move(h), 0, n - 1, 0, 0);
+  template <typename H> H traverse_all(H &&h) {
+    traverse_all(std::forward<H>(h), 0, n - 1);
+    return h;
   }
 
-  template <typename Handler> Handler traverse(Handler &&h, int a, int b) {
-    return traverse<Handler, false>(std::move(h), 0, n - 1, a, b);
+  template <typename H> H traverse(H &&h, int a, int b) {
+    traverse(std::forward<H>(h), 0, n - 1, a, b);
+    return h;
   }
 
 private:
   Node &get_node(int l, int r) { return nodes[l + r | (l != r)]; }
 
-  template <typename Handler, bool all>
-  Handler traverse(Handler &&h, int l, int r, int a, int b) {
+  template <typename H> void traverse_all(H &&h, int l, int r) {
     Node &n = get_node(l, r);
-    if (all) {
-      h.update(l, r, n);
-      if (l == r) {
-        return h;
-      }
-    } else {
-      if (b < l || r < a) {
-        return h;
-      }
-      if (a <= l && r <= b) {
-        h.update(l, r, n);
-        return h;
-      }
+    h.update(l, r, n);
+    if (l < r) {
+      int m = (l + r) >> 1;
+      Node &ln = get_node(l, m);
+      Node &rn = get_node(m + 1, r);
+      traverse_all(std::forward<H>(h), l, m);
+      traverse_all(std::forward<H>(h), m + 1, r);
+      Impl::collect(l, m, r, n, ln, rn);
     }
-    int m = (l + r) >> 1;
-    auto &ln = get_node(l, m);
-    auto &rn = get_node(m + 1, r);
-    Impl::propagate(l, m, r, n, ln, rn);
-    auto h1 = traverse<Handler, all>(std::move(h), l, m, a, b);
-    auto h2 = traverse<Handler, all>(std::move(h1), m + 1, r, a, b);
-    Impl::collect(l, m, r, n, ln, rn);
-    return h2;
+  }
+
+  template <typename H> void traverse(H &&h, int l, int r, int a, int b) {
+    if (b < l || r < a) {
+      return;
+    }
+    Node &n = get_node(l, r);
+    if (a <= l && r <= b) {
+      h.update(l, r, n);
+    } else {
+      int m = (l + r) >> 1;
+      Node &ln = get_node(l, m);
+      Node &rn = get_node(m + 1, r);
+      Impl::propagate(l, m, r, n, ln, rn);
+      traverse(std::forward<H>(h), l, m, a, b);
+      traverse(std::forward<H>(h), m + 1, r, a, b);
+      Impl::collect(l, m, r, n, ln, rn);
+    }
   }
 
   int n;
   std::vector<Node> nodes;
 };
-
-/*
-struct Node {
-  // TODO
-};
-
-struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
-  struct Build {
-    void update(int l, int r, Node &n) {
-      // TODO
-    }
-
-    const std::vector<int> &a;
-  };
-
-  struct Query {
-    void update(int l, int r, Node &n) const {
-      // TODO
-    }
-  };
-
-  SegmentTree(const std::vector<int> &a) : SegmentTreeBase(a.size()) {
-    traverse(Build{a});
-  }
-
-  static void propagate(int l, int m, int r, Node &n, Node &ln, Node &rn) {
-    // TODO
-  }
-
-  static void collect(int l, int m, int r, Node &n, Node &ln, Node &rn) {
-    // TODO
-  }
-};
-*/
