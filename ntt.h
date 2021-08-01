@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -78,6 +79,8 @@ private:
 
   static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
+
+static int min_power_of_two(int n) { return 1 << (32 - __builtin_clz(n - 1)); }
 
 template <typename NTT> class Poly {
 private:
@@ -284,10 +287,6 @@ public:
   }
 
 private:
-  static int min_power_of_two(int n) {
-    return 1 << (32 - __builtin_clz(n - 1));
-  }
-
   static void copy_and_fill0(int n, ModT *dst, int m, const ModT *src) {
     m = std::min(n, m);
     std::copy(src, src + m, dst);
