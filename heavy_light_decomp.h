@@ -5,7 +5,7 @@ template <typename NestedT> struct HeavyLightDecomposition {
   using Tree = std::vector<std::vector<int>>;
 
   explicit HeavyLightDecomposition(int n, const Tree &tree, int root)
-      : path(n, nullptr), parent(n), depth(n), lowest(n), highest(n) {
+      : parent(n), depth(n), path(n, nullptr), lowest(n), highest(n) {
     parent[root] = -1;
     build(tree, root);
     for (int u = 0; u < n; ++u) {
@@ -67,8 +67,10 @@ template <typename NestedT> struct HeavyLightDecomposition {
         b = lowest[b];
       }
     }
-    return depth[a] > depth[b] ? b : a;
+    return depth[a] < depth[b] ? a : b;
   }
+
+  std::vector<int> parent, depth;
 
 private:
   int build(const Tree &tree, int u) {
@@ -95,5 +97,5 @@ private:
   }
 
   std::vector<NestedT *> path;
-  std::vector<int> parent, depth, lowest, highest;
+  std::vector<int> lowest, highest;
 };
