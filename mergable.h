@@ -1,5 +1,3 @@
-#pragma once
-
 #include <cstdint>
 #include <random>
 #include <utility>
