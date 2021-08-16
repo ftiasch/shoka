@@ -50,3 +50,5 @@ private:
   size_t length = 0;
   FILE *in;
 };
+
+static FastIn STDIN;
