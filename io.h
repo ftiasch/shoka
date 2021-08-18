@@ -62,6 +62,12 @@ struct FastOut {
     }
   }
 
+  void puts(const char *s) {
+    while (*s) {
+      putchar(*(s++));
+    }
+  }
+
   void print(int64_t n) {
     static char bufn[32];
     bool negative = false;
@@ -81,6 +87,11 @@ struct FastOut {
     for (; top < 32; ++top) {
       putchar(bufn[top]);
     }
+  }
+
+  void println(int64_t n) {
+    print(n);
+    putchar('\n');
   }
 
   ~FastOut() {
