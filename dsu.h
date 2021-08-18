@@ -1,6 +1,8 @@
-class UnionFindSet {
+#include <vector>
+
+class DSU {
 public:
-  UnionFindSet(int n) : parent(n, -1) {}
+  DSU(int n) : parent(n, -1) {}
 
   int find(int u) {
     if (!~parent[u]) {
@@ -23,5 +25,3 @@ public:
 private:
   std::vector<int> parent;
 };
-
-using UFS = UnionFindSet;
