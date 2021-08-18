@@ -51,4 +51,48 @@ private:
   FILE *in;
 };
 
+struct FastOut {
+  static const int BUFSIZE = 4096;
+
+  void putchar(char c) {
+    buf[len++] = c;
+    if (len == BUFSIZE) {
+      fwrite(buf, 1, BUFSIZE, stdout);
+      len = 0;
+    }
+  }
+
+  void print(int64_t n) {
+    static char bufn[32];
+    bool negative = false;
+    if (n < 0) {
+      n = -n;
+      negative = true;
+    }
+    int top = 32;
+    while (n >= 10) {
+      bufn[--top] = '0' + n % 10;
+      n /= 10;
+    }
+    bufn[--top] = '0' + n;
+    if (negative) {
+      bufn[--top] = '-';
+    }
+    for (; top < 32; ++top) {
+      putchar(bufn[top]);
+    }
+  }
+
+  ~FastOut() {
+    if (len) {
+      fwrite(buf, 1, len, stdout);
+    }
+    fflush(stdout);
+  }
+
+  char buf[BUFSIZE];
+  int len = 0;
+};
+
 static FastIn STDIN;
+static FastOut STDOUT;
