@@ -13,11 +13,11 @@ public:
     return graph;
   }
 
-  Tarjan(int n_, const Graph &graph_)
-      : n(n_), dfn(n, -1), scc_id(n), low(n), graph(graph_) {
+  Tarjan(const Graph &graph_)
+      : n(graph_.size()), dfn(n, -1), scc_id(n), low(n), graph(graph_) {
     int dfs_count = 0;
     std::vector<int> stack;
-    for (int r = 0; r < n_; ++r) {
+    for (int r = 0; r < n; ++r) {
       dfs(dfs_count, stack, r);
     }
   }
