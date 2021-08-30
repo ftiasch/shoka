@@ -4,20 +4,29 @@
 template <typename NestedT> struct HeavyLightDecomposition {
   using Tree = std::vector<std::vector<int>>;
 
-  explicit HeavyLightDecomposition(int n, const Tree &tree, int root)
-      : parent(n), depth(n), path(n, nullptr), lowest(n), highest(n) {
+  HeavyLightDecomposition(const Tree &tree, int root)
+      : n(tree.size()), parent(n), size(n), depth(n), path(n, nullptr),
+        lowest(n), highest(n) {
     parent[root] = -1;
     build(tree, root);
+  }
+
+  void init_biased_nested() {
     for (int u = 0; u < n; ++u) {
       lowest[u] = lowest[highest[u]];
       if (highest[u] == u) {
-        const int size = depth[u] - get_lowest_depth(u);
-        std::vector<int> vertices;
-        vertices.reserve(size);
-        for (int i = 0, v = u; i < size; ++i, v = parent[v]) {
+        const int count = depth[u] - get_lowest_depth(u);
+        std::vector<int> vertices, weight;
+        vertices.reserve(count);
+        weight.reserve(count);
+        for (int i = 0, v = u; i < count; ++i, v = parent[v]) {
           vertices.push_back(v);
+          weight.push_back(size[v]);
         }
-        path[u] = new NestedT{vertices};
+        for (int i = count; i-- > 1;) {
+          weight[i] -= weight[i - 1];
+        }
+        path[u] = new NestedT(vertices, weight);
       }
     }
   }
@@ -70,26 +79,25 @@ template <typename NestedT> struct HeavyLightDecomposition {
     return depth[a] < depth[b] ? a : b;
   }
 
-  std::vector<int> parent, depth;
+  int n;
+  std::vector<int> parent, size, depth;
 
 private:
-  int build(const Tree &tree, int u) {
+  void build(const Tree &tree,  int u) {
     const int p = parent[u];
     depth[u] = ~p ? depth[p] + 1 : 0;
-    int size = 1;
+    size[u] = 1;
     std::pair<int, int> candidate{0, u};
     for (int v : tree[u]) {
       if (v != p) {
         parent[v] = u;
-        int subtree_size = build(tree, v);
-        size += subtree_size;
-        candidate =
-            std::max(candidate, std::make_pair(subtree_size, highest[v]));
+        build(tree, v);
+        size[u] += size[v];
+        candidate = std::max(candidate, std::make_pair(size[v], highest[v]));
       }
     }
     highest[u] = candidate.second;
     lowest[highest[u]] = p;
-    return size;
   }
 
   int get_lowest_depth(int u) const {
