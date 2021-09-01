@@ -9,11 +9,13 @@ template <typename NestedT> struct HeavyLightDecomposition {
         lowest(n), highest(n) {
     parent[root] = -1;
     build(tree, root);
+    for (int u = 0; u < n; ++u) {
+      lowest[u] = lowest[highest[u]];
+    }
   }
 
   void init_biased_nested() {
     for (int u = 0; u < n; ++u) {
-      lowest[u] = lowest[highest[u]];
       if (highest[u] == u) {
         const int count = depth[u] - get_lowest_depth(u);
         std::vector<int> vertices, weight;
@@ -83,7 +85,7 @@ template <typename NestedT> struct HeavyLightDecomposition {
   std::vector<int> parent, size, depth;
 
 private:
-  void build(const Tree &tree,  int u) {
+  void build(const Tree &tree, int u) {
     const int p = parent[u];
     depth[u] = ~p ? depth[p] + 1 : 0;
     size[u] = 1;
