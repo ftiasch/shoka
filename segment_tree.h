@@ -10,7 +10,12 @@ template <typename Node, typename Impl> struct SegmentTreeBase {
   }
 
   template <typename H> H traverse(H &&h, int a, int b) {
-    traverse(std::forward<H>(h), 0, n - 1, a, b);
+    traverse<H, 0>(std::forward<H>(h), 0, n - 1, a, b);
+    return h;
+  }
+
+  template <typename H> H reverse_traverse(H &&h, int a, int b) {
+    traverse<H, 1>(std::forward<H>(h), 0, n - 1, a, b);
     return h;
   }
 
@@ -30,7 +35,8 @@ private:
     }
   }
 
-  template <typename H> void traverse(H &&h, int l, int r, int a, int b) {
+  template <typename H, int direction>
+  void traverse(H &&h, int l, int r, int a, int b) {
     if (b < l || r < a) {
       return;
     }
@@ -42,8 +48,13 @@ private:
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
       Impl::propagate(l, m, r, n, ln, rn);
-      traverse(std::forward<H>(h), l, m, a, b);
-      traverse(std::forward<H>(h), m + 1, r, a, b);
+      if (direction) {
+        traverse(std::forward<H>(h), m + 1, r, a, b);
+        traverse(std::forward<H>(h), l, m, a, b);
+      } else {
+        traverse(std::forward<H>(h), l, m, a, b);
+        traverse(std::forward<H>(h), m + 1, r, a, b);
+      }
       Impl::collect(l, m, r, n, ln, rn);
     }
   }

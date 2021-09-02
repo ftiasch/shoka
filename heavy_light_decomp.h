@@ -5,20 +5,20 @@ struct HeavyLightDecompositionBase {
   using Tree = std::vector<std::vector<int>>;
 
   HeavyLightDecompositionBase(const Tree &tree, int root)
-      : n(tree.size()), parent(n), size(n), depth(n), lowest(n), highest(n) {
+      : n(tree.size()), parent(n), size(n), depth(n), top(n), bottom(n) {
     parent[root] = -1;
     build(tree, root);
     for (int u = 0; u < n; ++u) {
-      lowest[u] = lowest[highest[u]];
+      top[u] = top[bottom[u]];
     }
   }
 
   int lca(int a, int b) const {
-    while (highest[a] != highest[b]) {
+    while (bottom[a] != bottom[b]) {
       if (get_lowest_depth(a) > get_lowest_depth(b)) {
-        a = lowest[a];
+        a = top[a];
       } else {
-        b = lowest[b];
+        b = top[b];
       }
     }
     return depth[a] < depth[b] ? a : b;
@@ -38,18 +38,16 @@ protected:
         parent[v] = u;
         build(tree, v);
         size[u] += size[v];
-        candidate = std::max(candidate, std::make_pair(size[v], highest[v]));
+        candidate = std::max(candidate, std::make_pair(size[v], bottom[v]));
       }
     }
-    highest[u] = candidate.second;
-    lowest[highest[u]] = p;
+    bottom[u] = candidate.second;
+    top[bottom[u]] = p;
   }
 
-  int get_lowest_depth(int u) const {
-    return ~lowest[u] ? depth[lowest[u]] : -1;
-  }
+  int get_lowest_depth(int u) const { return ~top[u] ? depth[top[u]] : -1; }
 
-  std::vector<int> lowest, highest;
+  std::vector<int> top, bottom;
 };
 
 template <typename NestedT>
@@ -59,7 +57,7 @@ struct HeavyLightDecomposition : public HeavyLightDecompositionBase {
 
   void init() {
     for (int u = 0; u < n; ++u) {
-      if (highest[u] == u) {
+      if (bottom[u] == u) {
         const int count = depth[u] - get_lowest_depth(u);
         std::vector<int> vertices, weight;
         vertices.reserve(count);
@@ -73,7 +71,7 @@ struct HeavyLightDecomposition : public HeavyLightDecompositionBase {
 
   void init_biased() {
     for (int u = 0; u < n; ++u) {
-      if (highest[u] == u) {
+      if (bottom[u] == u) {
         const int count = depth[u] - get_lowest_depth(u);
         std::vector<int> vertices, weight;
         vertices.reserve(count);
@@ -100,27 +98,27 @@ struct HeavyLightDecomposition : public HeavyLightDecompositionBase {
 
   template <typename Handler>
   Handler traverse(Handler &&h, bool include_lca, int a, int b) {
-    while (highest[a] != highest[b]) {
+    while (bottom[a] != bottom[b]) {
       if (get_lowest_depth(a) > get_lowest_depth(b)) {
-        const int base = depth[highest[a]];
-        h.template update<0>(path[highest[a]], base - depth[a],
+        const int base = depth[bottom[a]];
+        h.template update<0>(path[bottom[a]], base - depth[a],
                              base - get_lowest_depth(a) - 1);
-        a = lowest[a];
+        a = top[a];
       } else {
-        const int base = depth[highest[b]];
-        h.template update<1>(path[highest[b]], base - depth[b],
+        const int base = depth[bottom[b]];
+        h.template update<1>(path[bottom[b]], base - depth[b],
                              base - get_lowest_depth(b) - 1);
-        b = lowest[b];
+        b = top[b];
       }
     }
     if (include_lca || a != b) {
       if (depth[a] > depth[b]) {
-        const int base = depth[highest[a]];
-        h.template update<0>(path[highest[a]], base - depth[a],
+        const int base = depth[bottom[a]];
+        h.template update<0>(path[bottom[a]], base - depth[a],
                              base - depth[b] - (!include_lca));
       } else {
-        const int base = depth[highest[b]];
-        h.template update<1>(path[highest[b]], base - depth[b],
+        const int base = depth[bottom[b]];
+        h.template update<1>(path[bottom[b]], base - depth[b],
                              base - depth[a] - (!include_lca));
       }
     }
