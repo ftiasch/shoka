@@ -27,13 +27,13 @@ struct u128 {
 };
 
 template <int RBIT, typename Digit, Digit M, typename Derived>
-struct MontgomeryT {
+struct MontgomeryBaseT {
   static const Digit MOD = M;
 
   static_assert(MOD <= std::numeric_limits<Digit>::max() >> 2,
                 "4 * MOD <= MAX");
 
-  explicit constexpr MontgomeryT(Digit x = 0)
+  explicit constexpr MontgomeryBaseT(Digit x = 0)
       : x(Derived::mont_multiply(x, R2)) {}
 
   constexpr Digit get() const {
@@ -44,7 +44,7 @@ struct MontgomeryT {
     return y;
   }
 
-  constexpr MontgomeryT &operator+=(const MontgomeryT &other) {
+  constexpr MontgomeryBaseT &operator+=(const MontgomeryBaseT &other) {
     x += other.x;
     if (x >= MOD2) {
       x -= MOD2;
@@ -52,12 +52,12 @@ struct MontgomeryT {
     return *this;
   }
 
-  constexpr MontgomeryT operator+(const MontgomeryT &other) const {
-    MontgomeryT copy = *this;
+  constexpr MontgomeryBaseT operator+(const MontgomeryBaseT &other) const {
+    MontgomeryBaseT copy = *this;
     return copy += other;
   }
 
-  constexpr MontgomeryT &operator-=(const MontgomeryT &other) {
+  constexpr MontgomeryBaseT &operator-=(const MontgomeryBaseT &other) {
     x += MOD2 - other.x;
     if (x >= MOD2) {
       x -= MOD2;
@@ -65,27 +65,27 @@ struct MontgomeryT {
     return *this;
   }
 
-  constexpr MontgomeryT operator-(const MontgomeryT &other) const {
-    MontgomeryT copy = *this;
+  constexpr MontgomeryBaseT operator-(const MontgomeryBaseT &other) const {
+    MontgomeryBaseT copy = *this;
     return copy -= other;
   }
 
-  constexpr MontgomeryT operator*=(const MontgomeryT &other) {
+  constexpr MontgomeryBaseT operator*=(const MontgomeryBaseT &other) {
     x = Derived::mont_multiply(x, other.x);
     return *this;
   }
 
-  constexpr MontgomeryT operator*(const MontgomeryT &other) const {
-    MontgomeryT copy = *this;
+  constexpr MontgomeryBaseT operator*(const MontgomeryBaseT &other) const {
+    MontgomeryBaseT copy = *this;
     return copy *= other;
   }
 
-  constexpr MontgomeryT power(u64 n) const {
-    return details::power<MontgomeryT>(*this, n);
+  constexpr MontgomeryBaseT power(u64 n) const {
+    return details::power<MontgomeryBaseT>(*this, n);
   }
 
-  constexpr MontgomeryT inverse() const {
-    return details::inverse<MontgomeryT>(*this);
+  constexpr MontgomeryBaseT inverse() const {
+    return details::inverse<MontgomeryBaseT>(*this);
   }
 
 private:
@@ -107,14 +107,6 @@ private:
   Digit x;
 };
 
-template <typename Digit> static constexpr Digit modinv(Digit MOD, int n) {
-  Digit result = 1;
-  for (int i = 0; i < n; ++i) {
-    result *= 2 - MOD * result;
-  }
-  return -result;
-}
-
 template <u32 MOD> struct Montgomery32Impl {
   static constexpr u32 mont_multiply(u32 x, u32 y) {
     return reduce(static_cast<u64>(x) * y);
@@ -127,7 +119,7 @@ template <u32 MOD> struct Montgomery32Impl {
     return (x + y) >> 32U;
   }
 
-  static const u32 INV = modinv<u32>(MOD, 5);
+  static const u32 INV = details::mont_modinv<u32>(MOD, 5);
 };
 
 template <u64 MOD> struct Montgomery64Impl {
@@ -142,13 +134,13 @@ template <u64 MOD> struct Montgomery64Impl {
     return x.high + y.high + (x.low > ~y.low);
   }
 
-  static const u64 INV = modinv<u64>(MOD, 6);
+  static const u64 INV = details::mont_modinv<u64>(MOD, 6);
 };
 
 template <u32 MOD>
-using Montgomery32T = MontgomeryT<32, u32, MOD, Montgomery32Impl<MOD>>;
+using Montgomery32T = MontgomeryBaseT<32, u32, MOD, Montgomery32Impl<MOD>>;
 
 template <u64 MOD>
-using Montgomery64T = MontgomeryT<64, u64, MOD, Montgomery64Impl<MOD>>;
+using Montgomery64T = MontgomeryBaseT<64, u64, MOD, Montgomery64Impl<MOD>>;
 
 } // namespace montgomery

@@ -22,6 +22,14 @@ template <typename ModT> static constexpr ModT inverse(ModT a) {
   return power<ModT>(a, ModT::MOD - 2);
 }
 
+template <typename Digit> static constexpr Digit mont_modinv(Digit MOD, int n) {
+  Digit result = 1;
+  for (int i = 0; i < n; ++i) {
+    result *= 2 - MOD * result;
+  }
+  return -result;
+}
+
 } // namespace details
 
 #endif
