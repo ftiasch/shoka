@@ -5,18 +5,18 @@
 
 namespace details {
 
-template <typename NodeBase> struct MergableNodeT : public NodeBase {
+template <typename NodeBase> struct WBNodeT : public NodeBase {
   int size;
-  MergableNodeT *left_child, *right_child;
+  WBNodeT *left_child, *right_child;
   uint32_t rank;
 };
 
 } // namespace details
 
-template <typename NodeBase, typename Impl> struct MergableTreapBase {
-  using Node = details::MergableNodeT<NodeBase>;
+template <typename NodeBase, typename Impl> struct WBTreeBase {
+  using Node = details::WBNodeT<NodeBase>;
 
-  explicit MergableTreapBase(int n_) : number_of_node(1), nodes(n_) {
+  explicit WBTreeBase(int n_) : number_of_node(1), nodes(n_) {
     std::mt19937 gen;
     for (auto &n : nodes) {
       n.rank = gen();

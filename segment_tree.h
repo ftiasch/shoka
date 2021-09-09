@@ -49,11 +49,11 @@ private:
       Node &rn = get_node(m + 1, r);
       Impl::propagate(l, m, r, n, ln, rn);
       if (direction) {
-        traverse(std::forward<H>(h), m + 1, r, a, b);
-        traverse(std::forward<H>(h), l, m, a, b);
+        traverse<H, 1>(std::forward<H>(h), m + 1, r, a, b);
+        traverse<H, 1>(std::forward<H>(h), l, m, a, b);
       } else {
-        traverse(std::forward<H>(h), l, m, a, b);
-        traverse(std::forward<H>(h), m + 1, r, a, b);
+        traverse<H, 0>(std::forward<H>(h), l, m, a, b);
+        traverse<H, 0>(std::forward<H>(h), m + 1, r, a, b);
       }
       Impl::collect(l, m, r, n, ln, rn);
     }
