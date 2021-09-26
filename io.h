@@ -66,6 +66,7 @@ struct FastOut {
     while (*s) {
       putchar(*(s++));
     }
+    putchar('\n');
   }
 
   void print(int64_t n) {
