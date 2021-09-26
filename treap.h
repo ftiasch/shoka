@@ -5,18 +5,18 @@
 
 namespace details {
 
-template <typename NodeBase> struct TreapNodeT : public NodeBase {
+template <typename NodeBase> struct AANodeT : public NodeBase {
   int size;
-  TreapNodeT *left_child, *right_child;
+  AANodeT *left_child, *right_child;
   uint32_t rank;
 };
 
 } // namespace details
 
-template <typename NodeBase, typename Impl> struct TreapBase {
-  using Node = details::TreapNodeT<NodeBase>;
+template <typename NodeBase, typename Impl> struct AATreeBase {
+  using Node = AANodeT::AANodeT<NodeBase>;
 
-  explicit TreapBase(int n_) : number_of_node(1), nodes(n_) {
+  explicit AATreeBase(int n_) : number_of_node(1), nodes(n_) {
     std::mt19937 gen;
     for (auto &n : nodes) {
       n.rank = gen();
