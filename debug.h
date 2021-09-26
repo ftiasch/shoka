@@ -1,10 +1,8 @@
-#include <cstdint>
+#include <iostream>
 
-#ifdef LOCAL
-#define DEBUG(v)                                                               \
+#define DEBUG(expr)                                                            \
   do {                                                                         \
-    std::cerr << "[L" << __LINE__ << "]" << #v << "=" << v << std::endl;       \
+    std::cerr << "[L" << __LINE__ << "] " << expr << std::endl;                                            \
   } while (0)
-#else
-#define DEBUG(v)
-#endif
+
+#define KV(x) "|" << #x << "=" << x
