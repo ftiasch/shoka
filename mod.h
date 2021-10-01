@@ -17,7 +17,7 @@ template <u32 MOD_> struct ModT {
 
   static_assert(MOD <= (std::numeric_limits<u32>::max() >> 1));
 
-  explicit constexpr ModT(u32 x_ = 0) : x(x_ % MOD) {}
+  explicit constexpr ModT(u32 x_ = 0) : x(x_) {}
 
   constexpr u32 get() const { return x; }
 
@@ -67,7 +67,7 @@ template <u32 MOD_> struct ModT {
 template <> struct ModT<0> {
   static u32 MOD;
 
-  explicit ModT(u32 x_ = 0) : x(x_ % MOD) {}
+  explicit ModT(u32 x_ = 0) : x(x_) {}
 
   u32 get() const { return x; }
 
