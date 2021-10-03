@@ -1,22 +1,22 @@
 #include <cstring>
+#include <vector>
 
-template <int N, int C> struct SAM {
+template <int C> struct SAM {
   struct Node {
+    Node(int length_ = 0) : length(length_), parent(nullptr) {
+      memset(go, 0, sizeof(go));
+    }
+
     int length;
     Node *parent, *go[C];
   };
 
-  SAM() { memset(nodes, 0, sizeof(nodes)); }
+  SAM(int n) : node_count(1), nodes(n << 1) {}
 
-  Node *root() { return nodes; }
-
-  void reset() {
-    memset(nodes, 0, sizeof(*nodes) * (node_count));
-    node_count = 1;
-  }
+  Node *root() { return nodes.data(); }
 
   Node *extend(Node *p, int c) {
-    Node *np = new_node(p->length + 1);
+    Node *np = new (nodes.data() + (node_count++)) Node(p->length + 1);
     while (p && !p->go[c]) {
       p->go[c] = np;
       p = p->parent;
@@ -28,7 +28,7 @@ template <int N, int C> struct SAM {
       if (p->length + 1 == q->length) {
         np->parent = q;
       } else {
-        Node *nq = new_node(p->length + 1);
+        Node *nq = new (nodes.data() + (node_count++)) Node(p->length + 1);
         memcpy(nq->go, q->go, sizeof(q->go));
         nq->parent = q->parent;
         np->parent = q->parent = nq;
@@ -41,9 +41,7 @@ template <int N, int C> struct SAM {
     return np;
   }
 
-  int node_count = 1;
-  Node nodes[N << 1];
-
-private:
-  Node *new_node(int length) { return nodes + (node_count++); }
+protected:
+  int node_count;
+  std::vector<Node> nodes;
 };
