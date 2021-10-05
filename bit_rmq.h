@@ -4,15 +4,15 @@
 
 template <typename T, int N> struct BitRMQ {
 public:
-  void compute(int n, const T *a) {
+  void initialize(int n, const T *a) {
     for (int i = 0, block_start = 0; block_start < n; ++i, block_start += 64) {
       buffer[i] =
           intra[i].compute(std::min(n - block_start, 64), a + block_start);
     }
-    inter.compute((n + 63) >> 6, buffer);
+    inter.initialize((n + 63) >> 6, buffer);
   }
 
-  T rmq(int l, int r) const {
+  T operator()(int l, int r) const {
     int lblk = l >> 6;
     int rblk = r >> 6;
     if (lblk == rblk) {
@@ -21,7 +21,7 @@ public:
     T prefix = intra[lblk].suffix[l & 63];
     T suffix = intra[rblk].prefix[r & 63];
     if (lblk + 1 <= rblk - 1) {
-      return std::min({prefix, inter.rmq(lblk + 1, rblk - 1), suffix});
+      return std::min({prefix, inter(lblk + 1, rblk - 1), suffix});
     }
     return std::min({prefix, suffix});
   }
