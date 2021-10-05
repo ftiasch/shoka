@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 
 template <typename T, int N> struct SparseTable {
   SparseTable() {

@@ -10,6 +10,10 @@ add_executable(segment_tree segment_tree.cc)
 target_link_libraries(segment_tree PRIVATE gtest_main)
 gtest_add_tests(TARGET segment_tree)
 
+add_executable(rmq rmq.cc)
+target_link_libraries(rmq PRIVATE gtest_main)
+gtest_add_tests(TARGET rmq)
+
 add_executable(universal_euclidean universal_euclidean.cc)
 target_link_libraries(universal_euclidean PRIVATE gtest_main)
 gtest_add_tests(TARGET universal_euclidean)
