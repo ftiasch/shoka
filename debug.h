@@ -1,8 +1,44 @@
 #include <iostream>
+#include <map>
+#include <vector>
 
-#define DEBUG(expr)                                                            \
-  do {                                                                         \
-    std::cerr << "[L" << __LINE__ << "] " << expr << std::endl;                                            \
-  } while (0)
+template <typename A, typename B>
+std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
+  out << "(";
+  out << v.first;
+  out << ", ";
+  out << v.second;
+  return out << ")";
+}
 
-#define KV(x) "|" << #x << "=" << x
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+  out << "[";
+  bool first = true;
+  for (auto &&e : v) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << e;
+  }
+  return out << "]";
+}
+
+template <typename K, typename V>
+std::ostream &operator<<(std::ostream &out, const std::map<K, V> &m) {
+  out << "{";
+  bool first = true;
+  for (auto &&[k, v] : m) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << k << ": " << v;
+  }
+  return out << "}";
+}
+
+#define KV(x) #x << "=" << x << ";"
