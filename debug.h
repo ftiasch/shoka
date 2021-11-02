@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 #include <map>
 #include <vector>
 
@@ -13,6 +14,21 @@ std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
 
 template <typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+  out << "[";
+  bool first = true;
+  for (auto &&e : v) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << e;
+  }
+  return out << "]";
+}
+
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const std::list<T> &v) {
   out << "[";
   bool first = true;
   for (auto &&e : v) {
