@@ -5,11 +5,7 @@
 
 template <typename A, typename B>
 std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
-  out << "(";
-  out << v.first;
-  out << ", ";
-  out << v.second;
-  return out << ")";
+  out << "(" << v.first << ", " << v.second << ")";
 }
 
 template <typename T>
