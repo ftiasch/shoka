@@ -1,11 +1,29 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <utility>
 #include <vector>
+
+namespace {
+
+template <typename Tuple, size_t... Index>
+std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
+                              std::index_sequence<Index...>) {
+  out << "(";
+  (..., (out << (Index == 0 ? "" : ", ") << std::get<Index>(t)));
+  return out << ")";
+}
+
+} // namespace
 
 template <typename A, typename B>
 std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
   return out << "(" << v.first << ", " << v.second << ")";
+}
+
+template <typename... T>
+std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
+  return serialize_tuple(out, t, std::make_index_sequence<sizeof...(T)>());
 }
 
 template <typename T>

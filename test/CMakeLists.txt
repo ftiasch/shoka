@@ -1,3 +1,7 @@
+add_executable(debug debug.cc)
+target_link_libraries(debug PRIVATE gtest_main)
+gtest_add_tests(TARGET debug)
+
 add_executable(montgomery montgomery.cc)
 target_link_libraries(montgomery PRIVATE gtest_main)
 gtest_add_tests(TARGET montgomery)
