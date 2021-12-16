@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -54,6 +55,21 @@ std::ostream &operator<<(std::ostream &out, const std::list<T> &v) {
     out << e;
   }
   return out << "]";
+}
+
+template <typename K>
+std::ostream &operator<<(std::ostream &out, const std::set<K> &s) {
+  out << "{";
+  bool first = true;
+  for (auto &&k : s) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << k;
+  }
+  return out << "}";
 }
 
 template <typename K, typename V>
