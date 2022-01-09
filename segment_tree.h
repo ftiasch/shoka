@@ -4,6 +4,10 @@
 template <typename Node, typename Impl> struct SegmentTreeBase {
   SegmentTreeBase(int n_) : n(n_), nodes(n << 1) {}
 
+  Node &root() { return get_node(0, n - 1); }
+
+  const Node &root() const { return get_node(0, n - 1); }
+
   template <typename H> H traverse_all(H &&h) {
     traverse_all(std::forward<H>(h), 0, n - 1);
     return h;
