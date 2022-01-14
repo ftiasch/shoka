@@ -13,7 +13,7 @@ template <typename ModT> struct Binom {
   }
 
   ModT operator()(int n, int k) const {
-    return k < 0 || k > n ? ModT(1) : fact[n] * inv_fact[n - k] * inv_fact[k];
+    return k < 0 || k > n ? ModT(0) : fact[n] * inv_fact[n - k] * inv_fact[k];
   }
 
   std::vector<ModT> fact, inv_fact;
