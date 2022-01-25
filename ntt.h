@@ -78,7 +78,9 @@ private:
   static constexpr ModT G = ModT(FiniteField::primitive_root());
 };
 
-static int min_power_of_two(int n) { return 1 << (32 - __builtin_clz(n - 1)); }
+static int min_power_of_two(int n) {
+  return n == 1 ? 1 : 1 << (32 - __builtin_clz(n - 1));
+}
 
 template <typename NTT> class Poly {
 private:
