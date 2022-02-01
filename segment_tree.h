@@ -33,6 +33,7 @@ private:
       int m = (l + r) >> 1;
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
+      Impl::propagate(l, m, r, n, ln, rn);
       traverse_all(std::forward<H>(h), l, m);
       traverse_all(std::forward<H>(h), m + 1, r);
       Impl::collect(l, m, r, n, ln, rn);
