@@ -1,6 +1,7 @@
 #include "mod_details.h"
 
 #include <cstdint>
+#include <iostream>
 #include <limits>
 
 #define DECLARE_NON_CONST_MODT(name)                                           \
@@ -127,3 +128,8 @@ template <> struct ModT<0> {
 };
 
 } // namespace mod
+
+template <mod::u32 MOD>
+std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD>& mod) {
+  return out << mod.x;
+}
