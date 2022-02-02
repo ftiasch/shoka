@@ -10,6 +10,10 @@ add_executable(ntt ntt.cc)
 target_link_libraries(ntt PRIVATE gtest_main)
 gtest_add_tests(TARGET ntt)
 
+add_executable(polynomial_interpolation polynomial_interpolation.cc)
+target_link_libraries(polynomial_interpolation PRIVATE gtest_main)
+gtest_add_tests(TARGET polynomial_interpolation)
+
 add_executable(segment_tree segment_tree.cc)
 target_link_libraries(segment_tree PRIVATE gtest_main)
 gtest_add_tests(TARGET segment_tree)
