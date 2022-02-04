@@ -91,7 +91,7 @@ struct LCPTable : SA {
         lcp = std::max(lcp - 1, 0);
       }
     }
-    rmq.compute(n - 1, height);
+    rmq.initialize(n - 1, height);
   }
 
   int lcp(int i, int j) const {
@@ -99,7 +99,7 @@ struct LCPTable : SA {
       return n - i;
     }
     i = SA::rk[i], j = SA::rk[j];
-    return i < j ? rmq.rmq(i, j) : rmq.rmq(j, i);
+    return i < j ? rmq(i, j - 1) : rmq(j, i - 1);
   }
 
 private:
