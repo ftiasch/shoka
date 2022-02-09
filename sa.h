@@ -4,19 +4,25 @@
 namespace details {
 
 struct DefaultCharRank {
+  using Char = char;
+
+  static const int C = 26;
+
   int operator[](int i) const { return s[i] - 'a'; }
-  const char *s;
+
+  const Char *s;
 };
 
 } // namespace details
 
-template <int _N, int C, typename CharRank = details::DefaultCharRank>
-struct SA {
+template <int _N, typename CharRank = details::DefaultCharRank> struct SA {
+  using Char = typename CharRank::Char;
+
   static const int N = _N;
 
-  void compute(int _n, const char *s) {
+  void compute(int _n, const Char *s) {
     n = _n;
-    sort(C, IdOrder{}, CharRank{s}, sa);
+    sort(CharRank::C, IdOrder{}, CharRank{s}, sa);
     int range = rank(CharRank{s}, CharRank{s});
     for (int length = 1; length < n && range < n; length <<= 1) {
       memcpy(trk, rk, sizeof(*rk) * n);
@@ -73,12 +79,12 @@ private:
   }
 
   int n;
-  int count[std::max(N, C)], tsa[N], trk[N];
+  int count[std::max(N, CharRank::C)], tsa[N], trk[N];
 };
 
 template <typename SA, template <typename, int> class RMQT>
 struct LCPTable : SA {
-  void compute(int _n, const char *s) {
+  void compute(int _n, const typename SA::Char *s) {
     n = _n, SA::compute(n, s);
     int lcp = 0;
     for (int i = 0; i < n; ++i) {

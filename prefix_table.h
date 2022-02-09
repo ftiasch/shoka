@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <vector>
 
 std::vector<int> prefix_table(int n, const char *s) {
   std::vector<int> z(n);
