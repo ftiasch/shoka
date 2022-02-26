@@ -1,6 +1,7 @@
 #include "mod_details.h"
 
 #include <cstdint>
+#include <iostream>
 #include <limits>
 
 namespace montgomery {
@@ -144,3 +145,10 @@ template <u64 MOD>
 using Montgomery64T = MontgomeryBaseT<64, u64, MOD, Montgomery64Impl<MOD>>;
 
 } // namespace montgomery
+
+template <int RBIT, typename Digit, Digit M, typename Derived>
+std::ostream &
+operator<<(std::ostream &out,
+           const montgomery::MontgomeryBaseT<RBIT, Digit, M, Derived> &mod) {
+  return out << mod.get();
+}

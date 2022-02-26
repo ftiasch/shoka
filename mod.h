@@ -131,5 +131,5 @@ template <> struct ModT<0> {
 
 template <mod::u32 MOD>
 std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD>& mod) {
-  return out << mod.x;
+  return out << mod.get();
 }
