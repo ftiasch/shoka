@@ -33,10 +33,10 @@ private:
       int m = (l + r) >> 1;
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
-      Impl::propagate(l, m, r, n, ln, rn);
+      static_cast<Impl *>(this)->propagate(l, m, r, n, ln, rn);
       traverse_all(std::forward<H>(h), l, m);
       traverse_all(std::forward<H>(h), m + 1, r);
-      Impl::collect(l, m, r, n, ln, rn);
+      static_cast<Impl *>(this)->collect(l, m, r, n, ln, rn);
     }
   }
 
@@ -52,7 +52,7 @@ private:
       int m = (l + r) >> 1;
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
-      Impl::propagate(l, m, r, n, ln, rn);
+      static_cast<Impl *>(this)->propagate(l, m, r, n, ln, rn);
       if (direction) {
         traverse<H, 1>(std::forward<H>(h), m + 1, r, a, b);
         traverse<H, 1>(std::forward<H>(h), l, m, a, b);
@@ -60,7 +60,7 @@ private:
         traverse<H, 0>(std::forward<H>(h), l, m, a, b);
         traverse<H, 0>(std::forward<H>(h), m + 1, r, a, b);
       }
-      Impl::collect(l, m, r, n, ln, rn);
+      static_cast<Impl *>(this)->collect(l, m, r, n, ln, rn);
     }
   }
 
