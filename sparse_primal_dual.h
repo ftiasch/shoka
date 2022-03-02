@@ -57,7 +57,7 @@ public:
       edges[pred[v] ^ 1].rest += flow;
       v = edges[pred[v] ^ 1].v;
     }
-    CostT cost = dist[target] + phi[target];
+    CostT cost = dist[target] + phi[target] - phi[source];
     for (int u = 0; u < n; ++u) {
       if (dist[u] < dist[target]) {
         phi[u] += dist[u];
