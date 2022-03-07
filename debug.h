@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <queue>
 #include <set>
 #include <utility>
 #include <vector>
@@ -45,6 +46,16 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
 template <typename T, size_t N>
 std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
   return out << std::vector<T>(v.begin(), v.end());
+}
+
+template <typename T, typename S, typename C>
+std::ostream &operator<<(std::ostream &out, std::priority_queue<T, S, C> pq) {
+  std::vector<T> v;
+  while (!pq.empty()) {
+    v.push_back(pq.top());
+    pq.pop();
+  }
+  return out << v;
 }
 
 template <typename T>
