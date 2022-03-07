@@ -30,6 +30,9 @@ public:
     while (!pq.empty()) {
       auto [dist_u, u] = pq.top();
       pq.pop();
+      if (dist_u >= dist[target]) {
+        break;
+      }
       if (dist_u == dist[u]) {
         for (int iterator = head[u]; ~iterator;
              iterator = edges[iterator].next) {
