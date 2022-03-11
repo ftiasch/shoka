@@ -21,6 +21,8 @@ struct PrimeGen : public std::vector<int> {
 
   int min_div(int n) const { return min_div_[n]; }
 
+  bool is_prime(int n) const { return min_div(n) == n; }
+
 private:
   std::vector<int> min_div_;
 };
