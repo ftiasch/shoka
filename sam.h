@@ -1,8 +1,14 @@
 #include <cstring>
 #include <vector>
 
-template <int C> struct SAM {
-  struct Node {
+namespace sam_details {
+
+struct EmptyNode {};
+
+} // namespace sam_details
+
+template <int C, typename BaseNode = sam_details::EmptyNode> struct SAM {
+  struct Node : BaseNode {
     Node(int length_ = 0) : length(length_), parent(nullptr) {
       memset(go, 0, sizeof(go));
     }
