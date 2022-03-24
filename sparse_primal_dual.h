@@ -70,6 +70,20 @@ public:
     return {flow, cost};
   }
 
+  Result max_flow(int source, int target) {
+    int sum_flow = 0;
+    CostT sum_cost = 0;
+    while (true) {
+      auto [flow, cost] = augment(source, target);
+      if (flow == 0) {
+        break;
+      }
+      sum_flow += flow;
+      sum_cost += flow * cost;
+    }
+    return {sum_flow, sum_cost};
+  }
+
 private:
   template <typename T>
   using PQ = std::priority_queue<T, std::vector<T>, std::greater<T>>;
