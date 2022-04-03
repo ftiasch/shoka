@@ -18,7 +18,7 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
     return *this;
   }
 
-  FixedSizeMatrixT operator+(const FixedSizeMatrixT &o) {
+  FixedSizeMatrixT operator+(const FixedSizeMatrixT &o) const {
     return FixedSizeMatrixT(*this) += o;
   }
 
@@ -31,11 +31,11 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
     return *this;
   }
 
-  FixedSizeMatrixT operator-(const FixedSizeMatrixT &o) {
+  FixedSizeMatrixT operator-(const FixedSizeMatrixT &o) const {
     return FixedSizeMatrixT(*this) -= o;
   }
 
-  FixedSizeMatrixT operator*(const FixedSizeMatrixT &o) {
+  FixedSizeMatrixT operator*(const FixedSizeMatrixT &o) const {
     static T buffer[N];
     FixedSizeMatrixT result;
     for (int j = 0; j < N; ++j) {
