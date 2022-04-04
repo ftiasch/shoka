@@ -1,4 +1,5 @@
 #include <array>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 
@@ -49,6 +50,22 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
       }
     }
     return result;
+  }
+
+  FixedSizeMatrixT power(uint64_t n) const {
+    FixedSizeMatrixT r;
+    for (int i = 0; i < N; ++i) {
+      r[i][i] = T{1};
+    }
+    FixedSizeMatrixT a = *this;
+    while (n) {
+      if (n & 1) {
+        r = r * a;
+      }
+      a = a * a;
+      n >>= 1;
+    }
+    return r;
   }
 
 private:
