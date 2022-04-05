@@ -43,6 +43,12 @@ template <u32 MOD_> struct ModT {
     return *this;
   }
 
+  constexpr ModT operator-() const {
+    ModT copy{0};
+    copy -= *this;
+    return copy;
+  }
+
   constexpr ModT operator-(const ModT &other) const {
     ModT copy = *this;
     return copy -= other;
@@ -130,6 +136,6 @@ template <> struct ModT<0> {
 } // namespace mod
 
 template <mod::u32 MOD>
-std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD>& mod) {
+std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD> &mod) {
   return out << mod.get();
 }
