@@ -47,7 +47,7 @@ public:
     return result;
   }
 
-private:
+protected:
   struct Edge {
     int t;
     int next;
