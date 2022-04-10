@@ -18,6 +18,8 @@ template <u32 MOD_> struct ModT {
 
   static_assert(MOD <= (std::numeric_limits<u32>::max() >> 1));
 
+  static constexpr ModT normalize(u64 x) { return ModT(x % MOD); }
+
   explicit constexpr ModT(u32 x_ = 0) : x(x_) {}
 
   constexpr u32 get() const { return x; }
