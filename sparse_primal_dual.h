@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 #include <limits>
 #include <queue>
 #include <utility>
@@ -21,6 +23,8 @@ public:
     internal_add_edge(v, u, 0, -cost);
   }
 
+  void set_phi(const std::vector<CostT> &phi_) { phi = phi_; }
+
   Result augment(int source, int target,
                  int maxflow = std::numeric_limits<int>::max()) {
     const CostT MAX_COST = std::numeric_limits<CostT>::max();
@@ -39,6 +43,7 @@ public:
           auto &e = edges[iterator];
           int v = e.v;
           CostT cost = e.cost;
+          assert(e.rest == 0 || phi[u] + cost >= phi[v]);
           if (e.rest > 0 && dist[v] > dist[u] + (phi[u] + cost - phi[v])) {
             dist[v] = dist[u] + (phi[u] + cost - phi[v]);
             pred[v] = iterator;
