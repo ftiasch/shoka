@@ -1,25 +1,26 @@
+#include <algorithm>
+#include <limits>
 #include <queue>
 #include <vector>
-#include <limits>
-#include <algorithm>
 
-class MinCostFlow {
+template <typename CostT> class MinCostFlow {
 public:
   struct Result {
-    int flow, cost;
+    int flow;
+    CostT cost;
   };
 
-  MinCostFlow(int n, int m = 0) : visited(n), head(n, -1), dist(n), prev(n) {
+  MinCostFlow(int n, int m = 0) : visited(n), head(n, -1), prev(n), dist(n) {
     edges.reserve(m << 1);
   }
 
-  void add_edge(int u, int v, int capacity, int cost) {
+  void add_edge(int u, int v, int capacity, CostT cost) {
     internal_add_edge(u, v, capacity, cost);
     internal_add_edge(v, u, 0, -cost);
   }
 
   Result augment(int src, int dst) {
-    const int infdist = std::numeric_limits<int>::max();
+    const CostT infdist = std::numeric_limits<CostT>::max();
     std::fill(dist.begin(), dist.end(), infdist);
     dist[src] = 0;
     std::queue<int> queue;
@@ -54,15 +55,17 @@ public:
 
 private:
   struct Edge {
-    int v, next, rest, cost;
+    int v, next, rest;
+    CostT cost;
   };
 
-  void internal_add_edge(int u, int v, int capacity, int cost) {
+  void internal_add_edge(int u, int v, int capacity, CostT cost) {
     edges.push_back(Edge{v, head[u], capacity, cost});
     head[u] = edges.size() - 1;
   }
 
   std::vector<bool> visited;
-  std::vector<int> head, dist, prev;
+  std::vector<int> head, prev;
+  std::vector<CostT> dist;
   std::vector<Edge> edges;
 };
