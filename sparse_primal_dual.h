@@ -43,7 +43,7 @@ public:
           auto &e = edges[iterator];
           int v = e.v;
           CostT cost = e.cost;
-          assert(e.rest == 0 || phi[u] + cost >= phi[v]);
+          // assert(e.rest == 0 || phi[u] + cost >= phi[v]);
           if (e.rest > 0 && dist[v] > dist[u] + (phi[u] + cost - phi[v])) {
             dist[v] = dist[u] + (phi[u] + cost - phi[v]);
             pred[v] = iterator;
