@@ -117,6 +117,13 @@ public:
     }
   }
 
+  std::vector<ModT> multiply(const std::vector<ModT> &f,
+                             const std::vector<ModT> &g) {
+    std::vector<ModT> out;
+    multiply(out, f, g);
+    return out;
+  }
+
   void inverse(int n, ModT *out, const ModT *f) {
     assert_power_of_two(n);
     assert_max_n(n);

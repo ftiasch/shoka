@@ -48,6 +48,11 @@ std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
   return out << std::vector<T>(v.begin(), v.end());
 }
 
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const std::deque<T> &v) {
+  return out << std::vector<T>(v.begin(), v.end());
+}
+
 template <typename T, typename S, typename C>
 std::ostream &operator<<(std::ostream &out, std::priority_queue<T, S, C> pq) {
   std::vector<T> v;
