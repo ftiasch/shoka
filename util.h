@@ -1,8 +1,14 @@
 #include <bits/stdc++.h>
 
-#define CIN(T, V)                                                              \
+#define READ(T, V)                                                             \
   T V;                                                                         \
   std::cin >> V;
+
+#define READ_VECTOR(T, V, n)                                                   \
+  std::vector<T> V((n));                                                       \
+  for (int i = 0; i < (n); ++i) {                                              \
+    std::cin >> V[i];                                                          \
+  }
 
 #define ALL(v) (v).begin(), (v).end()
 
