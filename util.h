@@ -1,22 +1,28 @@
 #include <bits/stdc++.h>
 
-#define READ(T, V)                                                             \
-  T V;                                                                         \
-  std::cin >> V;
+template <typename T = int> T read() {
+  T v;
+  std::cin >> v;
+  return v;
+}
 
-#define READ_VECTOR(T, V, n)                                                   \
-  std::vector<T> V((n));                                                       \
-  for (int i = 0; i < (n); ++i) {                                              \
-    std::cin >> V[i];                                                          \
+template <typename T = int> std::vector<T> read_vector(size_t n) {
+  std::vector<T> v(n);
+  for (size_t i = 0; i < n; ++i) {
+    v[i] = read<T>();
   }
+  return v;
+}
 
 #define ALL(v) (v).begin(), (v).end()
 
-template <typename T> std::vector<std::vector<T>> vector_2d(int n, int m) {
+template <typename T = int>
+std::vector<std::vector<T>> vector_2d(int n, int m) {
   return std::vector<std::vector<T>>(n, std::vector<T>(m));
 }
 
-template <typename T> std::vector<std::vector<T>> vector_2d(int n, int m, T d) {
+template <typename T = int>
+std::vector<std::vector<T>> vector_2d(int n, int m, T d) {
   return std::vector<std::vector<T>>(n, std::vector<T>(m, d));
 }
 
