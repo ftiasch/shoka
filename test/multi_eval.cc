@@ -1,5 +1,7 @@
 #include "../montgomery.h"
-#include "../ntt.h"
+#include "../multi_eval.h"
+
+#include "../debug.h"
 
 #include "gtest/gtest.h"
 
@@ -21,40 +23,26 @@ std::vector<ModT> random_poly(int n) {
   return result;
 }
 
-static const int K = 10;
 
-using NTT = ntt::NTT<ModT>;
-ntt::Poly<NTT> poly(1 << K);
+static const int K = 5;
 
-std::vector<ModT> brute_middle_product(const std::vector<ModT> &a,
-                                       const std::vector<ModT> &c) {
-  int n = a.size();
-  assert(c.size() == (n << 1));
-  std::vector<ModT> b(n);
-  for (int i = n; i--;) {
-    for (int j = n; j--;) {
-      b[j] += a[i] * c[i + j];
+ntt::MultiEval<ntt::NTT<ModT>> poly(1 << K);
+
+TEST(MultiEval, Correctness) {
+  for (int _ = 0; _ < 10; ++_) {
+    int n = mt() % (1 << K) + 1;
+    int m = mt() % (1 << K) + 1;
+    std::vector<ModT> c = random_poly(n);
+    std::vector<ModT> a = random_poly(m);
+    auto result = poly.eval(c, a);
+    ASSERT_EQ(result.size(), m);
+    for (int i = 0; i < m; ++i) {
+      ModT x = a[i];
+      ModT answer{0};
+      for (int j = n; j--;) {
+        answer = answer * x + c[j];
+      }
+      ASSERT_EQ(result[i].get(), answer.get());
     }
-  }
-  return b;
-}
-
-TEST(MultiEval, MiddleProduct) {
-  int n = 1 << (K - 1);
-  std::vector<ModT> a = random_poly(n);
-  std::vector<ModT> c = random_poly(n << 1);
-  c[(n << 1) - 1] = ModT{0};
-  std::vector<ModT> brute_b = brute_middle_product(a, c);
-  std::reverse(a.begin(), a.end());
-  a.resize(n << 1);
-  NTT::dif(n << 1, a.data());
-  NTT::dif(n << 1, c.data());
-  ModT inv_2n = ModT(n << 1).inverse();
-  for (int i = 0; i < n << 1; ++i) {
-    a[i] = inv_2n * a[i] * c[i];
-  }
-  NTT::dit(n << 1, a.data());
-  for (int i = 0; i < n; ++i) {
-    ASSERT_EQ(brute_b[i].get(), a[n - 1 + i].get());
   }
 }

@@ -83,7 +83,7 @@ static int min_power_of_two(int n) {
 }
 
 template <typename NTT> class Poly {
-private:
+protected:
   using ModT = typename NTT::ModT;
 
 public:
@@ -293,7 +293,7 @@ public:
     }
   }
 
-private:
+protected:
   static void copy_and_fill0(int n, ModT *dst, int m, const ModT *src) {
     m = std::min(n, m);
     std::copy(src, src + m, dst);

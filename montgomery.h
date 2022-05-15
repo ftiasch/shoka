@@ -66,6 +66,11 @@ struct MontgomeryBaseT {
     return *this;
   }
 
+  constexpr MontgomeryBaseT operator-() const {
+    MontgomeryBaseT copy{0};
+    return copy -= *this;
+  }
+
   constexpr MontgomeryBaseT operator-(const MontgomeryBaseT &other) const {
     MontgomeryBaseT copy = *this;
     return copy -= other;
