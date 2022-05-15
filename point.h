@@ -16,6 +16,8 @@ template <typename PT = int, typename P2T = long long> struct PointT {
     return *this;
   }
 
+  PointT operator-() const { return {-x, -y}; }
+
   PointT operator-(const PointT &o) const {
     PointT copy = *this;
     return copy -= o;
