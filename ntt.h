@@ -52,6 +52,10 @@ template <typename ModT_> struct NTT {
     }
   }
 
+  static ModT get_primitive_root() {
+    return G;
+  }
+
 private:
   struct FiniteField {
     static constexpr ModT primitive_root() {
@@ -75,7 +79,7 @@ private:
     }
   };
 
-  static constexpr ModT G = ModT(FiniteField::primitive_root());
+  static constexpr ModT G = FiniteField::primitive_root();
 };
 
 static int min_power_of_two(int n) {
