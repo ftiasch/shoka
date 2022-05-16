@@ -1,5 +1,6 @@
 #include "ntt.h"
 
+#include <chrono>
 #include <vector>
 
 namespace ntt {
@@ -15,52 +16,60 @@ public:
   // output: f(a_0) f(a_1) ...
   std::vector<ModT> eval(const std::vector<ModT> &c,
                          const std::vector<ModT> &a) {
-    int m = min_power_of_two(std::max(c.size(), a.size()));
+    int m = min_power_of_two(std::max<size_t>({c.size(), a.size(), 2}));
     Poly<NTT>::assert_max_n(m);
-    std::vector<std::vector<ModT>> q(m << 1), p(m << 1);
+    int log_m = (__builtin_ctz(m)) + 1;
+    std::vector<std::vector<ModT>> dif_rev_q(log_m, std::vector<ModT>(m << 1));
     for (int i = 0; i < m; ++i) {
-      q[m + i] = {ModT{1}, i < a.size() ? -a[i] : ModT{0}};
+      dif_rev_q[0][i << 1] = i < a.size() ? -a[i] : ModT(0);
+      dif_rev_q[0][i << 1 | 1] = ModT{1};
+      NTT::dif(2, dif_rev_q[0].data() + (i << 1));
     }
-    for (int i = m; i-- > 1;) {
-      q[i] = Poly<NTT>::multiply(q[i << 1], q[i << 1 | 1]);
+    for (int l = 1; l < log_m; ++l) {
+      for (int s = 0; s < (m << 1); s += (2 << l)) {
+        Poly<NTT>::dot_product_and_dit(1 << l, ModT(1 << l).inverse(),
+                                       dif_rev_q[l].data() + s,
+                                       dif_rev_q[l - 1].data() + s,
+                                       dif_rev_q[l - 1].data() + s + (1 << l));
+        dif_rev_q[l][s] -= ModT{1};
+        dif_rev_q[l][s + (1 << l)] = ModT{1};
+        if (l + 1 < log_m) {
+          NTT::dif(2 << l, dif_rev_q[l].data() + s);
+        }
+      }
     }
-    std::vector<ModT> inv_q(m + 1);
-    Poly<NTT>::inverse(m, inv_q.data(), q[1].data());
-    auto reshaped_c = c;
-    reshaped_c.resize(m << 1);
-    p[1] = mul_t(m, inv_q, reshaped_c);
-    for (int i = 1; i < m; ++i) {
-      int l = p[i].size() >> 1;
-      p[i << 1] = mul_t(l, q[i << 1 | 1], p[i]);
-      p[i << 1 | 1] = mul_t(l, q[i << 1], p[i]);
+    auto &q1 = dif_rev_q[log_m - 1];
+    std::reverse(q1.data(), q1.data() + (m + 1));
+    ModT *const dif_rev_inv_q1 = Poly<NTT>::buffer[2].data();
+    Poly<NTT>::inverse(m, dif_rev_inv_q1, q1.data());
+    // mul_t(m, inv_q1, c)
+    std::fill(dif_rev_inv_q1 + m, dif_rev_inv_q1 + (m << 1), ModT{0});
+    std::reverse(dif_rev_inv_q1, dif_rev_inv_q1 + (m + 1));
+    NTT::dif(m << 1, dif_rev_inv_q1);
+    ModT *const dif_c = Poly<NTT>::buffer[3].data();
+    Poly<NTT>::copy_and_fill0(m << 1, dif_c, c.size(), c.data());
+    NTT::dif(m << 1, dif_c);
+    ModT *pnow = Poly<NTT>::buffer[0].data();
+    ModT *ppre = Poly<NTT>::buffer[1].data();
+    mul_t(m << 1, pnow, dif_rev_inv_q1, dif_c);
+    for (int l = log_m; l-- > 1;) {
+      std::swap(pnow, ppre);
+      for (int s = 0, s2 = 0; s < m; s += (1 << l), s2 += (2 << l)) {
+        NTT::dif(1 << l, ppre + s);
+        mul_t(1 << l, pnow + s, dif_rev_q[l - 1].data() + s2 + (1 << l),
+              ppre + s);
+        mul_t(1 << l, pnow + s + (1 << (l - 1)), dif_rev_q[l - 1].data() + s2,
+              ppre + s);
+      }
     }
-    std::vector<ModT> result(a.size());
-    for (int i = 0; i < a.size(); ++i) {
-      result[i] = p[m + i][0];
-    }
-    return result;
+    return std::vector<ModT>(pnow, pnow + a.size());
   }
 
 private:
-  std::vector<ModT> mul_t(int n, const std::vector<ModT> &a,
-                          const std::vector<ModT> &c) {
-    if (a.size() != n + 1) {
-      throw std::logic_error("");
-    }
-    if (c.size() != (n << 1)) {
-      throw std::logic_error("");
-    }
-    ModT *const b0 = Poly<NTT>::buffer[0].data();
-    ModT *const b1 = Poly<NTT>::buffer[1].data();
-    Poly<NTT>::copy_and_fill0(n << 1, b0, n + 1, a.data());
-    std::reverse(b0, b0 + (n + 1));
-    Poly<NTT>::copy_and_fill0(n << 1, b1, n << 1, c.data());
-    NTT::dif(n << 1, b0);
-    NTT::dif(n << 1, b1);
-    Poly<NTT>::dot_product_and_dit(n << 1, ModT(n << 1).inverse(), b0, b0, b1);
-    std::vector<ModT> b(n);
-    std::copy(b0 + n, b0 + (n << 1), b.data());
-    return b;
+  void mul_t(int n, ModT *out, ModT *dif_rev_a, ModT *dif_c) {
+    ModT *const b = Poly<NTT>::buffer[2].data();
+    Poly<NTT>::dot_product_and_dit(n, ModT(n).inverse(), b, dif_rev_a, dif_c);
+    std::copy(b + (n >> 1), b + n, out);
   }
 };
 
