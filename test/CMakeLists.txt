@@ -29,3 +29,7 @@ gtest_add_tests(TARGET rmq)
 add_executable(universal_euclidean universal_euclidean.cc)
 target_link_libraries(universal_euclidean PRIVATE gtest_main)
 gtest_add_tests(TARGET universal_euclidean)
+
+add_executable(vector_nd vector_nd.cc)
+target_link_libraries(vector_nd PRIVATE gtest_main)
+gtest_add_tests(TARGET vector_nd)

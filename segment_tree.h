@@ -23,9 +23,9 @@ template <typename Node, typename Impl> struct SegmentTreeBase {
     return h;
   }
 
-protected:
   Node &get_node(int l, int r) { return nodes[l + r | (l != r)]; }
 
+protected:
   template <typename H> void traverse_all(H &&h, int l, int r) {
     Node &n = get_node(l, r);
     h.update(l, r, n);
