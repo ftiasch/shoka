@@ -1,24 +1,22 @@
 #include <queue>
 #include <vector>
 
-template <typename T, int N>
-struct VectorND : public std::vector<VectorND<T, N - 1>> {
-  VectorND() {}
-
-  template <typename... Args>
-  VectorND(int dim0, Args &&...args)
-      : std::vector<Nested>(dim0, Nested(std::forward<Args>(args)...)) {}
-
-private:
+template <typename T, int N> struct VectorND {
   using Nested = VectorND<T, N - 1>;
+  using Vector = std::vector<typename Nested::Vector>;
+
+  template <typename... Args> static Vector create(int n, Args &&...args) {
+    return Vector(n, Nested::create(std::forward<Args>(args)...));
+  }
 };
 
-template <typename T> struct VectorND<T, 1> : public std::vector<T> {
-  template <typename... Args>
-  VectorND(Args &&...args) : std::vector<T>(std::forward<Args>(args)...) {}
-};
+template <typename T> struct VectorND<T, 1> {
+  using Vector = std::vector<T>;
 
-template <typename T> using Vector2D = VectorND<T, 2>;
+  template <typename... Args> static Vector create(Args &&...args) {
+    return Vector(std::forward<Args>(args)...);
+  }
+};
 
 template <typename T>
 using MinPQ = std::priority_queue<T, std::vector<T>, std::greater<T>>;
