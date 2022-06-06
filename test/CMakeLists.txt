@@ -6,6 +6,10 @@ add_executable(montgomery montgomery.cc)
 target_link_libraries(montgomery PRIVATE gtest_main)
 gtest_add_tests(TARGET montgomery)
 
+add_executable(nd_vector nd_vector.cc)
+target_link_libraries(nd_vector PRIVATE gtest_main)
+gtest_add_tests(TARGET nd_vector)
+
 add_executable(ntt ntt.cc)
 target_link_libraries(ntt PRIVATE gtest_main)
 gtest_add_tests(TARGET ntt)
@@ -29,7 +33,3 @@ gtest_add_tests(TARGET rmq)
 add_executable(universal_euclidean universal_euclidean.cc)
 target_link_libraries(universal_euclidean PRIVATE gtest_main)
 gtest_add_tests(TARGET universal_euclidean)
-
-add_executable(vector_nd vector_nd.cc)
-target_link_libraries(vector_nd PRIVATE gtest_main)
-gtest_add_tests(TARGET vector_nd)

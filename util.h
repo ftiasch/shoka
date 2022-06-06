@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 
 #define ALL(v) (v).begin(), (v).end()
 
@@ -23,3 +24,6 @@ struct IO {
     return v;
   }
 };
+
+template <typename T>
+using MinPQ = std::priority_queue<T, std::vector<T>, std::greater<T>>;
