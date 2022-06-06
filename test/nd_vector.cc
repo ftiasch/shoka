@@ -1,6 +1,20 @@
 #include "gtest/gtest.h"
 
+#include "../nd_array.h"
 #include "../nd_vector.h"
+
+TEST(NDArray, Constructor) {
+  {
+    auto a = NDArray<int, 2>::create();
+    ASSERT_EQ(a.size(), 2);
+  }
+  {
+    auto a = NDArray<int, 2, 3>::create();
+    ASSERT_EQ(a.size(), 2);
+    ASSERT_EQ(a[0].size(), 3);
+    ASSERT_EQ(a[1].size(), 3);
+  }
+}
 
 TEST(NDVector, Constructor) {
   {
