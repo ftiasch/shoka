@@ -2,16 +2,17 @@
 
 #include <algorithm>
 #include <cstring>
-#include <vector>
 
-template <typename T> struct SparseTable {
-  SparseTable(const std::vector<T> &value)
-      : n(value.size()), l(log2n(n)), log(n), table(l, std::vector<T>(n)) {
+template <typename T, int N> struct StaticSparseTable {
+  StaticSparseTable() {
     log[0] = 0;
-    for (int i = 1; i < n; ++i) {
+    for (int i = 1; i < N; ++i) {
       log[i] = log[i - 1] + (1 << (log[i - 1] + 1) < i + 1);
     }
-    table[0] = value;
+  }
+
+  void initialize(int n, const T *value) {
+    l = log2n(n), memcpy(table[0], value, sizeof(T) * n);
     for (int i = 1; i < l; ++i) {
       for (int j = 0; j + (1 << i) <= n; ++j) {
         table[i][j] =
@@ -30,7 +31,8 @@ private:
     return n > 1 ? 32 - __builtin_clz(n - 1) : 1;
   }
 
-  int n, l;
-  std::vector<int> log;
-  std::vector<std::vector<T>> table;
+  static const int L = log2n(N);
+
+  int l, log[N];
+  T table[L][N];
 };

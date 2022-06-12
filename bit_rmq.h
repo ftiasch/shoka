@@ -1,4 +1,4 @@
-#include "sparse_table.h"
+#include "static_sparse_table.h"
 
 #include <cstdint>
 
@@ -63,5 +63,5 @@ private:
     uint64_t stack[64];
   } intra[M];
   T buffer[M];
-  SparseTable<T, M> inter;
+  StaticSparseTable<T, M> inter;
 };
