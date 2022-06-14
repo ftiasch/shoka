@@ -1,23 +1,24 @@
 #include "ntt.h"
+#include "poly_v1.h"
 
 #include <chrono>
 #include <vector>
 
 namespace ntt {
 
-template <typename NTT> struct MultiEval : public Poly<NTT> {
+template <typename NTT> struct MultiEval : public PolyT_v1<NTT> {
 private:
-  using ModT = typename Poly<NTT>::ModT;
+  using ModT = typename PolyT_v1<NTT>::Mod;
 
 public:
-  MultiEval(int max_n_) : Poly<NTT>(max_n_ << 1) {}
+  MultiEval(int max_n_) : PolyT_v1<NTT>(max_n_ << 1) {}
 
   // input:  f(z) = sum c[i] * z^i
   // output: f(a_0) f(a_1) ...
   std::vector<ModT> eval(const std::vector<ModT> &c,
                          const std::vector<ModT> &a) {
     int m = min_power_of_two(std::max<size_t>({c.size(), a.size(), 2}));
-    Poly<NTT>::assert_max_n(m);
+    PolyT_v1<NTT>::assert_max_n(m);
     int log_m = (__builtin_ctz(m)) + 1;
     std::vector<std::vector<ModT>> dif_rev_q(log_m, std::vector<ModT>(m << 1));
     for (int i = 0; i < m; ++i) {
@@ -32,7 +33,8 @@ public:
       for (int s = 0; s < (m << 1); s += (2 << l)) {
         if (l + 1 < log_m) {
           for (int i = s; i < s + (1 << l); ++i) {
-            dif_rev_q[l][i] = dif_rev_q[l - 1][i] * dif_rev_q[l - 1][i + (1 << l)];
+            dif_rev_q[l][i] =
+                dif_rev_q[l - 1][i] * dif_rev_q[l - 1][i + (1 << l)];
             dif_rev_q[l][i + (1 << l)] = inv_n * dif_rev_q[l][i];
           }
           NTT::dit(1 << l, dif_rev_q[l].data() + s + (1 << l));
@@ -44,10 +46,10 @@ public:
           }
           NTT::dif(1 << l, dif_rev_q[l].data() + s + (1 << l));
         } else {
-          Poly<NTT>::dot_product_and_dit(1 << l, inv_n,
-                                       dif_rev_q[l].data() + s,
-                                       dif_rev_q[l - 1].data() + s,
-                                       dif_rev_q[l - 1].data() + s + (1 << l));
+          PolyT_v1<NTT>::dot_product_and_dit(
+              1 << l, inv_n, dif_rev_q[l].data() + s,
+              dif_rev_q[l - 1].data() + s,
+              dif_rev_q[l - 1].data() + s + (1 << l));
           dif_rev_q[l][s] -= ModT{1};
           dif_rev_q[l][s + (1 << l)] = ModT{1};
         }
@@ -55,17 +57,17 @@ public:
     }
     auto &q1 = dif_rev_q[log_m - 1];
     std::reverse(q1.data(), q1.data() + (m + 1));
-    ModT *const dif_rev_inv_q1 = Poly<NTT>::buffer[2].data();
-    Poly<NTT>::inverse(m, dif_rev_inv_q1, q1.data());
+    ModT *const dif_rev_inv_q1 = PolyT_v1<NTT>::buffer[2].data();
+    PolyT_v1<NTT>::inverse(m, dif_rev_inv_q1, q1.data());
     // mul_t(m, inv_q1, c)
     std::fill(dif_rev_inv_q1 + m, dif_rev_inv_q1 + (m << 1), ModT{0});
     std::reverse(dif_rev_inv_q1, dif_rev_inv_q1 + (m + 1));
     NTT::dif(m << 1, dif_rev_inv_q1);
-    ModT *const dif_c = Poly<NTT>::buffer[3].data();
-    Poly<NTT>::copy_and_fill0(m << 1, dif_c, c.size(), c.data());
+    ModT *const dif_c = PolyT_v1<NTT>::buffer[3].data();
+    PolyT_v1<NTT>::copy_and_fill0(m << 1, dif_c, c.size(), c.data());
     NTT::dif(m << 1, dif_c);
-    ModT *pnow = Poly<NTT>::buffer[0].data();
-    ModT *ppre = Poly<NTT>::buffer[1].data();
+    ModT *pnow = PolyT_v1<NTT>::buffer[0].data();
+    ModT *ppre = PolyT_v1<NTT>::buffer[1].data();
     mul_t(m << 1, pnow, dif_rev_inv_q1, dif_c);
     for (int l = log_m; l-- > 1;) {
       std::swap(pnow, ppre);
@@ -82,8 +84,9 @@ public:
 
 private:
   void mul_t(int n, ModT *out, ModT *dif_rev_a, ModT *dif_c) {
-    ModT *const b = Poly<NTT>::buffer[2].data();
-    Poly<NTT>::dot_product_and_dit(n, ModT(n).inverse(), b, dif_rev_a, dif_c);
+    ModT *const b = PolyT_v1<NTT>::buffer[2].data();
+    PolyT_v1<NTT>::dot_product_and_dit(n, ModT(n).inverse(), b, dif_rev_a,
+                                       dif_c);
     std::copy(b + (n >> 1), b + n, out);
   }
 };
