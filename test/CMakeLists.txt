@@ -10,13 +10,13 @@ add_executable(nd_vector nd_vector.cc)
 target_link_libraries(nd_vector PRIVATE gtest_main)
 gtest_add_tests(TARGET nd_vector)
 
-# add_executable(ntt ntt.cc)
-# target_link_libraries(ntt PRIVATE gtest_main)
-# gtest_add_tests(TARGET ntt)
-
 add_executable(ntt_v1 ntt_v1.cc)
 target_link_libraries(ntt_v1 PRIVATE gtest_main)
 gtest_add_tests(TARGET ntt_v1)
+
+add_executable(poly_v2 poly_v2.cc)
+target_link_libraries(poly_v2 PRIVATE gtest_main)
+gtest_add_tests(TARGET poly_v2)
 
 add_executable(polynomial_interpolation polynomial_interpolation.cc)
 target_link_libraries(polynomial_interpolation PRIVATE gtest_main)
