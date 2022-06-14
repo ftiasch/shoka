@@ -33,8 +33,8 @@ TEST_F(PolyV2Test, Addition) {
     auto factory = ntt::FinitePolyFactoryT<NTT>::create(sum_deg);
     for (int f_deg = 0; f_deg <= sum_deg; ++f_deg) {
       int g_deg = sum_deg - f_deg;
-      auto f = factory->make_poly(gen_poly(f_deg));
-      auto g = factory->make_poly(gen_poly(g_deg));
+      auto f = factory->make(gen_poly(f_deg));
+      auto g = factory->make(gen_poly(g_deg));
       std::vector<Mod> correct_sum_fg(std::max(f_deg, g_deg) + 1);
       for (int i = 0; i <= std::max(f_deg, g_deg); ++i) {
         if (i <= f_deg) {
@@ -57,14 +57,14 @@ TEST_F(PolyV2Test, Subtraction) {
     auto factory = ntt::FinitePolyFactoryT<NTT>::create(sum_deg);
     for (int f_deg = 0; f_deg <= sum_deg; ++f_deg) {
       int g_deg = sum_deg - f_deg;
-      auto f = factory->make_poly(gen_poly(f_deg));
+      auto f = factory->make(gen_poly(f_deg));
       auto g_coef = gen_poly(g_deg);
       auto neg_g_coef = g_coef;
       for (int i = 0; i <= g_deg; ++i) {
         neg_g_coef[i] = -neg_g_coef[i];
       }
-      auto g = factory->make_poly(g_coef);
-      auto neg_g = factory->make_poly(neg_g_coef);
+      auto g = factory->make(g_coef);
+      auto neg_g = factory->make(neg_g_coef);
 
       auto diff_fg = f - g;
       auto alt_diff_fg = f + neg_g;
@@ -80,8 +80,8 @@ TEST_F(PolyV2Test, Multiplication) {
     auto factory = ntt::FinitePolyFactoryT<NTT>::create(sum_deg);
     for (int f_deg = 0; f_deg <= sum_deg; ++f_deg) {
       int g_deg = sum_deg - f_deg;
-      auto f = factory->make_poly(gen_poly(f_deg));
-      auto g = factory->make_poly(gen_poly(g_deg));
+      auto f = factory->make(gen_poly(f_deg));
+      auto g = factory->make(gen_poly(g_deg));
       std::vector<Mod> correct_fg(sum_deg + 1);
       for (int i = 0; i <= f_deg; ++i) {
         for (int j = 0; j <= g_deg; ++j) {
@@ -101,8 +101,8 @@ TEST_F(PolyV2Test, InplaceMultiplication) {
     auto factory = ntt::FinitePolyFactoryT<NTT>::create(sum_deg);
     for (int f_deg = 0; f_deg <= sum_deg; ++f_deg) {
       int g_deg = sum_deg - f_deg;
-      auto f = factory->make_poly(gen_poly(f_deg));
-      auto g = factory->make_poly(gen_poly(g_deg));
+      auto f = factory->make(gen_poly(f_deg));
+      auto g = factory->make(gen_poly(g_deg));
       std::vector<Mod> correct_fg(sum_deg + 1);
       for (int i = 0; i <= f_deg; ++i) {
         for (int j = 0; j <= g_deg; ++j) {

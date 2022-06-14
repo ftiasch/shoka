@@ -48,23 +48,14 @@ namespace ntt {
 template <typename NTT>
 struct FinitePolyFactoryT : LocalEnableSharedFromThis<FinitePolyFactoryT<NTT>> {
 private:
-  struct Poly;
-
   using Mod = typename NTT::Mod;
   using Factory = FinitePolyFactoryT<NTT>;
 
 public:
-  static LocalSharedPtr<Factory> create(int max_deg) {
-    return LocalSharedPtr<Factory>(new Factory(max_deg));
-  }
+  using Ptr = LocalSharedPtr<Factory>;
 
-  template <typename... Args> Poly make_poly(Args &&...args) {
-    Poly p{LocalEnableSharedFromThis<Factory>::shared_from_this(),
-           std::forward<Args>(args)...};
-    return p;
-  }
+  static Ptr create(int max_deg) { return Ptr(new Factory(max_deg)); }
 
-private:
   struct Poly : public std::vector<Mod> {
     int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
@@ -72,7 +63,7 @@ private:
       if (deg() < o.deg()) {
         return o + *this;
       }
-      Poly r = factory->make_poly(*this);
+      Poly r = factory->make(*this);
       for (int i = 0; i <= o.deg(); ++i) {
         r[i] += o[i];
       }
@@ -83,7 +74,7 @@ private:
 
     Poly operator-(const Poly &o) const {
       int max_deg = std::max(deg(), o.deg());
-      Poly r = factory->make_poly(max_deg + 1);
+      Poly r = factory->make(max_deg + 1);
       int min_deg = std::min(deg(), o.deg());
       for (int i = 0; i <= min_deg; ++i) {
         r[i] = (*this)[i] - o[i];
@@ -112,7 +103,7 @@ private:
       copy_and_fill0(n, b1, o);
       NTT::dif(n, b1);
       dot_product_and_dit(n, Mod(n).inverse(), b0, b0, b1);
-      return factory->make_poly(std::vector<Mod>(b0, b0 + deg_plus_1));
+      return factory->make(std::vector<Mod>(b0, b0 + deg_plus_1));
     }
 
     Poly &operator*=(const Poly &o) { return *this = *this * o; }
@@ -121,13 +112,20 @@ private:
     friend struct FinitePolyFactoryT;
 
     template <typename... Args>
-    Poly(LocalSharedPtr<Factory> &&factory_, Args &&...args)
+    Poly(Ptr &&factory_, Args &&...args)
         : std::vector<Mod>(std::forward<Args>(args)...),
           factory(std::move(factory_)) {}
 
-    LocalSharedPtr<Factory> factory;
+    Ptr factory;
   };
 
+  template <typename... Args> Poly make(Args &&...args) {
+    Poly p{LocalEnableSharedFromThis<Factory>::shared_from_this(),
+           std::forward<Args>(args)...};
+    return p;
+  }
+
+private:
   friend struct Poly;
 
   FinitePolyFactoryT(int max_deg)
