@@ -52,9 +52,7 @@ template <typename ModT_> struct NTT {
     }
   }
 
-  static ModT get_primitive_root() {
-    return G;
-  }
+  static ModT get_primitive_root() { return G; }
 
 private:
   struct FiniteField {
