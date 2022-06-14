@@ -1,9 +1,46 @@
 #include "ntt_util.h"
 
 #include <array>
-#include <bits/shared_ptr_base.h>
-#include <memory>
 #include <vector>
+
+template <typename T> struct LocalSharedPtr {
+  LocalSharedPtr(T *raw_ptr_) : raw_ptr{raw_ptr_} { raw_ptr->rc++; }
+
+  ~LocalSharedPtr() {
+    if (owned) {
+      if (!(--raw_ptr->rc)) {
+        delete raw_ptr;
+      }
+    }
+  }
+
+  LocalSharedPtr(const LocalSharedPtr<T> &o) : LocalSharedPtr(o.raw_ptr) {}
+  LocalSharedPtr &operator=(const LocalSharedPtr<T> &o) {
+    raw_ptr = o.raw_ptr;
+    return *this;
+  }
+  LocalSharedPtr(LocalSharedPtr<T> &&o) {
+    raw_ptr = o.raw_ptr;
+    o.owned = false;
+  }
+
+  T *operator->() const { return raw_ptr; }
+
+private:
+  T *raw_ptr;
+  bool owned = true;
+};
+
+template <typename T> struct LocalEnableSharedFromThis {
+  LocalSharedPtr<T> shared_from_this() {
+    return LocalSharedPtr(static_cast<T *>(this));
+  }
+
+  friend struct LocalSharedPtr<T>;
+
+private:
+  int rc = 0;
+};
 
 namespace ntt {
 
@@ -12,8 +49,7 @@ namespace ntt {
  * e.g. 1 / f(z) is not finite and should be computed as 1 / f(z) mod z^n
  */
 template <typename NTT>
-struct FinitePolyFactoryT
-    : std::enable_shared_from_this<FinitePolyFactoryT<NTT>> {
+struct FinitePolyFactoryT : LocalEnableSharedFromThis<FinitePolyFactoryT<NTT>> {
 private:
   struct Poly;
 
@@ -21,12 +57,12 @@ private:
   using Factory = FinitePolyFactoryT<NTT>;
 
 public:
-  static std::shared_ptr<Factory> create(int max_deg) {
-    return std::shared_ptr<Factory>(new Factory(max_deg));
+  static LocalSharedPtr<Factory> create(int max_deg) {
+    return LocalSharedPtr<Factory>(new Factory(max_deg));
   }
 
   template <typename... Args> Poly make_poly(Args &&...args) {
-    Poly p{std::enable_shared_from_this<Factory>::shared_from_this(),
+    Poly p{LocalEnableSharedFromThis<Factory>::shared_from_this(),
            std::forward<Args>(args)...};
     return p;
   }
@@ -88,10 +124,11 @@ private:
     friend struct FinitePolyFactoryT;
 
     template <typename... Args>
-    Poly(std::shared_ptr<Factory> factory_, Args &&...args)
-        : std::vector<Mod>(std::forward<Args>(args)...), factory{factory_} {}
+    Poly(LocalSharedPtr<Factory> &&factory_, Args &&...args)
+        : std::vector<Mod>(std::forward<Args>(args)...),
+          factory(std::move(factory_)) {}
 
-    std::shared_ptr<Factory> factory;
+    LocalSharedPtr<Factory> factory;
   };
 
   friend struct Poly;
