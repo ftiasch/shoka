@@ -1,6 +1,8 @@
 #include "ntt_util.h"
 
 #include <array>
+#include <bits/shared_ptr_base.h>
+#include <memory>
 #include <vector>
 
 namespace ntt {
@@ -9,17 +11,28 @@ namespace ntt {
  * Operation in Finite Polynomial Ring
  * e.g. 1 / f(z) is not finite and should be computed as 1 / f(z) mod z^n
  */
-template <typename NTT> struct FinitePolyFactoryT {
+template <typename NTT>
+struct FinitePolyFactoryT
+    : std::enable_shared_from_this<FinitePolyFactoryT<NTT>> {
+private:
+  struct Poly;
+
   using Mod = typename NTT::Mod;
   using Factory = FinitePolyFactoryT<NTT>;
 
+public:
+  static std::shared_ptr<Factory> create(int max_deg) {
+    return std::shared_ptr<Factory>(new Factory(max_deg));
+  }
+
+  template <typename... Args> Poly make_poly(Args &&...args) {
+    Poly p{std::enable_shared_from_this<Factory>::shared_from_this(),
+           std::forward<Args>(args)...};
+    return p;
+  }
+
+private:
   struct Poly : public std::vector<Mod> {
-    Poly(Factory *factory_, const std::vector<Mod> &coefficient)
-        : factory{factory_}, std::vector<Mod>{coefficient} {}
-
-    Poly(Factory *factory_, std::vector<Mod> &&coefficient)
-        : factory{factory_}, std::vector<Mod>{std::move(coefficient)} {}
-
     int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
     Poly operator+(const Poly &o) const {
@@ -33,11 +46,11 @@ template <typename NTT> struct FinitePolyFactoryT {
       return r;
     }
 
-    Poly &operator+=(const Poly &o) { return *this = *this += o; }
+    Poly &operator+=(Poly &o) { return *this = *this += o; }
 
     Poly operator-(const Poly &o) const {
       int max_deg = std::max(deg(), o.deg());
-      Poly r = factory->make_poly(std::vector<Mod>(max_deg + 1));
+      Poly r = factory->make_poly(max_deg + 1);
       int min_deg = std::min(deg(), o.deg());
       for (int i = 0; i <= min_deg; ++i) {
         r[i] = (*this)[i] - o[i];
@@ -51,11 +64,11 @@ template <typename NTT> struct FinitePolyFactoryT {
       return r;
     }
 
-    Poly &operator-=(const Poly &o) { return *this = *this -= o; }
+    Poly &operator-=(Poly &o) { return *this = *this -= o; }
 
     Poly operator*(const Poly &o) const {
-      Mod *b0 = factory->raw_buffer<0>();
-      Mod *b1 = factory->raw_buffer<1>();
+      Mod *b0 = factory->template raw_buffer<0>();
+      Mod *b1 = factory->template raw_buffer<1>();
 
       int deg_plus_1 = deg() + o.deg() + 1;
       int n = min_power_of_two(deg_plus_1);
@@ -71,7 +84,14 @@ template <typename NTT> struct FinitePolyFactoryT {
 
     Poly &operator*=(const Poly &o) { return *this = *this * o; }
 
-    Factory *factory;
+  private:
+    friend struct FinitePolyFactoryT;
+
+    template <typename... Args>
+    Poly(std::shared_ptr<Factory> factory_, Args &&...args)
+        : std::vector<Mod>(std::forward<Args>(args)...), factory{factory_} {}
+
+    std::shared_ptr<Factory> factory;
   };
 
   friend struct Poly;
@@ -79,14 +99,6 @@ template <typename NTT> struct FinitePolyFactoryT {
   FinitePolyFactoryT(int max_deg)
       : max_n{min_power_of_two(max_deg + 1)}, buffer{std::vector<Mod>(max_n),
                                                      std::vector<Mod>(max_n)} {}
-
-  Poly make_poly(const std::vector<Mod> &coefficient) {
-    return Poly{this, coefficient};
-  }
-
-  Poly make_poly(std::vector<Mod> &&coefficient) {
-    return Poly{this, std::move(coefficient)};
-  }
 
   static void copy_and_fill0(int n, Mod *dst, int m, const Mod *src) {
     m = std::min(n, m);
