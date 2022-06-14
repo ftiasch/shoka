@@ -7,10 +7,8 @@ template <typename T> struct LocalSharedPtr {
   LocalSharedPtr(T *raw_ptr_) : raw_ptr{raw_ptr_} { raw_ptr->rc++; }
 
   ~LocalSharedPtr() {
-    if (owned) {
-      if (!(--raw_ptr->rc)) {
-        delete raw_ptr;
-      }
+    if (raw_ptr != nullptr && !(--raw_ptr->rc)) {
+      delete raw_ptr;
     }
   }
 
@@ -21,14 +19,13 @@ template <typename T> struct LocalSharedPtr {
   }
   LocalSharedPtr(LocalSharedPtr<T> &&o) {
     raw_ptr = o.raw_ptr;
-    o.owned = false;
+    o.raw_ptr = nullptr;
   }
 
   T *operator->() const { return raw_ptr; }
 
 private:
   T *raw_ptr;
-  bool owned = true;
 };
 
 template <typename T> struct LocalEnableSharedFromThis {
