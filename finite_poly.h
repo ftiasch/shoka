@@ -1,12 +1,8 @@
 #include "ntt_util.h"
 
-#include <array>
+#include <cstdlib>
 #include <memory>
 #include <vector>
-
-template <typename T> using LocalSharedPtr = std::shared_ptr<T>;
-template <typename T>
-using LocalEnableSharedFromThis = std::enable_shared_from_this<T>;
 
 namespace ntt {
 
@@ -15,13 +11,14 @@ namespace ntt {
  * e.g. 1 / f(z) is not finite and should be computed as 1 / f(z) mod z^n
  */
 template <typename NTT>
-struct FinitePolyFactoryT : LocalEnableSharedFromThis<FinitePolyFactoryT<NTT>> {
+struct FinitePolyFactoryT
+    : std::enable_shared_from_this<FinitePolyFactoryT<NTT>> {
 private:
   using Mod = typename NTT::Mod;
   using Factory = FinitePolyFactoryT<NTT>;
 
 public:
-  using Ptr = LocalSharedPtr<Factory>;
+  using Ptr = std::shared_ptr<Factory>;
 
   static Ptr create(int max_deg) { return Ptr(new Factory(max_deg)); }
 
@@ -62,13 +59,22 @@ public:
     Poly &operator-=(Poly &o) { return *this = *this -= o; }
 
     Poly operator*(const Poly &o) const {
+      int deg_plus_1 = deg() + o.deg() + 1;
+      if (deg_plus_1 <= 16) {
+        std::vector<Mod> result(deg_plus_1);
+        for (int i = 0; i <= deg(); ++i) {
+          for (int j = 0; j <= o.deg(); ++j) {
+            result[i + j] += (*this)[i] * o[j];
+          }
+        }
+        return factory->make(std::move(result));
+      }
+
       Mod *b0 = factory->template raw_buffer<0>();
       Mod *b1 = factory->template raw_buffer<1>();
 
-      int deg_plus_1 = deg() + o.deg() + 1;
       int n = min_power_of_two(deg_plus_1);
       factory->assert_max_n(n);
-
       copy_and_fill0(n, b0, *this);
       NTT::dif(n, b0);
       copy_and_fill0(n, b1, o);
@@ -91,7 +97,7 @@ public:
   };
 
   template <typename... Args> Poly make(Args &&...args) {
-    Poly p{LocalEnableSharedFromThis<Factory>::shared_from_this(),
+    Poly p{std::enable_shared_from_this<Factory>::shared_from_this(),
            std::forward<Args>(args)...};
     return p;
   }
