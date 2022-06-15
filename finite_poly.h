@@ -1,43 +1,12 @@
 #include "ntt_util.h"
 
 #include <array>
+#include <memory>
 #include <vector>
 
-template <typename T> struct LocalSharedPtr {
-  LocalSharedPtr(T *raw_ptr_) : raw_ptr{raw_ptr_} { raw_ptr->rc++; }
-
-  ~LocalSharedPtr() {
-    if (raw_ptr != nullptr && !(--raw_ptr->rc)) {
-      delete raw_ptr;
-    }
-  }
-
-  LocalSharedPtr(const LocalSharedPtr<T> &o) : LocalSharedPtr(o.raw_ptr) {}
-  LocalSharedPtr &operator=(const LocalSharedPtr<T> &o) {
-    raw_ptr = o.raw_ptr;
-    return *this;
-  }
-  LocalSharedPtr(LocalSharedPtr<T> &&o) {
-    raw_ptr = o.raw_ptr;
-    o.raw_ptr = nullptr;
-  }
-
-  T *operator->() const { return raw_ptr; }
-
-private:
-  T *raw_ptr;
-};
-
-template <typename T> struct LocalEnableSharedFromThis {
-  LocalSharedPtr<T> shared_from_this() {
-    return LocalSharedPtr(static_cast<T *>(this));
-  }
-
-  friend struct LocalSharedPtr<T>;
-
-private:
-  int rc = 0;
-};
+template <typename T> using LocalSharedPtr = std::shared_ptr<T>;
+template <typename T>
+using LocalEnableSharedFromThis = std::enable_shared_from_this<T>;
 
 namespace ntt {
 
@@ -57,6 +26,8 @@ public:
   static Ptr create(int max_deg) { return Ptr(new Factory(max_deg)); }
 
   struct Poly : public std::vector<Mod> {
+    Poly() : std::vector<Mod>(), factory(LocalSharedPtr<Factory>(nullptr)) {}
+
     int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
     Poly operator+(const Poly &o) const {
