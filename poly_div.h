@@ -7,7 +7,7 @@ template <typename NTT> struct PolyDiv {
   using Mod = typename Factory::Mod;
   using Poly = typename Factory::Poly;
 
-  PolyDiv(std::shared_ptr<Factory> factory_)
+  explicit PolyDiv(std::shared_ptr<Factory> factory_)
       : factory{factory_}, inv{factory} {}
 
   Poly operator()(const Poly &f, const Poly &g) {

@@ -7,7 +7,7 @@ template <typename NTT> struct PolyExp : public PolyOp<PolyExp, NTT> {
   using typename Base::Mod;
   using typename Base::Poly;
 
-  PolyExp(std::shared_ptr<Factory> factory_) : Base{factory_}, log{factory} {}
+  explicit PolyExp(std::shared_ptr<Factory> factory_) : Base{factory_}, log{factory} {}
 
   Poly operator()(const Poly &f) { return Base::template single<4>(f); }
 

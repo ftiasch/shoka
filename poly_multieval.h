@@ -10,7 +10,7 @@ struct PolyMultiEval : public PolyOp<PolyMultiEval, NTT> {
   using typename Base::Mod;
   using typename Base::Poly;
 
-  PolyMultiEval(std::shared_ptr<Factory> factory_)
+  explicit PolyMultiEval(std::shared_ptr<Factory> factory_)
       : Base{factory_}, inv{factory} {}
 
   // input:  f(z) = sum c[i] * z^i

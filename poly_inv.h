@@ -9,6 +9,8 @@ template <typename NTT> struct PolyInv : public PolyOp<PolyInv, NTT> {
   using typename Base::Mod;
   using typename Base::Poly;
 
+  explicit PolyInv(std::shared_ptr<Factory> factory_) : Base{factory_} {}
+
   Poly operator()(const Poly &f) { return Base::template single<2>(f); }
 
   void _(int n, Mod *out, const Mod *f) {
