@@ -5,11 +5,11 @@
 
 TEST(NDArray, Constructor) {
   {
-    auto a = NDArray<int, 2>::create();
+    auto a = NDArray<int, 2>{};
     ASSERT_EQ(a.size(), 2);
   }
   {
-    auto a = NDArray<int, 2, 3>::create();
+    auto a = NDArray<int, 2, 3>{};
     ASSERT_EQ(a.size(), 2);
     ASSERT_EQ(a[0].size(), 3);
     ASSERT_EQ(a[1].size(), 3);
