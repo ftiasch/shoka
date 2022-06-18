@@ -3,17 +3,14 @@
 #include <cstring>
 #include <vector>
 
-template <typename T, size_t N> struct FixedSizeMatrixT {
-  FixedSizeMatrixT() { memset(data, 0, sizeof(data)); }
-
-  T *operator[](int i) { return data[i]; }
-
-  const T *operator[](int i) const { return data[i]; }
+template <typename T, size_t N>
+struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
+  using std::array<std::array<T, N>, N>::array;
 
   FixedSizeMatrixT &operator+=(const FixedSizeMatrixT &o) {
     for (int i = 0; i < N; ++i) {
       for (int j = 0; j < N; ++j) {
-        data[i][j] += o[i][j];
+        (*this)[i][j] += o[i][j];
       }
     }
     return *this;
@@ -26,7 +23,7 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
   FixedSizeMatrixT &operator-=(const FixedSizeMatrixT &o) {
     for (int i = 0; i < N; ++i) {
       for (int j = 0; j < N; ++j) {
-        data[i][j] -= o[i][j];
+        (*this)[i][j] -= o[i][j];
       }
     }
     return *this;
@@ -45,7 +42,7 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
       }
       for (int i = 0; i < N; ++i) {
         for (int k = 0; k < N; ++k) {
-          result[i][j] += data[i][k] * buffer[k];
+          result[i][j] += (*this)[i][k] * buffer[k];
         }
       }
     }
@@ -67,7 +64,4 @@ template <typename T, size_t N> struct FixedSizeMatrixT {
     }
     return r;
   }
-
-private:
-  T data[N][N];
 };
