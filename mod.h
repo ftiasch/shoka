@@ -6,19 +6,16 @@
 
 namespace mod {
 
-using u32 = uint32_t;
-using u64 = uint64_t;
+template <uint32_t MOD_> struct ModT {
+  static const uint32_t MOD = MOD_;
 
-template <u32 MOD_> struct ModT {
-  static const u32 MOD = MOD_;
+  static_assert(MOD <= (std::numeric_limits<uint32_t>::max() >> 1));
 
-  static_assert(MOD <= (std::numeric_limits<u32>::max() >> 1));
+  static constexpr ModT normalize(uint64_t x) { return ModT(x % MOD); }
 
-  static constexpr ModT normalize(u64 x) { return ModT(x % MOD); }
+  explicit constexpr ModT(uint32_t x_ = 0) : x(x_) {}
 
-  explicit constexpr ModT(u32 x_ = 0) : x(x_) {}
-
-  constexpr u32 get() const { return x; }
+  constexpr uint32_t get() const { return x; }
 
   constexpr ModT &operator+=(const ModT &other) {
     x += other.x;
@@ -53,7 +50,7 @@ template <u32 MOD_> struct ModT {
   }
 
   constexpr ModT operator*=(const ModT &other) {
-    x = static_cast<u64>(x) * static_cast<u64>(other.x) % MOD;
+    x = static_cast<uint64_t>(x) * static_cast<u64>(other.x) % MOD;
     return *this;
   }
 
@@ -62,16 +59,18 @@ template <u32 MOD_> struct ModT {
     return copy *= other;
   }
 
-  constexpr ModT power(u64 n) const { return details::power<ModT>(*this, n); }
+  constexpr ModT power(uint64_t n) const {
+    return details::power<ModT>(*this, n);
+  }
 
   constexpr ModT inverse() const { return details::inverse<ModT>(*this); }
 
-  u32 x;
+  uint32_t x;
 };
 
 } // namespace mod
 
-template <mod::u32 MOD>
+template <uint32_t MOD>
 std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD> &mod) {
   return out << mod.get();
 }

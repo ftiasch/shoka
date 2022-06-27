@@ -1,3 +1,5 @@
+#include <iostream>
+
 template <typename PT = int, typename P2T = long long> struct PointT {
   PointT &operator+=(const PointT &o) {
     x += o.x;
@@ -33,3 +35,8 @@ template <typename PT = int, typename P2T = long long> struct PointT {
 
   PT x, y;
 };
+
+template <typename PT, typename P2T>
+std::ostream &operator<<(std::ostream &out, const PointT<PT, P2T> &p) {
+  return out << "(" << p.x << ", " << p.y << ")";
+}
