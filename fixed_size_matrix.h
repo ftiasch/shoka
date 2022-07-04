@@ -49,6 +49,10 @@ struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
     return result;
   }
 
+  FixedSizeMatrixT &operator*=(const FixedSizeMatrixT &o) {
+    return *this = *this * o;
+  }
+
   FixedSizeMatrixT power(uint64_t n) const {
     FixedSizeMatrixT r;
     for (int i = 0; i < N; ++i) {

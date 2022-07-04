@@ -50,7 +50,7 @@ template <uint32_t MOD_> struct ModT {
   }
 
   constexpr ModT operator*=(const ModT &other) {
-    x = static_cast<uint64_t>(x) * static_cast<u64>(other.x) % MOD;
+    x = static_cast<uint64_t>(x) * static_cast<uint64_t>(other.x) % MOD;
     return *this;
   }
 

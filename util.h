@@ -6,7 +6,11 @@ using Long = long long;
 using u64 = uint64_t;
 
 struct IO {
-  IO() { std::ios::sync_with_stdio(false); }
+  IO() {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    std::cout.tie(nullptr);
+  }
 
   template <typename T = int> T read() const {
     T v;
