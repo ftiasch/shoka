@@ -25,6 +25,10 @@ struct IO {
     }
     return v;
   }
+
+  template <typename T> std::ostream &operator<<(const T &o) {
+    return std::cout << o;
+  }
 };
 
 template <typename T>

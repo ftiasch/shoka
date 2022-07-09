@@ -144,17 +144,3 @@ protected:
 private:
   std::array<std::vector<Mod>, NUMBER_OF_BUFFER> buffer;
 };
-
-// /*
-//  * Operation in Finite Polynomial Ring
-//  * e.g. 1 / f(z) is not finite and should be computed as 1 / f(z) mod z^n
-//  */
-// template <typename NTT>
-// struct FinitePolyFactoryT
-//     : public BasePolyFactoryT<NTT, FinitePolyFactoryT<NTT>> {
-// protected:
-//   friend struct BasePolyFactoryT<NTT, FinitePolyFactoryT<NTT>>;
-
-//   FinitePolyFactoryT(int max_deg)
-//       : BasePolyFactoryT<NTT, FinitePolyFactoryT<NTT>>(max_deg) {}
-// };
