@@ -33,6 +33,10 @@ template <typename PT = int, typename P2T = long long> struct PointT {
     return static_cast<P2T>(x) * o.y - static_cast<P2T>(y) * o.x;
   }
 
+  P2T norm2() const {
+    return dot(*this);
+  }
+
   PT x, y;
 };
 

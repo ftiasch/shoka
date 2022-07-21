@@ -93,6 +93,21 @@ std::ostream &operator<<(std::ostream &out, const std::set<K> &s) {
   return out << "}";
 }
 
+template <typename K>
+std::ostream &operator<<(std::ostream &out, const std::multiset<K> &s) {
+  out << "{";
+  bool first = true;
+  for (auto &&k : s) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << k;
+  }
+  return out << "}";
+}
+
 template <typename K, typename V>
 std::ostream &operator<<(std::ostream &out, const std::map<K, V> &m) {
   out << "{";
