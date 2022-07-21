@@ -28,8 +28,8 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
   return serialize_tuple(out, t, std::make_index_sequence<sizeof...(T)>());
 }
 
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+template <typename T, size_t N>
+std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
   out << "[";
   bool first = true;
   for (auto &&e : v) {
@@ -43,9 +43,19 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
   return out << "]";
 }
 
-template <typename T, size_t N>
-std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
-  return out << std::vector<T>(v.begin(), v.end());
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+  out << "[";
+  bool first = true;
+  for (auto &&e : v) {
+    if (first) {
+      first = false;
+    } else {
+      out << ", ";
+    }
+    out << e;
+  }
+  return out << "]";
 }
 
 template <typename T>
