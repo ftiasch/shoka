@@ -3,6 +3,7 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,20 @@ std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
   return out << ")";
 }
 
+template <typename C> struct is_std_container : std::false_type {};
+template <typename T, typename A>
+struct is_std_container<std::vector<T, A>> : std::true_type {};
+template <typename T, size_t N>
+struct is_std_container<std::array<T, N>> : std::true_type {};
+template <typename T, typename A>
+struct is_std_container<std::list<T, A>> : std::true_type {};
+template <typename T, typename A>
+struct is_std_container<std::deque<T, A>> : std::true_type {};
+template <typename K, typename C, typename A>
+struct is_std_container<std::set<K, C, A>> : std::true_type {};
+template <typename K, typename C, typename A>
+struct is_std_container<std::multiset<K, C, A>> : std::true_type {};
+
 } // namespace
 
 template <typename A, typename B>
@@ -28,8 +43,10 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
   return serialize_tuple(out, t, std::make_index_sequence<sizeof...(T)>());
 }
 
-template <typename T, size_t N>
-std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
+template <typename Container>
+typename std::enable_if<is_std_container<Container>::value,
+                        std::ostream &>::type
+operator<<(std::ostream &out, const Container &v) {
   out << "[";
   bool first = true;
   for (auto &&e : v) {
@@ -41,26 +58,6 @@ std::ostream &operator<<(std::ostream &out, const std::array<T, N> &v) {
     out << e;
   }
   return out << "]";
-}
-
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
-  out << "[";
-  bool first = true;
-  for (auto &&e : v) {
-    if (first) {
-      first = false;
-    } else {
-      out << ", ";
-    }
-    out << e;
-  }
-  return out << "]";
-}
-
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const std::deque<T> &v) {
-  return out << std::vector<T>(v.begin(), v.end());
 }
 
 template <typename T, typename S, typename C>
@@ -71,51 +68,6 @@ std::ostream &operator<<(std::ostream &out, std::priority_queue<T, S, C> pq) {
     pq.pop();
   }
   return out << v;
-}
-
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const std::list<T> &v) {
-  out << "[";
-  bool first = true;
-  for (auto &&e : v) {
-    if (first) {
-      first = false;
-    } else {
-      out << ", ";
-    }
-    out << e;
-  }
-  return out << "]";
-}
-
-template <typename K>
-std::ostream &operator<<(std::ostream &out, const std::set<K> &s) {
-  out << "{";
-  bool first = true;
-  for (auto &&k : s) {
-    if (first) {
-      first = false;
-    } else {
-      out << ", ";
-    }
-    out << k;
-  }
-  return out << "}";
-}
-
-template <typename K>
-std::ostream &operator<<(std::ostream &out, const std::multiset<K> &s) {
-  out << "{";
-  bool first = true;
-  for (auto &&k : s) {
-    if (first) {
-      first = false;
-    } else {
-      out << ", ";
-    }
-    out << k;
-  }
-  return out << "}";
 }
 
 template <typename K, typename V>

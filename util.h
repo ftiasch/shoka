@@ -40,3 +40,5 @@ struct PQ : public std::priority_queue<T, std::vector<T>, Compare> {
     return t;
   }
 };
+
+template <typename T> using MinPQ = PQ<T, std::greater<T>>;

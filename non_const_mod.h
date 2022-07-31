@@ -7,11 +7,11 @@
 namespace mod {
 
 template <> struct ModT<0> {
-  static u32 MOD;
+  static uint32_t MOD;
 
-  explicit ModT(u32 x_ = 0) : x(x_) {}
+  explicit ModT(uint32_t x_ = 0) : x(x_) {}
 
-  u32 get() const { return x; }
+  uint32_t get() const { return x; }
 
   ModT &operator+=(const ModT &other) {
     x += other.x;
@@ -40,7 +40,7 @@ template <> struct ModT<0> {
   }
 
   ModT operator*=(const ModT &other) {
-    x = static_cast<u64>(x) * static_cast<u64>(other.x) % MOD;
+    x = static_cast<uint64_t>(x) * static_cast<uint64_t>(other.x) % MOD;
     return *this;
   }
 
@@ -49,7 +49,7 @@ template <> struct ModT<0> {
     return copy *= other;
   }
 
-  ModT<0> power(u64 n) const {
+  ModT<0> power(uint64_t n) const {
     ModT a = *this;
     ModT result(1);
     n %= MOD - 1;
@@ -65,7 +65,7 @@ template <> struct ModT<0> {
 
   ModT<0> inverse() const { return power(MOD - 2); }
 
-  u32 x;
+  uint32_t x;
 };
 
 } // namespace mod
