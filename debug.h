@@ -18,6 +18,9 @@ std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
 }
 
 template <typename C> struct is_std_container : std::false_type {};
+template <> struct is_std_container<std::string> : std::false_type {};
+template <typename T>
+struct is_std_container<std::basic_string<T>> : std::true_type {};
 template <typename T, typename A>
 struct is_std_container<std::vector<T, A>> : std::true_type {};
 template <typename T, size_t N>
@@ -44,8 +47,7 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
 }
 
 template <typename Container>
-typename std::enable_if<is_std_container<Container>::value,
-                        std::ostream &>::type
+typename std::enable_if_t<is_std_container<Container>::value, std::ostream &>
 operator<<(std::ostream &out, const Container &v) {
   out << "[";
   bool first = true;
