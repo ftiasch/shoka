@@ -27,18 +27,6 @@ template <typename ModT> void perform_test() {
   ASSERT_EQ(mc.get(), (uint64_t)a * b % MOD);
 }
 
-TEST(Montgomery, Test) { perform_test<montgomery::Montgomery32T<MOD>>(); }
-
-TEST(Montgomery, NonConstTest) {
-  NonConstMontgomery::set_mod(MOD);
-  perform_test<NonConstMontgomery>();
-}
-
-TEST(ModT, Test) { perform_test<mod::ModT<MOD>>(); }
-
-TEST(ModT, NonConstModTest) {
-  NonConstMod::MOD = MOD;
-  perform_test<NonConstMod>();
-}
+TEST(Montgomery, Correctness) { perform_test<montgomery::Montgomery32T<MOD>>(); }
 
 } // namespace

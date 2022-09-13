@@ -23,7 +23,7 @@ struct IO {
   template <typename T = int> std::vector<T> read_vector(size_t n) const {
     std::vector<T> v(n);
     for (size_t i = 0; i < n; ++i) {
-      v[i] = read<T>();
+      v[i] = read1<T>();
     }
     return v;
   }

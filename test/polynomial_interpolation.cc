@@ -20,7 +20,7 @@ ModT eval(const std::vector<ModT> &coef, ModT x) {
   return result;
 }
 
-TEST(PolynomialInterpolation, Test) {
+TEST(PolynomialInterpolation, Correctness) {
   std::mt19937 gen{0};
   std::vector<ModT> coef(D);
   for (int i = 0; i < D; ++i) {

@@ -19,6 +19,8 @@ struct PolyT : public std::vector<typename Factory::Mod> {
 
   int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
+  const std::vector<Mod> &vector() const { return *this; }
+
   PolyT operator+(const PolyT &o) const {
     if (deg() < o.deg()) {
       return o + *this;

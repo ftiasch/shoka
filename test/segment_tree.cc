@@ -57,7 +57,7 @@ struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
   }
 };
 
-TEST(SegmentTree, Test) {
+TEST(SegmentTree, Correctness) {
   const int n = 1000;
 
   std::mt19937 gen(0);

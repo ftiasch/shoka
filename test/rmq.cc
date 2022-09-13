@@ -29,10 +29,10 @@ template <template <typename, int> class RMQ> void test_rmq() {
   }
 }
 
-TEST(StaticSparseTable, Test) { test_rmq<StaticSparseTable>(); }
-TEST(BitRMQ, Test) { test_rmq<BitRMQ>(); }
+TEST(StaticSparseTable, Correctness) { test_rmq<StaticSparseTable>(); }
+TEST(BitRMQ, Correctness) { test_rmq<BitRMQ>(); }
 
-TEST(SparseTable, Test) {
+TEST(SparseTable, Correctness) {
   const int N = 100;
   using T = std::pair<uint32_t, int>;
   std::mt19937 gen(0);

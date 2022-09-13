@@ -20,7 +20,7 @@ struct Monoid {
   uint64_t r, u, u_sum;
 };
 
-TEST(UniversalEuclidean, Test) {
+TEST(UniversalEuclidean, Correctness) {
   for (int c = 1; c < M; ++c) {
     for (int a = 0; a < M; ++a) {
       for (int b = 0; b < M; ++b) {
