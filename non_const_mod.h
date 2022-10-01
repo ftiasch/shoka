@@ -13,6 +13,10 @@ template <> struct ModT<0> {
 
   uint32_t get() const { return x; }
 
+  bool operator==(const ModT &other) const { return x == other.x; }
+
+  bool operator!=(const ModT &other) const { return x != other.x; }
+
   ModT &operator+=(const ModT &other) {
     x += other.x;
     if (x >= MOD) {
