@@ -21,7 +21,4 @@ endif()
 include(GoogleTest)
 enable_testing()
 
-include_directories(picobench/include)
-
-add_subdirectory(benchmark)
 add_subdirectory(test)
