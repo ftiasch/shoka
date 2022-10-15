@@ -6,10 +6,12 @@ using Long = long long;
 using u64 = uint64_t;
 
 struct IO {
-  explicit IO() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    std::cout.tie(nullptr);
+  explicit IO(bool sync = false) {
+    if (sync) {
+      std::ios::sync_with_stdio(false);
+      std::cin.tie(nullptr);
+      std::cout.tie(nullptr);
+    }
   }
 
   template <typename... T> std::tuple<T...> read() const {
