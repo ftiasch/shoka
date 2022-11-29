@@ -1,52 +1,55 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <type_traits>
 
-// struct IO {
-//   explicit IO(FILE *in_ = stdin) : in(in_) {}
+struct FastIO {
+  explicit FastIO(std::FILE *f_ = stdin) : f{f_} {}
 
-//   char next_char() {
-//     if (head == length) {
-//       head = 0;
-//       length = fread(buffer, 1, LENGTH, in);
-//     }
-//     return buffer[head++];
-//   }
+  template <typename T = int> T read1();
 
-//   uint64_t next_uint() {
-//     char c = next_char();
-//     while (!std::isdigit(c)) {
-//       c = next_char();
-//     }
-//     uint64_t x = 0;
-//     for (; std::isdigit(c); c = next_char()) {
-//       x = x * 10U + c - '0';
-//     }
-//     return x;
-//   }
+  char getc() {
+    if (head == rear) {
+      head = 0;
+      rear = fread(buf, 1, BUF_SIZE, f);
+    }
+    return buf[head++];
+  }
 
-//   int64_t next_int() {
-//     char c = next_char();
-//     while (!std::isdigit(c) && c != '-') {
-//       c = next_char();
-//     }
-//     int64_t sign = 1;
-//     if (c == '-') {
-//       sign = -1;
-//       c = next_char();
-//     }
-//     int64_t x = 0;
-//     for (; std::isdigit(c); c = next_char()) {
-//       x = x * 10 + c - '0';
-//     }
-//     return sign * x;
-//   }
+private:
+  static const size_t BUF_SIZE = 1 << 16;
 
-// private:
-//   static const int LENGTH = 1 << 16;
+  std::FILE *f;
 
-//   char buffer[LENGTH];
-//   size_t head = 0;
-//   size_t length = 0;
-//   FILE *in;
-// };
+  char buf[BUF_SIZE];
+  size_t head = 0, rear = 0;
+};
+
+namespace fast_io {
+
+template <typename T>
+typename std::enable_if_t<std::is_integral_v<T>, T> read1(FastIO &io) {
+  char c = io.getc();
+  while (!std::isdigit(c) && c != '-') {
+    c = io.getc();
+  }
+  bool is_neg = false;
+  if (c == '-') {
+    is_neg = true;
+    c = io.getc();
+  }
+  T r = 0;
+  for (; std::isdigit(c); c = io.getc()) {
+    r = r * 10 + c - '0';
+  }
+  return is_neg ? -r : r;
+}
+
+template <typename T>
+std::enable_if_t<std::is_same_v<T, char>, T> read1(FastIO &io) {
+  return io.getc();
+}
+
+} // namespace fast_io
+
+template <typename T> T FastIO::read1() { return fast_io::read1<T>(*this); }
