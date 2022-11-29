@@ -87,4 +87,5 @@ std::ostream &operator<<(std::ostream &out, const std::map<K, V> &m) {
   return out << "}";
 }
 
-#define KV(x) #x << "=" << x << ";"
+#define KV(x) #x << "=" << (x) << ";"
+#define KV1(x) #x << "=" << (x) + 1 << ";"
