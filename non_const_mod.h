@@ -56,7 +56,6 @@ template <> struct ModT<0> {
   ModT<0> power(uint64_t n) const {
     ModT a = *this;
     ModT result(1);
-    n %= MOD - 1;
     while (n) {
       if (n & 1) {
         result *= a;
