@@ -1,8 +1,8 @@
-#include "../segment_tree.h"
+#include "segment_tree.h"
 
-#include "gtest/gtest.h"
+#include <bits/stdc++.h>
 
-#include <random>
+#include <catch2/catch_all.hpp>
 
 using u32 = uint32_t;
 
@@ -57,8 +57,8 @@ struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
   }
 };
 
-TEST(SegmentTree, Correctness) {
-  const int n = 1000;
+TEST_CASE("segment_tree") {
+  constexpr int n = 1000;
 
   std::mt19937 gen(0);
 
@@ -86,7 +86,7 @@ TEST(SegmentTree, Correctness) {
       for (int i = l; i <= r; ++i) {
         answer += a[i];
       }
-      ASSERT_EQ(sum.result, answer);
+      REQUIRE(sum.result == answer);
     }
   }
 }

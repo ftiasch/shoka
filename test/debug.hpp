@@ -1,8 +1,8 @@
-#include <catch2/catch_all.hpp>
-
 #include "debug.h"
 
 #include <bits/stdc++.h>
+
+#include <catch2/catch_all.hpp>
 
 namespace debug {
 
@@ -14,7 +14,7 @@ struct Foo {
 
 namespace std {
 
-std::ostream &operator<<(std::ostream &out, const debug::Foo &f) {
+ostream &operator<<(ostream &out, const debug::Foo &f) {
   return out << "Foo(" << f.f << ")";
 }
 

@@ -1,6 +1,6 @@
 #include <array>
 
-namespace details {
+namespace nd_array {
 
 template <typename T, int... NS> struct NDArrayFactory;
 
@@ -12,7 +12,7 @@ template <typename T, int N0> struct NDArrayFactory<T, N0> {
   using Array = std::array<T, N0>;
 };
 
-} // namespace details
+} // namespace nd_array
 
 template <typename T, int... NS>
-using NDArray = typename details::NDArrayFactory<T, NS...>::Array;
+using NDArray = typename nd_array::NDArrayFactory<T, NS...>::Array;

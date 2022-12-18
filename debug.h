@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace {
+namespace debug {
 
 template <typename Tuple, size_t... Index>
 static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
@@ -18,21 +18,23 @@ static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
   return out << ")";
 }
 
-} // namespace
+} // namespace debug
+
+namespace std {
 
 template <typename... T>
-std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
-  return serialize_tuple(out, t, std::make_index_sequence<sizeof...(T)>());
+ostream &operator<<(ostream &out, const tuple<T...> &t) {
+  return debug::serialize_tuple(out, t, make_index_sequence<sizeof...(T)>());
 }
 
 template <typename A, typename B>
-std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
-  return out << std::tuple<A, B>(v.first, v.second);
+ostream &operator<<(ostream &out, const pair<A, B> &v) {
+  return out << tuple<A, B>(v.first, v.second);
 }
 
-template <std::ranges::forward_range RangeT>
-std::ostream &operator<<(std::ostream &out, RangeT &&range) requires(
-    !std::same_as<std::ranges::range_value_t<RangeT>, char>) {
+template <ranges::forward_range RangeT>
+ostream &operator<<(ostream &out, RangeT &&range) requires(
+    !same_as<ranges::range_value_t<RangeT>, char>) {
   out << "[";
   bool first = true;
   for (auto &&elem : range) {
@@ -47,14 +49,16 @@ std::ostream &operator<<(std::ostream &out, RangeT &&range) requires(
 }
 
 template <typename T, typename S, typename C>
-std::ostream &operator<<(std::ostream &out, std::priority_queue<T, S, C> pq) {
-  std::vector<T> v;
+ostream &operator<<(ostream &out, priority_queue<T, S, C> pq) {
+  vector<T> v;
   while (!pq.empty()) {
     v.push_back(pq.top());
     pq.pop();
   }
   return out << v;
 }
+
+} // namespace std
 
 #define KV(x) #x << "=" << (x) << ";"
 #define KV1(x) #x << "=" << (x) + 1 << ";"
