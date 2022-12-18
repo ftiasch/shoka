@@ -2,7 +2,7 @@
 #include <vector>
 
 template <typename Node, typename Impl> struct SegmentTreeBase {
-  SegmentTreeBase(int n_) : n(n_), nodes(n << 1) {}
+  explicit SegmentTreeBase(int n_) : n(n_), nodes(n << 1) {}
 
   Node &root() { return get_node(0, n - 1); }
 

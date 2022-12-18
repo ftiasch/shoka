@@ -3,6 +3,9 @@
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators_all.hpp>
+
+namespace segment_tree {
 
 using u32 = uint32_t;
 
@@ -38,7 +41,7 @@ struct Sum {
 };
 
 struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
-  SegmentTree(const std::vector<u32> &a) : SegmentTreeBase(a.size()) {
+  explicit SegmentTree(const std::vector<u32> &a) : SegmentTreeBase(a.size()) {
     traverse_all(Build{a});
   }
 
@@ -57,27 +60,28 @@ struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
   }
 };
 
+} // namespace segment_tree
+
 TEST_CASE("segment_tree") {
   constexpr int n = 1000;
 
-  std::mt19937 gen(0);
+  using namespace Catch::Generators;
+  auto a = GENERATE(take(1, chunk(n, random(0U, ~0U))));
+  auto L = GENERATE(take(1, chunk(n, random(0, n - 1))));
+  auto R = GENERATE(take(1, chunk(n, random(0, n - 1))));
+  auto D = GENERATE(take(1, chunk(n, random(0U, ~0U))));
 
-  std::vector<u32> a(n);
-  for (int i = 0; i < n; ++i) {
-    a[i] = gen();
-  }
+  using namespace segment_tree;
   SegmentTree tree(a);
-  for (int _ = 0; _ < n; ++_) {
-    int l = gen() % n;
-    int r = gen() % n;
+  for (int q = 0; q < n; ++q) {
+    auto [l, r] = std::tie(L[q], R[q]);
     if (l > r) {
       std::swap(l, r);
     }
-    if (gen() & 1) {
-      u32 d = gen();
-      tree.traverse(Add{d}, l, r);
+    if (D[q] & 1) {
+      tree.traverse(Add{D[q]}, l, r);
       for (int i = l; i <= r; ++i) {
-        a[i] += d;
+        a[i] += D[q];
       }
     } else {
       Sum sum;
