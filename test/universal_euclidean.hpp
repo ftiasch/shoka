@@ -23,12 +23,13 @@ struct TestMonoid {
 } // namespace universal_euclidean
 
 TEST_CASE("universal_euclidean") {
-  constexpr int M = 10;
-  for (int c = 1; c < M; ++c) {
-    for (int a = 0; a < M; ++a) {
-      for (int b = 0; b < M; ++b) {
+  constexpr int m = 10;
+
+  for (int c = 1; c < m; ++c) {
+    for (int a = 0; a < m; ++a) {
+      for (int b = 0; b < m; ++b) {
         uint64_t answer = 0;
-        for (int n = 0; n < M; ++n) {
+        for (int n = 0; n < m; ++n) {
           answer += (a * n + b) / c;
           REQUIRE(universal_euclidean::sum<universal_euclidean::TestMonoid>(
                       n, a, b, c)

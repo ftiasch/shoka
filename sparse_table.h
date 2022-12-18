@@ -5,6 +5,8 @@
 #include <vector>
 
 template <typename T, typename Compare = std::less<T>> struct SparseTable {
+  explicit SparseTable() = default;
+
   explicit SparseTable(const std::vector<T> &value)
       : n(value.size()), l(log2n(n)), log(n), table(l, std::vector<T>(n)) {
     log[0] = 0;
@@ -17,6 +19,14 @@ template <typename T, typename Compare = std::less<T>> struct SparseTable {
         table[i][j] = min(table[i - 1][j], table[i - 1][j + (1 << (i - 1))]);
       }
     }
+  }
+
+  SparseTable &operator=(SparseTable &&o) {
+    n = o.n;
+    l = o.l;
+    log = std::move(o.log);
+    table = std::move(o.table);
+    return *this;
   }
 
   T operator()(int l, int r) const {
