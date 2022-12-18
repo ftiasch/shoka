@@ -31,10 +31,8 @@ std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
 }
 
 template <std::ranges::forward_range RangeT>
-std::ostream &
-operator<<(std::ostream &out,
-           RangeT &&range) requires(!std::same_as<std::ranges::range_value_t<RangeT>, char>) {
-  using namespace std::string_literals;
+std::ostream &operator<<(std::ostream &out, RangeT &&range) requires(
+    !std::same_as<std::ranges::range_value_t<RangeT>, char>) {
   out << "[";
   bool first = true;
   for (auto &&elem : range) {
