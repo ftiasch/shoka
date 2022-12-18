@@ -2,6 +2,7 @@
 #include <list>
 #include <map>
 #include <queue>
+#include <ranges>
 #include <set>
 #include <type_traits>
 #include <utility>
@@ -10,54 +11,39 @@
 namespace {
 
 template <typename Tuple, size_t... Index>
-std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
-                              std::index_sequence<Index...>) {
+static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
+                                            std::index_sequence<Index...>) {
   out << "(";
   (..., (out << (Index == 0 ? "" : ", ") << std::get<Index>(t)));
   return out << ")";
 }
 
-template <typename C> struct is_std_container : std::false_type {};
-template <> struct is_std_container<std::string> : std::false_type {};
-template <typename T>
-struct is_std_container<std::basic_string<T>> : std::true_type {};
-template <typename T, typename A>
-struct is_std_container<std::vector<T, A>> : std::true_type {};
-template <typename T, size_t N>
-struct is_std_container<std::array<T, N>> : std::true_type {};
-template <typename T, typename A>
-struct is_std_container<std::list<T, A>> : std::true_type {};
-template <typename T, typename A>
-struct is_std_container<std::deque<T, A>> : std::true_type {};
-template <typename K, typename C, typename A>
-struct is_std_container<std::set<K, C, A>> : std::true_type {};
-template <typename K, typename C, typename A>
-struct is_std_container<std::multiset<K, C, A>> : std::true_type {};
-
 } // namespace
-
-template <typename A, typename B>
-std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
-  return out << "(" << v.first << ", " << v.second << ")";
-}
 
 template <typename... T>
 std::ostream &operator<<(std::ostream &out, const std::tuple<T...> &t) {
   return serialize_tuple(out, t, std::make_index_sequence<sizeof...(T)>());
 }
 
-template <typename Container>
-typename std::enable_if_t<is_std_container<Container>::value, std::ostream &>
-operator<<(std::ostream &out, const Container &v) {
+template <typename A, typename B>
+std::ostream &operator<<(std::ostream &out, const std::pair<A, B> &v) {
+  return out << std::tuple<A, B>(v.first, v.second);
+}
+
+template <std::ranges::forward_range RangeT>
+std::ostream &
+operator<<(std::ostream &out,
+           RangeT &&range) requires(!std::same_as<std::ranges::range_value_t<RangeT>, char>) {
+  using namespace std::string_literals;
   out << "[";
   bool first = true;
-  for (auto &&e : v) {
+  for (auto &&elem : range) {
     if (first) {
       first = false;
     } else {
       out << ", ";
     }
-    out << e;
+    out << elem;
   }
   return out << "]";
 }
@@ -70,21 +56,6 @@ std::ostream &operator<<(std::ostream &out, std::priority_queue<T, S, C> pq) {
     pq.pop();
   }
   return out << v;
-}
-
-template <typename K, typename V>
-std::ostream &operator<<(std::ostream &out, const std::map<K, V> &m) {
-  out << "{";
-  bool first = true;
-  for (auto &&[k, v] : m) {
-    if (first) {
-      first = false;
-    } else {
-      out << ", ";
-    }
-    out << k << ": " << v;
-  }
-  return out << "}";
 }
 
 #define KV(x) #x << "=" << (x) << ";"
