@@ -5,3 +5,4 @@
 #include "segment_tree.hpp"
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
+#include "polynomial_interpolation.hpp"
