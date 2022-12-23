@@ -1,6 +1,6 @@
 #include <cstdint>
 
-uint64_t hilbert_rank(int x, int y, int k, int rotate = 0) {
+uint64_t hilbert_rank(int x, int y, int k = 31, int rotate = 0) {
   if (k--) {
     static const int INDEX[2][2] = {{0, 3}, {1, 2}};
     static const int DELTA[4] = {3, 0, 0, 1};

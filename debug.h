@@ -1,6 +1,8 @@
 #pragma once
 
+#include <concepts>
 #include <iostream>
+#include <limits>
 #include <list>
 #include <map>
 #include <queue>
@@ -21,6 +23,16 @@ static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
 }
 
 } // namespace debug
+
+template <typename T>
+requires std::integral<T>
+struct Binary {
+  explicit Binary(T value_, int length_ = std::numeric_limits<T>::digits)
+      : value{value_}, length{length_} {}
+
+  T value;
+  int length;
+};
 
 namespace std {
 
@@ -58,6 +70,14 @@ ostream &operator<<(ostream &out, priority_queue<T, S, C> pq) {
     pq.pop();
   }
   return out << v;
+}
+
+template <typename T> ostream &operator<<(ostream &out, const Binary<T> &b) {
+  out << "(";
+  for (auto i : std::ranges::iota_view(0, b.length)) {
+    out << (b.value >> i & 1);
+  }
+  return out << ")_2";
 }
 
 } // namespace std
