@@ -1,11 +1,28 @@
+#pragma once
+
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <vector>
 
-template <typename T, size_t N>
+template <typename T, int N>
 struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
-  using std::array<std::array<T, N>, N>::array;
+  using Row = std::array<T, N>;
+
+  using std::array<Row, N>::array;
+
+  explicit FixedSizeMatrixT(std::initializer_list<Row> rows)
+      : std::array<Row, N>{
+            reinterpret_cast<const std::array<Row, N> &>(*rows.begin())} {}
+            
+  static FixedSizeMatrixT mul_id() {
+    FixedSizeMatrixT e;
+    for (int i = 0; i < N; ++ i) {
+      e[i][i] = T::mul_id();
+    }
+    return e;
+  }
 
   FixedSizeMatrixT &operator+=(const FixedSizeMatrixT &o) {
     for (int i = 0; i < N; ++i) {
@@ -51,21 +68,5 @@ struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
 
   FixedSizeMatrixT &operator*=(const FixedSizeMatrixT &o) {
     return *this = *this * o;
-  }
-
-  FixedSizeMatrixT power(uint64_t n) const {
-    FixedSizeMatrixT r;
-    for (int i = 0; i < N; ++i) {
-      r[i][i] = T{1};
-    }
-    FixedSizeMatrixT a = *this;
-    while (n) {
-      if (n & 1) {
-        r = r * a;
-      }
-      a = a * a;
-      n >>= 1;
-    }
-    return r;
   }
 };

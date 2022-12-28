@@ -1,25 +1,29 @@
-#include "mod_details.h"
+#pragma once
+
+#include "primality_test.h"
 
 #include <cstdint>
 #include <iostream>
 #include <limits>
-
-namespace mod {
+#include <type_traits>
 
 template <uint32_t MOD_> struct ModT {
-  static const uint32_t MOD = MOD_;
+  static constexpr uint32_t MOD = MOD_;
 
   static_assert(MOD <= (std::numeric_limits<uint32_t>::max() >> 1));
 
-  static constexpr ModT normalize(uint64_t x) { return ModT(x % MOD); }
+  template <typename T = uint32_t>
+  explicit constexpr ModT(T x_ = 0) : x{static_cast<uint32_t>(x_)} {}
 
-  explicit constexpr ModT(uint32_t x_ = 0) : x(x_) {}
+  static constexpr ModT mul_id() { return ModT{1}; }
+
+  template <typename T = uint64_t>
+  static constexpr std::enable_if_t<std::is_integral_v<T>, ModT>
+  normalize(T x) {
+    return ModT(x % MOD);
+  }
 
   constexpr uint32_t get() const { return x; }
-
-  constexpr bool operator==(const ModT &other) const { return x == other.x; }
-
-  constexpr bool operator!=(const ModT &other) const { return x != other.x; }
 
   constexpr ModT &operator+=(const ModT &other) {
     x += other.x;
@@ -63,18 +67,19 @@ template <uint32_t MOD_> struct ModT {
     return copy *= other;
   }
 
-  constexpr ModT power(uint64_t n) const {
-    return details::power<ModT>(*this, n);
+  constexpr ModT inv() const {
+    static_assert(is_prime(MOD), "MOD is not a prime");
+    return x == 1 ? ModT{1} : -ModT{MOD / x} * ModT{MOD % x}.inv();
   }
-
-  constexpr ModT inverse() const { return details::inverse<ModT>(*this); }
 
   uint32_t x;
 };
 
-} // namespace mod
+namespace std {
 
 template <uint32_t MOD>
-std::ostream &operator<<(std::ostream &out, const mod::ModT<MOD> &mod) {
+ostream &operator<<(ostream &out, const ModT<MOD> &mod) {
   return out << mod.get();
 }
+
+} // namespace std

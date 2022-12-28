@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "fixed_size_matrix.h"
 
 #include <bits/stdc++.h>
 
@@ -41,16 +42,15 @@ TEST_CASE("debug") {
   }
 
   SECTION("const char*") {
-    const char* s = "shoka";
+    const char *s = "shoka";
     test_helper(s, "shoka"sv);
   }
 
-  SECTION("std::string") {
-    test_helper(std::string{"shoka"}, "shoka"sv);
-  }
+  SECTION("std::string") { test_helper(std::string{"shoka"}, "shoka"sv); }
 
   SECTION("std::basic_string") {
-    test_helper(std::basic_string<Foo>{Foo{2}, Foo{3}, Foo{5}}, "[Foo(2), Foo(3), Foo(5)]"sv);
+    test_helper(std::basic_string<Foo>{Foo{2}, Foo{3}, Foo{5}},
+                "[Foo(2), Foo(3), Foo(5)]"sv);
   }
 
   SECTION("std::array") {
@@ -88,6 +88,13 @@ TEST_CASE("debug") {
   SECTION("Binary") {
     test_helper(Binary{233, 10}, "(1001011100)_2"sv);
     test_helper(Binary<int>{233}, "(1001011100000000000000000000000)_2"sv);
-    test_helper(Binary<uint64_t>{233}, "(1001011100000000000000000000000000000000000000000000000000000000)_2"sv);
+    test_helper(
+        Binary<uint64_t>{233},
+        "(1001011100000000000000000000000000000000000000000000000000000000)_2"sv);
+  }
+
+  SECTION("FixedSizeMatrixT") {
+    using Matrix = FixedSizeMatrixT<int, 2>;
+    test_helper(Matrix{{2, 3}, {4, 5}}, "[[2, 3], [4, 5]]");
   }
 }

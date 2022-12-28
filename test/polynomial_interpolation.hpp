@@ -8,7 +8,7 @@
 
 TEST_CASE("polynomial_interpolation") {
   constexpr int d = 100;
-  using Mod = mod::ModT<998'244'353>;
+  using Mod = ModT<998'244'353>;
 
   auto eval = [&](const std::vector<Mod> &coef, Mod x) {
     Mod result{0};
