@@ -7,46 +7,42 @@
 #include <limits>
 #include <type_traits>
 
-namespace barret_details {
+namespace barrett_details {
 
-template <typename M>
-struct Multiplier;
+template <typename M> struct Multiplier;
 
-template <>
-struct Multiplier<uint64_t> {
-  static uint64_t multiply(uint64_t x, uint64_t y) {
+template <> struct Multiplier<uint64_t> {
+  static uint64_t mul_hi(uint64_t x, uint64_t y) {
     return static_cast<__uint128_t>(x) * static_cast<__uint128_t>(y) >> 64;
   }
 };
 
-template <>
-struct Multiplier<__uint128_t> {
-  static __uint128_t multiply(__uint128_t x, __uint128_t y) {
-    __uint128_t x_hi = x >> 64;
-    __uint128_t x_lo = x & UINT64_MAX;
-    __uint128_t y_hi = y >> 64;
-    __uint128_t y_lo = y & UINT64_MAX;
-    return x_hi * y_hi + (x_hi * y_lo >> 64) + (x_lo * y_hi >> 64);
+template <> struct Multiplier<__uint128_t> {
+  static __uint128_t mul_hi(__uint128_t x, __uint128_t y) {
+    __uint128_t a = x & UINT64_MAX, b = x >> 64, c = y & UINT64_MAX,
+                d = y >> 64, ac = a * c, bc = b * c, ad = a * d,
+                z = (bc & UINT64_MAX) + (ad & UINT64_MAX) + (ac >> 64);
+    return b * d + (bc >> 64) + (ad >> 64) + (z >> 64);
   }
 };
 
-template <typename M, typename M2, int PHANTOM> struct BarretModBaseT {
+template <typename M, typename M2, typename PHANTOM> struct BarrettModBaseT {
   template <typename T = M>
-  explicit constexpr BarretModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
+  explicit constexpr BarrettModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
 
-  static constexpr BarretModBaseT mul_id() { return BarretModBaseT{1}; }
+  static constexpr BarrettModBaseT mul_id() { return BarrettModBaseT{1}; }
 
   static void set_mod(M mod_) { storage().set_mod(mod_); }
 
   template <typename T = M2>
-  static constexpr std::enable_if_t<std::is_integral_v<T>, BarretModBaseT>
+  static constexpr std::enable_if_t<std::is_integral_v<T>, BarrettModBaseT>
   normalize(T x) {
-    return BarretModBaseT{reduce(x)};
+    return BarrettModBaseT{reduce(x)};
   }
 
   constexpr M get() const { return x; }
 
-  constexpr BarretModBaseT &operator+=(const BarretModBaseT &other) {
+  constexpr BarrettModBaseT &operator+=(const BarrettModBaseT &other) {
     x += other.x;
     if (x >= mod()) {
       x -= mod();
@@ -54,12 +50,12 @@ template <typename M, typename M2, int PHANTOM> struct BarretModBaseT {
     return *this;
   }
 
-  constexpr BarretModBaseT operator+(const BarretModBaseT &other) const {
-    BarretModBaseT copy = *this;
+  constexpr BarrettModBaseT operator+(const BarrettModBaseT &other) const {
+    BarrettModBaseT copy = *this;
     return copy += other;
   }
 
-  constexpr BarretModBaseT &operator-=(const BarretModBaseT &other) {
+  constexpr BarrettModBaseT &operator-=(const BarrettModBaseT &other) {
     x += mod() - other.x;
     if (x >= mod()) {
       x -= mod();
@@ -67,36 +63,42 @@ template <typename M, typename M2, int PHANTOM> struct BarretModBaseT {
     return *this;
   }
 
-  constexpr BarretModBaseT operator-() const {
-    BarretModBaseT copy{0};
+  constexpr BarrettModBaseT operator-() const {
+    BarrettModBaseT copy{0};
     copy -= *this;
     return copy;
   }
 
-  constexpr BarretModBaseT operator-(const BarretModBaseT &other) const {
-    BarretModBaseT copy = *this;
+  constexpr BarrettModBaseT operator-(const BarrettModBaseT &other) const {
+    BarrettModBaseT copy = *this;
     return copy -= other;
   }
 
-  constexpr BarretModBaseT operator*=(const BarretModBaseT &other) {
+  constexpr BarrettModBaseT operator*=(const BarrettModBaseT &other) {
     x = reduce(static_cast<M2>(x) * static_cast<M2>(other.x));
     return *this;
   }
 
-  constexpr BarretModBaseT operator*(const BarretModBaseT &other) const {
-    BarretModBaseT copy = *this;
+  constexpr BarrettModBaseT operator*(const BarrettModBaseT &other) const {
+    BarrettModBaseT copy = *this;
     return copy *= other;
+  }
+
+  constexpr BarrettModBaseT inv() const {
+    return x == 1
+               ? BarrettModBaseT{1}
+               : -BarrettModBaseT{mod() / x} * BarrettModBaseT{mod() % x}.inv();
   }
 
 private:
   struct Storage {
     void set_mod(M mod_) {
       mod = mod_;
-      inv_mod = static_cast<M2>(-1) / mod + 1;
+      inv_mod = static_cast<M2>(-1) / mod - 1;
     }
 
     M reduce(M2 x) const {
-      auto q = Multiplier<M2>::multiply(x, inv_mod);
+      auto q = Multiplier<M2>::mul_hi(x, inv_mod);
       auto r = x - q * mod;
       return r >= mod ? r - mod : r;
     }
@@ -114,20 +116,21 @@ private:
   M x;
 };
 
-} // namespace barret_details
+} // namespace barrett_details
 
 namespace std {
 
-template <typename M, typename M2, int PHANTOM>
+template <typename M, typename M2, typename PHANTOM>
 ostream &operator<<(ostream &out,
-                    const barret_details::BarretModBaseT<M, M2, PHANTOM> &m) {
+                    const barrett_details::BarrettModBaseT<M, M2, PHANTOM> &m) {
   return out << m.get();
 }
 
 } // namespace std
 
-template <int PHANTOM = 0>
-using BarretModT = barret_details::BarretModBaseT<uint32_t, uint64_t, PHANTOM>;
-template <int PHANTOM = 0>
-using BarretMod64T =
-    barret_details::BarretModBaseT<uint64_t, __uint128_t, PHANTOM>;
+template <typename PHANTOM = void>
+using BarrettModT =
+    barrett_details::BarrettModBaseT<uint32_t, uint64_t, PHANTOM>;
+template <typename PHANTOM = void>
+using BarrettMod64T =
+    barrett_details::BarrettModBaseT<uint64_t, __uint128_t, PHANTOM>;

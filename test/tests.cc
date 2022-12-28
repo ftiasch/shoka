@@ -1,3 +1,5 @@
+#include "barrett.hpp"
+#include "binpow.hpp"
 #include "debug.hpp"
 #include "fast_io.hpp"
 #include "mod.hpp"
@@ -7,4 +9,3 @@
 #include "segment_tree.hpp"
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
-#include "binpow.hpp"
