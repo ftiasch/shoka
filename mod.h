@@ -23,7 +23,7 @@ struct ModBaseT {
   template <typename T = M2>
   static constexpr std::enable_if_t<std::is_integral_v<T>, ModBaseT>
   normalize(T x) {
-    return ModBaseT(x % MOD);
+    return ModBaseT{x % MOD};
   }
 
   constexpr M get() const { return x; }
@@ -75,6 +75,7 @@ struct ModBaseT {
     return x == 1 ? ModBaseT{1} : -ModBaseT{MOD / x} * ModBaseT{MOD % x}.inv();
   }
 
+private:
   M x;
 };
 
