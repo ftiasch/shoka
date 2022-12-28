@@ -5,6 +5,7 @@
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 TEST_CASE("barrett") {
   SECTION("BarrettModT") {
@@ -27,10 +28,9 @@ TEST_CASE("barrett") {
       REQUIRE((x * x.inv()).get() == 1);
     }
   }
-
   SECTION("BarrettMod64T") {
     // https://primes.utm.edu/lists/2small/0bit.html
-    static constexpr auto MOD = (1ULL << 63) - 25;
+    auto MOD = GENERATE(998'244'353ULL, (1ULL << 63) - 25);
 
     using Mod = BarrettMod64T<>;
     Mod::set_mod(MOD);

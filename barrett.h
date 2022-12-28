@@ -32,7 +32,7 @@ template <typename M, typename M2, typename PHANTOM> struct BarrettModBaseT {
 
   static constexpr BarrettModBaseT mul_id() { return BarrettModBaseT{1}; }
 
-  static void set_mod(M mod_) { storage().set_mod(mod_); }
+  static void set_mod(M mod_) { store().set_mod(mod_); }
 
   template <typename T = M2>
   static constexpr std::enable_if_t<std::is_integral_v<T>, BarrettModBaseT>
@@ -91,7 +91,7 @@ template <typename M, typename M2, typename PHANTOM> struct BarrettModBaseT {
   }
 
 private:
-  struct Storage {
+  struct Store {
     void set_mod(M mod_) {
       mod = mod_;
       inv_mod = static_cast<M2>(-1) / mod - 1;
@@ -107,11 +107,11 @@ private:
     M2 inv_mod;
   };
 
-  static Storage &storage() { return Singleton<Storage>::instance(); }
+  static Store &store() { return Singleton<Store>::instance(); }
 
-  static M mod() { return storage().mod; }
+  static M mod() { return store().mod; }
 
-  static M reduce(M2 x_) { return storage().reduce(x_); }
+  static M reduce(M2 x_) { return store().reduce(x_); }
 
   M x;
 };
