@@ -11,22 +11,33 @@ namespace barrett_details {
 
 template <typename M> struct Multiplier;
 
-template <> struct Multiplier<uint64_t> {
-  static uint64_t mul_hi(uint64_t x, uint64_t y) {
+template <> struct Multiplier<uint32_t> {
+  using M2 = uint64_t;
+
+  static M2 mul_hi(M2 x, M2 y) {
     return static_cast<__uint128_t>(x) * static_cast<__uint128_t>(y) >> 64;
   }
 };
 
-template <> struct Multiplier<__uint128_t> {
-  static __uint128_t mul_hi(__uint128_t x, __uint128_t y) {
-    __uint128_t a = x & UINT64_MAX, b = x >> 64, c = y & UINT64_MAX,
-                d = y >> 64, ac = a * c, bc = b * c, ad = a * d,
-                z = (bc & UINT64_MAX) + (ad & UINT64_MAX) + (ac >> 64);
-    return b * d + (bc >> 64) + (ad >> 64) + (z >> 64);
+template <> struct Multiplier<uint64_t> {
+  using M2 = __uint128_t;
+
+  static M2 mul_hi(M2 x, M2 y) {
+    M2 x_lo = x & UINT64_MAX;
+    M2 x_hi = x >> 64;
+    M2 y_lo = y & UINT64_MAX;
+    M2 y_hi = y >> 64;
+    M2 lo_lo = x_lo * y_lo;
+    M2 hi_lo = x_hi * y_lo;
+    M2 lo_hi = x_lo * y_hi;
+    M2 cy = (hi_lo & UINT64_MAX) + (lo_hi & UINT64_MAX) + (lo_lo >> 64);
+    return x_hi * y_hi + (hi_lo >> 64) + (lo_hi >> 64) + (cy >> 64);
   }
 };
 
-template <typename M, typename M2, typename PHANTOM> struct BarrettModBaseT {
+template <typename M, int PHANTOM> struct BarrettModBaseT {
+  using M2 = typename Multiplier<M>::M2;
+
   template <typename T = M>
   explicit constexpr BarrettModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
 
@@ -98,7 +109,7 @@ private:
     }
 
     M reduce(M2 x) const {
-      auto q = Multiplier<M2>::mul_hi(x, inv_mod);
+      auto q = Multiplier<M>::mul_hi(x, inv_mod);
       auto r = x - q * mod;
       return r >= mod ? r - mod : r;
     }
@@ -120,17 +131,15 @@ private:
 
 namespace std {
 
-template <typename M, typename M2, typename PHANTOM>
+template <typename M, int PHANTOM>
 ostream &operator<<(ostream &out,
-                    const barrett_details::BarrettModBaseT<M, M2, PHANTOM> &m) {
+                    const barrett_details::BarrettModBaseT<M, PHANTOM> &m) {
   return out << m.get();
 }
 
 } // namespace std
 
-template <typename PHANTOM = void>
-using BarrettModT =
-    barrett_details::BarrettModBaseT<uint32_t, uint64_t, PHANTOM>;
-template <typename PHANTOM = void>
-using BarrettMod64T =
-    barrett_details::BarrettModBaseT<uint64_t, __uint128_t, PHANTOM>;
+template <int PHANTOM = 0>
+using BarrettModT = barrett_details::BarrettModBaseT<uint32_t, PHANTOM>;
+template <int PHANTOM = 0>
+using BarrettMod64T = barrett_details::BarrettModBaseT<uint64_t, PHANTOM>;
