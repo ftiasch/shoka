@@ -1,10 +1,21 @@
-#include "mod_details.h"
+#pragma once
+
+#include "binpow.h"
+#include "primality_test.h"
 
 #include <cstdint>
 #include <iostream>
 #include <limits>
 
-namespace montgomery {
+namespace montgomery_details {
+
+template <typename Digit> static constexpr Digit mont_modinv(Digit MOD, int n) {
+  Digit result = 1;
+  for (int i = 0; i < n; ++i) {
+    result *= 2 - MOD * result;
+  }
+  return -result;
+}
 
 using u64 = uint64_t;
 using u32 = uint32_t;
@@ -27,15 +38,19 @@ struct u128 {
   u64 high, low;
 };
 
-template <int RBIT, typename Digit, Digit M, typename Derived>
+template <int RBIT, typename Digit, Digit M, bool PRIMALITY_CERTIFIED,
+          typename Derived>
 struct MontgomeryBaseT {
   static const Digit MOD = M;
 
   static_assert(MOD <= std::numeric_limits<Digit>::max() >> 2,
                 "4 * MOD <= MAX");
 
-  explicit constexpr MontgomeryBaseT(Digit x = 0)
-      : x(Derived::mont_multiply(x, R2)) {}
+  template <typename T = Digit>
+  explicit constexpr MontgomeryBaseT(T x = 0)
+      : x{Derived::mont_multiply(x, R2)} {}
+
+  static constexpr MontgomeryBaseT mul_id() { return MontgomeryBaseT{1}; }
 
   constexpr Digit get() const {
     Digit y = Derived::reduce(x);
@@ -86,12 +101,9 @@ struct MontgomeryBaseT {
     return copy *= other;
   }
 
-  constexpr MontgomeryBaseT power(u64 n) const {
-    return details::power<MontgomeryBaseT>(*this, n);
-  }
-
-  constexpr MontgomeryBaseT inverse() const {
-    return details::inverse<MontgomeryBaseT>(*this);
+  constexpr MontgomeryBaseT inv() const {
+    static_assert(PRIMALITY_CERTIFIED || is_prime(MOD), "MOD is not a prime");
+    return binpow(*this, MOD - 2);
   }
 
 private:
@@ -125,7 +137,7 @@ template <u32 MOD> struct Montgomery32Impl {
     return (x + y) >> 32U;
   }
 
-  static const u32 INV = details::mont_modinv<u32>(MOD, 5);
+  static constexpr u32 INV = mont_modinv<u32>(MOD, 5);
 };
 
 template <u64 MOD> struct Montgomery64Impl {
@@ -140,20 +152,27 @@ template <u64 MOD> struct Montgomery64Impl {
     return x.high + y.high + (x.low > ~y.low);
   }
 
-  static const u64 INV = details::mont_modinv<u64>(MOD, 6);
+  static constexpr u64 INV = mont_modinv<u64>(MOD, 6);
 };
 
-template <u32 MOD>
-using Montgomery32T = MontgomeryBaseT<32, u32, MOD, Montgomery32Impl<MOD>>;
+} // namespace montgomery_details
 
-template <u64 MOD>
-using Montgomery64T = MontgomeryBaseT<64, u64, MOD, Montgomery64Impl<MOD>>;
+namespace std {
 
-} // namespace montgomery
-
-template <int RBIT, typename Digit, Digit M, typename Derived>
-std::ostream &
-operator<<(std::ostream &out,
-           const montgomery::MontgomeryBaseT<RBIT, Digit, M, Derived> &mod) {
+template <int RBIT, typename Digit, Digit M, bool PRIMALITY_CERTIFIED,
+          typename Derived>
+ostream &operator<<(ostream &out,
+                    const montgomery_details::MontgomeryBaseT<
+                        RBIT, Digit, M, PRIMALITY_CERTIFIED, Derived> &mod) {
   return out << mod.get();
 }
+
+} // namespace std
+
+template <uint32_t MOD>
+using MontgomeryT = montgomery_details::MontgomeryBaseT<
+    32, uint32_t, MOD, false, montgomery_details::Montgomery32Impl<MOD>>;
+
+template <uint64_t MOD>
+using Montgomery64T = montgomery_details::MontgomeryBaseT<
+    64, uint64_t, MOD, true, montgomery_details::Montgomery64Impl<MOD>>;
