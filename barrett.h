@@ -9,9 +9,9 @@
 
 namespace barrett_details {
 
-template <typename M> struct Multiplier;
+template <typename M> struct MultiplierT;
 
-template <> struct Multiplier<uint32_t> {
+template <> struct MultiplierT<uint32_t> {
   using M2 = uint64_t;
 
   static M2 mul_hi(M2 x, M2 y) {
@@ -19,7 +19,7 @@ template <> struct Multiplier<uint32_t> {
   }
 };
 
-template <> struct Multiplier<uint64_t> {
+template <> struct MultiplierT<uint64_t> {
   using M2 = __uint128_t;
 
   static M2 mul_hi(M2 x, M2 y) {
@@ -36,7 +36,7 @@ template <> struct Multiplier<uint64_t> {
 };
 
 template <typename M, int PHANTOM> struct BarrettModBaseT {
-  using M2 = typename Multiplier<M>::M2;
+  using M2 = typename MultiplierT<M>::M2;
 
   template <typename T = M>
   explicit constexpr BarrettModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
@@ -111,7 +111,7 @@ private:
     }
 
     M reduce(M2 x) const {
-      auto q = Multiplier<M>::mul_hi(x, inv_mod);
+      auto q = MultiplierT<M>::mul_hi(x, inv_mod);
       auto r = x - q * mod;
       return r >= mod ? r - mod : r;
     }
