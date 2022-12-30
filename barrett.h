@@ -51,6 +51,8 @@ template <typename M, int PHANTOM> struct BarrettModBaseT {
     return BarrettModBaseT{reduce(x)};
   }
 
+  static M mod() { return store().mod; }
+
   constexpr M get() const { return x; }
 
   constexpr BarrettModBaseT &operator+=(const BarrettModBaseT &other) {
@@ -119,8 +121,6 @@ private:
   };
 
   static Store &store() { return Singleton<Store>::instance(); }
-
-  static M mod() { return store().mod; }
 
   static M reduce(M2 x_) { return store().reduce(x_); }
 

@@ -25,7 +25,7 @@ private:
   size_t head = 0, rear = 0;
 };
 
-namespace fast_io {
+namespace fast_io_details {
 
 template <typename T>
 typename std::enable_if_t<std::is_integral_v<T>, T> read1(FastIO &io) {
@@ -50,6 +50,8 @@ std::enable_if_t<std::is_same_v<T, char>, T> read1(FastIO &io) {
   return io.getc();
 }
 
-} // namespace fast_io
+} // namespace fast_io_details
 
-template <typename T> T FastIO::read1() { return fast_io::read1<T>(*this); }
+template <typename T> T FastIO::read1() {
+  return fast_io_details::read1<T>(*this);
+}
