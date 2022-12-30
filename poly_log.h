@@ -18,15 +18,15 @@ template <typename Poly> struct PolyLog : public PolyOp<Poly, PolyLog> {
     factory().reserve(n);
     // log f = \int f' / f
     const auto d_f = factory().template raw_buffer<3>();
-    d_f[n - 1] = Mod(0);
+    d_f[n - 1] = Mod{0};
     for (int i = 1; i < n; ++i) {
-      d_f[i - 1] = Mod(i) * f[i];
+      d_f[i - 1] = Mod{i} * f[i];
     }
     div._(n, out, d_f, f);
     for (int i = n; i-- > 1;) {
       out[i] = out[i - 1] * cached_inv(i);
     }
-    out[0] = Mod(0);
+    out[0] = Mod{0};
   }
 
   Mod cached_inv(int n) {
@@ -34,7 +34,7 @@ template <typename Poly> struct PolyLog : public PolyOp<Poly, PolyLog> {
       int old_size = inv.size();
       inv.resize(n + 1);
       for (int i = old_size; i <= n; ++i) {
-        inv[i] = Mod(Mod::MOD - Mod::MOD / i) * inv[Mod::MOD % i];
+        inv[i] = Mod{Mod::MOD - Mod::MOD / i} * inv[Mod::MOD % i];
       }
     }
     return inv[n];

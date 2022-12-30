@@ -32,28 +32,28 @@ template <typename Poly> struct PolyDiv {
       const auto inv_g = factory().template raw_buffer<2>();
       int m = n >> 1;
       inv._(m, inv_g, g);
-      std::fill(inv_g + m, inv_g + n, Mod(0));
+      std::fill(inv_g + m, inv_g + n, Mod{0});
       Ntt::dif(n, inv_g);
       Factory::copy_and_fill0(n, b0, m, f);
       Ntt::dif(n, b0);
-      const Mod inv_n = Mod(n).inv();
+      const Mod inv_n = Mod{n}.inv();
       Factory::dot_product_and_dit(n, inv_n, b0, b0, inv_g);
 
       std::copy(b0, b0 + m, out);
 
-      std::fill(b0 + m, b0 + n, Mod(0));
+      std::fill(b0 + m, b0 + n, Mod{0});
       Ntt::dif(n, b0);
       std::copy(g, g + n, b1);
       Ntt::dif(n, b1);
       Factory::dot_product_and_dit(n, inv_n, b0, b0, b1);
-      std::fill(b0, b0 + m, Mod(0));
+      std::fill(b0, b0 + m, Mod{0});
       for (int i = m; i < n; ++i) {
         b0[i] -= f[i];
       }
       Ntt::dif(n, b0);
       Factory::dot_product_and_dit(n, inv_n, b0, b0, inv_g);
       for (int i = m; i < n; ++i) {
-        out[i] = Mod(0) - b0[i];
+        out[i] = Mod{0} - b0[i];
       }
     }
   }

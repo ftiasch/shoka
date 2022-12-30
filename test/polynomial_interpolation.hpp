@@ -22,15 +22,15 @@ TEST_CASE("polynomial_interpolation") {
   auto C = GENERATE(take(1, chunk(d, random(0U, Mod::MOD - 1))));
   std::vector<Mod> coef(d), values(d);
   for (int i = 0; i < d; ++i) {
-    coef[i] = Mod(C[i]);
+    coef[i] = Mod{C[i]};
   }
   for (int i = 0; i < d; ++i) {
-    values[i] = eval(coef, Mod(i));
+    values[i] = eval(coef, Mod{i});
   }
 
   auto n = GENERATE(take(d, random(0U, Mod::MOD - 1)));
   PolynomialInterpolation<Mod> interpolate(d);
-  auto output = interpolate(values, Mod(n));
-  auto answer = eval(coef, Mod(n));
+  auto output = interpolate(values, Mod{n});
+  auto answer = eval(coef, Mod{n});
   REQUIRE(output.get() == answer.get());
 }

@@ -72,7 +72,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     Ntt::dif(n, b0);
     Factory::copy_and_fill0(n, b1, o);
     Ntt::dif(n, b1);
-    Factory::dot_product_and_dit(n, Mod(n).inv(), b0, b0, b1);
+    Factory::dot_product_and_dit(n, Mod{n}.inv(), b0, b0, b1);
     return PolyT(b0, b0 + deg_plus_1);
   }
 
@@ -97,7 +97,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     static void copy_and_fill0(int n, Mod *dst, int m, const Mod *src) {
       m = std::min(n, m);
       std::copy(src, src + m, dst);
-      std::fill(dst + m, dst + n, Mod(0));
+      std::fill(dst + m, dst + n, Mod{0});
     }
 
     static void copy_and_fill0(int n, Mod *dst, const std::vector<Mod> &src) {

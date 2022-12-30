@@ -66,10 +66,10 @@ private:
   struct FiniteField {
     static constexpr Mod primitive_root() {
       int g = 2;
-      while (!is_primitive_root(Mod(g))) {
+      while (!is_primitive_root(Mod{g})) {
         g++;
       }
-      return Mod(g);
+      return Mod{g};
     }
 
   private:
