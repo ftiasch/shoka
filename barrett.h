@@ -45,9 +45,7 @@ template <typename M, int PHANTOM> struct BarrettModBaseT {
 
   static void set_mod(M mod_) { store().set_mod(mod_); }
 
-  template <typename T = M2>
-  static constexpr std::enable_if_t<std::is_integral_v<T>, BarrettModBaseT>
-  normalize(T x) {
+  static constexpr BarrettModBaseT normalize(M2 x) {
     return BarrettModBaseT{reduce(x)};
   }
 

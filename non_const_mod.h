@@ -25,9 +25,7 @@ template <typename M, int PHANTOM> struct NonConstModBaseT {
 
   static void set_mod(M mod_) { store().set_mod(mod_); }
 
-  template <typename T = M2>
-  static constexpr std::enable_if_t<std::is_integral_v<T>, NonConstModBaseT>
-  normalize(T x) {
+  static constexpr NonConstModBaseT normalize(M2 x) {
     return NonConstModBaseT{reduce(x)};
   }
 
@@ -87,9 +85,7 @@ private:
   struct Store {
     void set_mod(M mod_) { mod = mod_; }
 
-    M reduce(M2 x) const {
-      return x % mod;
-    }
+    M reduce(M2 x) const { return x % mod; }
 
     M mod;
   };

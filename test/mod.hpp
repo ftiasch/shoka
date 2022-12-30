@@ -18,23 +18,41 @@ TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<MOD_32>, MontgomeryT<MOD_32>,
 
   Mod::set_mod(MOD_32);
 
-  REQUIRE(Mod{233}.get() == 233);
-  {
-    int x = 233;
-    REQUIRE(Mod{x}.get() == 233);
-  }
-  // (998'244'353 << 8) + 233
-  REQUIRE(Mod::normalize(255550554601).get() == 233);
+  static constexpr auto N = 1'000;
 
-  REQUIRE(binpow(Mod{233}, MOD_32 - 1).get() == 1);
-
-  {
-    Mod x{233};
-    REQUIRE((x * x.inv()).get() == 1);
+  SECTION("constructor") {
+    REQUIRE(Mod{233}.get() == 233);
+    for (int i = 0; i < N; ++i) {
+      REQUIRE(Mod{i}.get() == i);
+    }
   }
+
+  SECTION("normalization") {
+    for (int i = 0; i < N; ++i) {
+      REQUIRE(Mod::normalize(233 + i * static_cast<uint64_t>(MOD_32)).get() ==
+              233);
+    }
+  }
+
+  SECTION("negation") {
+    REQUIRE((-Mod{0}).get() == 0);
+    REQUIRE((-Mod{233}).get() == MOD_32 - 233);
+  }
+
+  SECTION("addition & subtraction") {
+    Mod sum{0};
+    for (int i = 0; i < N; ++i) {
+      sum += Mod{1'000'000 * i};
+    }
+    for (int i = 0; i < N; ++i) {
+      sum -= Mod{1'000'000 * i};
+    }
+    REQUIRE(sum.get() == 0);
+  }
+
+  SECTION("power") { REQUIRE(binpow(Mod{233}, MOD_32 - 1).get() == 1); }
 
   BENCHMARK("bench") {
-    static constexpr auto N = 1'000;
     Mod result{1};
     for (int i = 1; i < N; ++i) {
       result *= Mod{i};

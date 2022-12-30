@@ -30,28 +30,24 @@ template <uint32_t MOD> struct MultiplierT<uint32_t, MOD> {
 template <uint64_t MOD> struct MultiplierT<uint64_t, MOD> {
   using M = uint64_t;
   using M2 = __uint128_t;
-
   static constexpr M M_MAX = UINT64_MAX;
   static constexpr int M_BITS = 64;
-
   static constexpr uint64_t INV = mont_modinv(MOD, 6);
 };
 
 template <typename M, M MOD_, bool PRIMALITY_CERTIFIED> struct MontgomeryBaseT {
   static const M MOD = MOD_;
+  static_assert(MOD <= std::numeric_limits<M>::max() >> 2, "4 * MOD <= MAX");
+
   using Multiplier = MultiplierT<M, MOD>;
   using M2 = typename Multiplier::M2;
-
-  static_assert(MOD <= std::numeric_limits<M>::max() >> 2, "4 * MOD <= MAX");
 
   template <typename T = M>
   explicit constexpr MontgomeryBaseT(T x_ = 0) : x{mont_multiply(x_, R2)} {}
 
   static constexpr MontgomeryBaseT mul_id() { return MontgomeryBaseT{1}; }
 
-  template <typename T = M2>
-  static constexpr std::enable_if_t<std::is_integral_v<T>, MontgomeryBaseT>
-  normalize(T x) {
+  static constexpr MontgomeryBaseT normalize(M2 x) {
     return MontgomeryBaseT{x % MOD};
   }
 

@@ -9,8 +9,10 @@
 
 namespace mod_details {
 
-template <typename M, typename M2, M MOD_, bool PRIMALITY_CERTIFIED>
+template <typename M, typename M2_, M MOD_, bool PRIMALITY_CERTIFIED>
 struct ModBaseT {
+  using M2 = M2_;
+
   static constexpr M MOD = MOD_;
 
   static_assert(MOD <= (std::numeric_limits<M>::max() >> 1));
@@ -20,11 +22,7 @@ struct ModBaseT {
 
   static constexpr ModBaseT mul_id() { return ModBaseT{1}; }
 
-  template <typename T = M2>
-  static constexpr std::enable_if_t<std::is_integral_v<T>, ModBaseT>
-  normalize(T x) {
-    return ModBaseT{x % MOD};
-  }
+  static constexpr ModBaseT normalize(M2 x) { return ModBaseT{x % MOD}; }
 
 #ifdef SHOKA_TESTING
   static void set_mod(M) {}
