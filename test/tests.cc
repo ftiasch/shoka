@@ -3,6 +3,7 @@
 #include "fast_io.hpp"
 #include "mod.hpp"
 #include "nd_vector.hpp"
+#include "poly.hpp"
 #include "polynomial_interpolation.hpp"
 #include "rmq.hpp"
 #include "segment_tree.hpp"
