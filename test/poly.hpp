@@ -5,6 +5,7 @@
 #include "poly_inv.h"
 #include "poly_log.h"
 #include "poly_multieval.h"
+#include "poly_prod.h"
 
 #include <bits/stdc++.h>
 
@@ -66,11 +67,11 @@ TEST_CASE("poly") {
     REQUIRE(Poly(3).deg() == 2);
   }
 
-  static constexpr int MAX_DEG = 32;
+  static constexpr int N = 32;
 
   SECTION("addition") {
-    auto f_deg = GENERATE(range(-1, MAX_DEG));
-    auto g_deg = GENERATE(range(-1, MAX_DEG));
+    auto f_deg = GENERATE(range(-1, N));
+    auto g_deg = GENERATE(range(-1, N));
     auto f = RandomPoly{}.get(f_deg);
     auto g = RandomPoly{}.get(g_deg);
     auto sum_fg = f + g;
@@ -89,8 +90,8 @@ TEST_CASE("poly") {
   }
 
   SECTION("subtracion") {
-    auto sum_deg = GENERATE(range(0, MAX_DEG));
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto sum_deg = GENERATE(range(0, N));
+    auto f_deg = GENERATE(range(0, N));
     if (f_deg <= sum_deg) {
       auto g_deg = sum_deg - f_deg;
       auto f = RandomPoly{}.get(f_deg);
@@ -109,8 +110,8 @@ TEST_CASE("poly") {
   }
 
   SECTION("multiplication") {
-    auto sum_deg = GENERATE(range(0, MAX_DEG));
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto sum_deg = GENERATE(range(0, N));
+    auto f_deg = GENERATE(range(0, N));
     if (f_deg <= sum_deg) {
       auto g_deg = sum_deg - f_deg;
       auto f = RandomPoly{}.get(f_deg);
@@ -138,7 +139,7 @@ TEST_CASE("poly") {
   }
 
   SECTION("inverse") {
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto f_deg = GENERATE(range(0, N));
     auto f = RandomPoly{}.get1(f_deg);
     PolyInv<Poly> inv{};
     auto inv_f = inv(f);
@@ -152,8 +153,8 @@ TEST_CASE("poly") {
   }
 
   SECTION("division") {
-    auto f_deg = GENERATE(range(0, MAX_DEG));
-    auto g_deg = GENERATE(range(0, MAX_DEG));
+    auto f_deg = GENERATE(range(0, N));
+    auto g_deg = GENERATE(range(0, N));
     auto f = RandomPoly{}.get(f_deg);
     auto g = RandomPoly{}.get1(g_deg);
     PolyDiv<Poly> div{};
@@ -167,7 +168,7 @@ TEST_CASE("poly") {
   }
 
   SECTION("logarithm") {
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto f_deg = GENERATE(range(0, N));
     auto f = RandomPoly{}.get(f_deg);
     f[0] = Mod{1};
     PolyLog<Poly> log{};
@@ -189,7 +190,7 @@ TEST_CASE("poly") {
   }
 
   SECTION("exponentiation") {
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto f_deg = GENERATE(range(0, N));
     auto f = RandomPoly{}.get(f_deg);
     f[0] = Mod{0};
     PolyExp<Poly> exp{};
@@ -212,14 +213,32 @@ TEST_CASE("poly") {
   }
 
   SECTION("multi_eval") {
-    auto f_deg = GENERATE(range(0, MAX_DEG));
+    auto f_deg = GENERATE(range(0, N));
     auto f = RandomPoly{}.get(f_deg).vector();
-    auto m = GENERATE(0, MAX_DEG);
+    auto m = GENERATE(0, N);
     auto a = RandomPoly{}.get(m - 1).vector();
     PolyMultiEval<Poly> eval;
     auto result = eval(f, a);
     for (int i = 0; i < m; ++i) {
       REQUIRE(result[i].get() == slow_eval(f, a[i]).get());
+    }
+  }
+
+  SECTION("multi_prod") {
+    auto n = GENERATE(range(0, N));
+    std::vector<Poly> mons(n);
+    for (int i = 0; i < n; ++i) {
+      mons[i] = RandomPoly{}.get(3);
+    }
+    PolyProduct<Poly> prod;
+    auto p = prod(mons);
+    Poly expected_p{Mod{1}};
+    for (auto &&mon : mons) {
+      expected_p *= mon;
+    }
+    REQUIRE(p.deg() == expected_p.deg());
+    for (int i = 0; i <= p.deg(); ++i) {
+      REQUIRE(p[i].get() == expected_p[i].get());
     }
   }
 }

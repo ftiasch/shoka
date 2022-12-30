@@ -2,18 +2,13 @@
 
 #include <queue>
 
-template <typename NTT> struct PolyProduct : public PolyOp<PolyProduct, NTT> {
-  using Base = PolyOp<PolyProduct, NTT>;
-  using Base::factory;
-  using typename Base::Factory;
-  using typename Base::Mod;
-  using typename Base::Poly;
-
-  explicit PolyProduct(std::shared_ptr<Factory> factory_) : Base{factory_} {}
+template <typename Poly> struct PolyProduct : public PolyOp<Poly, PolyProduct> {
+  using Base = PolyOp<Poly, PolyProduct>;
+  SHOKA_HELPER_USING_POLY_OP;
 
   Poly operator()(const std::vector<Poly> &mons) const {
     if (mons.empty()) {
-      return factory->make(std::vector<Mod>{Mod{1}});
+      return Poly{Mod{1}};
     }
     std::priority_queue<Poly, std::vector<Poly>, ByDeg> pq;
     for (auto &&mon : mons) {
