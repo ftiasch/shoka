@@ -23,19 +23,15 @@ struct TestMonoid {
 } // namespace universal_euclidean
 
 TEST_CASE("universal_euclidean") {
-  constexpr int m = 10;
+  using namespace universal_euclidean;
 
-  for (int c = 1; c < m; ++c) {
-    for (int a = 0; a < m; ++a) {
-      for (int b = 0; b < m; ++b) {
-        uint64_t answer = 0;
-        for (int n = 0; n < m; ++n) {
-          answer += (a * n + b) / c;
-          REQUIRE(universal_euclidean::sum<universal_euclidean::TestMonoid>(
-                      n, a, b, c)
-                      .u_sum == answer);
-        }
-      }
-    }
+  auto c = GENERATE(range(1, 10));
+  auto a = GENERATE(range(0, 10));
+  auto b = GENERATE(range(0, 10));
+
+  uint64_t answer = 0;
+  for (int n = 0; n < 10; ++n) {
+    answer += (a * n + b) / c;
+    REQUIRE(sum<TestMonoid>(n, a, b, c).u_sum == answer);
   }
 }
