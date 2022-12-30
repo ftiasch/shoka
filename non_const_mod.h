@@ -88,9 +88,7 @@ private:
     void set_mod(M mod_) { mod = mod_; }
 
     M reduce(M2 x) const {
-      auto q = static_cast<long double>(x) / mod;
-      auto r = x - q * mod;
-      return r <= mod ? r + mod : r;
+      return x % mod;
     }
 
     M mod;

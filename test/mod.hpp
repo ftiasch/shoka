@@ -13,7 +13,7 @@ constexpr uint32_t MOD_32 = 998'244'353;
 constexpr uint64_t MOD_64 = (1ULL << 62) - 57;
 
 TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<MOD_32>, MontgomeryT<MOD_32>,
-                   BarrettModT<>) {
+                   BarrettModT<>, NonConstModT<>) {
   using Mod = TestType;
 
   Mod::set_mod(MOD_32);
@@ -35,7 +35,7 @@ TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<MOD_32>, MontgomeryT<MOD_32>,
 }
 
 TEMPLATE_TEST_CASE("mod_64", "[template]", Mod64T<MOD_64>,
-                   Montgomery64T<MOD_64>, BarrettMod64T<>) {
+                   Montgomery64T<MOD_64>, BarrettMod64T<>, NonConstMod64T<>) {
   using Mod = TestType;
   Mod::set_mod(MOD_64);
 
