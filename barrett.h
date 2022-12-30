@@ -107,7 +107,7 @@ private:
   struct Store {
     void set_mod(M mod_) {
       mod = mod_;
-      inv_mod = static_cast<M2>(-1) / mod - 1;
+      inv_mod = static_cast<M2>(-1) / mod;
     }
 
     M reduce(M2 x) const {
