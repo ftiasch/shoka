@@ -32,6 +32,16 @@ TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<MOD_32>, MontgomeryT<MOD_32>,
     Mod x{233};
     REQUIRE((x * x.inv()).get() == 1);
   }
+
+  BENCHMARK("bench") {
+    static constexpr auto N = 1'000;
+    Mod result{1};
+    for (int i = 1; i < N; ++i) {
+      result *= Mod{i};
+    }
+    REQUIRE(result.get() == 815987315);
+    return result;
+  };
 }
 
 TEMPLATE_TEST_CASE("mod_64", "[template]", Mod64T<MOD_64>,
@@ -51,4 +61,14 @@ TEMPLATE_TEST_CASE("mod_64", "[template]", Mod64T<MOD_64>,
     Mod x{233};
     REQUIRE((x * x.inv()).get() == 1);
   }
+
+  BENCHMARK("bench") {
+    static constexpr auto N = 1'000;
+    Mod result{1};
+    for (int i = 1; i < N; ++i) {
+      result *= Mod{i};
+    }
+    REQUIRE(result.get() == 4017367128501485088);
+    return result;
+  };
 }
