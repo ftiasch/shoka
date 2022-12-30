@@ -52,6 +52,13 @@ struct MontgomeryBaseT {
 
   static constexpr MontgomeryBaseT mul_id() { return MontgomeryBaseT{1}; }
 
+  // FIXME
+  static MontgomeryBaseT normalize(uint64_t x) { return MontgomeryBaseT{x % MOD}; }
+
+#ifdef SHOKA_TESTING
+  static void set_mod(Digit) {}
+#endif
+
   constexpr Digit get() const {
     Digit y = Derived::reduce(x);
     if (y >= MOD) {

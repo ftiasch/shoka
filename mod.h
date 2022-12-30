@@ -26,6 +26,10 @@ struct ModBaseT {
     return ModBaseT{x % MOD};
   }
 
+#ifdef SHOKA_TESTING
+  static void set_mod(M) {}
+#endif
+
   constexpr M get() const { return x; }
 
   constexpr ModBaseT &operator+=(const ModBaseT &other) {
