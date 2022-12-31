@@ -2,10 +2,9 @@
 
 #include <type_traits>
 
-template <class T, class Enable = void> struct Singleton {};
+template <class T> struct Singleton {
+  static_assert(std::is_default_constructible_v<T>);
 
-template <class T>
-struct Singleton<T, std::enable_if_t<std::is_default_constructible_v<T>>> {
   static T &instance() {
     static T store;
     return store;

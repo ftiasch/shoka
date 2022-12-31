@@ -2,8 +2,8 @@
 
 #include <type_traits>
 
-template <typename T>
-static constexpr std::enable_if_t<std::is_integral_v<T>, bool> is_prime(T n) {
+template <typename T> static constexpr T is_prime(T n) {
+  static_assert(std::is_integral_v<T>);
   if (n < 2) {
     return false;
   }

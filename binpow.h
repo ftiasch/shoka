@@ -4,7 +4,8 @@
 #include <type_traits>
 
 template <typename T, typename N = uint64_t>
-static constexpr std::enable_if_t<std::is_integral_v<N>, T> binpow(T a, N n) {
+static constexpr T binpow(T a, N n) {
+  static_assert(std::is_integral_v<N>);
   auto result = T::mul_id();
   while (n) {
     if (n & 1) {
