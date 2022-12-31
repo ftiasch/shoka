@@ -1,100 +1,33 @@
 #pragma once
 
-#include "primality_test.h"
+#include "mod_wrapper.h"
 
 #include <cstdint>
-#include <iostream>
 #include <limits>
-#include <type_traits>
 
 namespace mod_details {
 
-template <typename M, typename M2_, M MOD_, bool PRIMALITY_CERTIFIED>
-struct ModBaseT {
+template <typename M_, typename M2_, M_ MOD> struct ModBaseT {
+  using M = M_;
   using M2 = M2_;
 
-  static constexpr M MOD = MOD_;
+  static_assert(MOD <= (std::numeric_limits<M_>::max() >> 1));
 
-  static_assert(MOD <= (std::numeric_limits<M>::max() >> 1));
+  static constexpr M mod() { return MOD; }
 
-  template <typename T = M>
-  explicit constexpr ModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
-
-  static constexpr ModBaseT mul_id() { return ModBaseT{1}; }
-
-  static constexpr ModBaseT normalize(M2 x) { return ModBaseT{x % MOD}; }
+  static constexpr M reduce(M2 x) { return x % MOD; }
 
 #ifdef SHOKA_TESTING
-  static void set_mod(M) {}
+  static void set_mod(M_) {}
 #endif
-
-  constexpr M get() const { return x; }
-
-  constexpr ModBaseT &operator+=(const ModBaseT &other) {
-    x += other.x;
-    if (x >= MOD) {
-      x -= MOD;
-    }
-    return *this;
-  }
-
-  constexpr ModBaseT operator+(const ModBaseT &other) const {
-    ModBaseT copy = *this;
-    return copy += other;
-  }
-
-  constexpr ModBaseT &operator-=(const ModBaseT &other) {
-    x += MOD - other.x;
-    if (x >= MOD) {
-      x -= MOD;
-    }
-    return *this;
-  }
-
-  constexpr ModBaseT operator-() const {
-    ModBaseT copy{0};
-    copy -= *this;
-    return copy;
-  }
-
-  constexpr ModBaseT operator-(const ModBaseT &other) const {
-    ModBaseT copy = *this;
-    return copy -= other;
-  }
-
-  constexpr ModBaseT operator*=(const ModBaseT &other) {
-    x = static_cast<M2>(x) * static_cast<M2>(other.x) % MOD;
-    return *this;
-  }
-
-  constexpr ModBaseT operator*(const ModBaseT &other) const {
-    ModBaseT copy = *this;
-    return copy *= other;
-  }
-
-  constexpr ModBaseT inv() const {
-    static_assert(PRIMALITY_CERTIFIED || is_prime(MOD), "MOD is not a prime");
-    return x == 1 ? ModBaseT{1} : -ModBaseT{MOD / x} * ModBaseT{MOD % x}.inv();
-  }
-
-private:
-  M x;
 };
+
+template <uint32_t MOD>
+using ModT = ModWrapperT<ModBaseT<uint32_t, uint64_t, MOD>>;
+template <uint64_t MOD>
+using Mod64T = ModWrapperT<ModBaseT<uint64_t, __uint128_t, MOD>>;
 
 } // namespace mod_details
 
-namespace std {
-
-template <typename M, typename M2, M MOD, bool PRIMALITY_CERTIFIED>
-ostream &
-operator<<(ostream &out,
-           const mod_details::ModBaseT<M, M2, MOD, PRIMALITY_CERTIFIED> &m) {
-  return out << m.get();
-}
-
-} // namespace std
-
-template <uint32_t MOD>
-using ModT = mod_details::ModBaseT<uint32_t, uint64_t, MOD, false>;
-template <uint64_t MOD>
-using Mod64T = mod_details::ModBaseT<uint64_t, __uint128_t, MOD, true>;
+using mod_details::Mod64T;
+using mod_details::ModT;

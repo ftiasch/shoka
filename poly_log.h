@@ -34,7 +34,7 @@ template <typename Poly> struct PolyLog : public PolyOp<Poly, PolyLog> {
       int old_size = inv.size();
       inv.resize(n + 1);
       for (int i = old_size; i <= n; ++i) {
-        inv[i] = Mod{Mod::MOD - Mod::MOD / i} * inv[Mod::MOD % i];
+        inv[i] = -Mod{Mod::mod() / i} * inv[Mod::mod() % i];
       }
     }
     return inv[n];

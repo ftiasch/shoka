@@ -23,7 +23,7 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
     }
     for (int l = 1; l < log_m; ++l) {
       Mod inv_n{Mod{1 << l}.inv()}, G{Ntt::get_primitive_root()},
-          zeta{binpow(G, Mod::MOD - 1 - (Mod::MOD >> (l + 1)))};
+          zeta{binpow(G, Mod::mod() - 1 - (Mod::mod() >> (l + 1)))};
       for (int s = 0; s < (m << 1); s += (2 << l)) {
         if (l + 1 < log_m) {
           for (int i = s; i < s + (1 << l); ++i) {

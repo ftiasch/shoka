@@ -1,28 +1,26 @@
 #pragma once
 
-#include "singleton.h"
+#include "mod_wrapper.h"
 
 #include <cstdint>
-#include <iostream>
 #include <limits>
-#include <type_traits>
 
-namespace barrett_details {
+namespace mod_details {
 
-template <typename M> struct MultiplierT;
+template <typename M> struct BarrettMultiplierT;
 
-template <> struct MultiplierT<uint32_t> {
+template <> struct BarrettMultiplierT<uint32_t> {
   using M2 = uint64_t;
 
-  static M2 mul_hi(M2 x, M2 y) {
+  static constexpr M2 mul_hi(M2 x, M2 y) {
     return static_cast<__uint128_t>(x) * static_cast<__uint128_t>(y) >> 64;
   }
 };
 
-template <> struct MultiplierT<uint64_t> {
+template <> struct BarrettMultiplierT<uint64_t> {
   using M2 = __uint128_t;
 
-  static M2 mul_hi(M2 x, M2 y) {
+  static constexpr M2 mul_hi(M2 x, M2 y) {
     M2 x_lo = x & UINT64_MAX;
     M2 x_hi = x >> 64;
     M2 y_lo = y & UINT64_MAX;
@@ -35,109 +33,34 @@ template <> struct MultiplierT<uint64_t> {
   }
 };
 
-template <typename M, int PHANTOM> struct BarrettModBaseT {
-  using M2 = typename MultiplierT<M>::M2;
+template <typename M_, int PHANTOM> struct BarrettModBaseT {
+  using M = M_;
+  using M2 = typename BarrettMultiplierT<M>::M2;
 
-  template <typename T = M>
-  explicit constexpr BarrettModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
+  M mod() { return mod_; }
 
-  static constexpr BarrettModBaseT mul_id() { return BarrettModBaseT{1}; }
-
-  static void set_mod(M mod_) { store().set_mod(mod_); }
-
-  static constexpr BarrettModBaseT normalize(M2 x) {
-    return BarrettModBaseT{reduce(x)};
+  M reduce(M2 x) {
+    auto q = BarrettMultiplierT<M>::mul_hi(x, inv_mod);
+    auto r = x - q * mod();
+    return r >= mod() ? r - mod() : r;
   }
 
-  static M mod() { return store().mod; }
-
-  constexpr M get() const { return x; }
-
-  constexpr BarrettModBaseT &operator+=(const BarrettModBaseT &other) {
-    x += other.x;
-    if (x >= mod()) {
-      x -= mod();
-    }
-    return *this;
-  }
-
-  constexpr BarrettModBaseT operator+(const BarrettModBaseT &other) const {
-    BarrettModBaseT copy = *this;
-    return copy += other;
-  }
-
-  constexpr BarrettModBaseT &operator-=(const BarrettModBaseT &other) {
-    x += mod() - other.x;
-    if (x >= mod()) {
-      x -= mod();
-    }
-    return *this;
-  }
-
-  constexpr BarrettModBaseT operator-() const {
-    BarrettModBaseT copy{0};
-    copy -= *this;
-    return copy;
-  }
-
-  constexpr BarrettModBaseT operator-(const BarrettModBaseT &other) const {
-    BarrettModBaseT copy = *this;
-    return copy -= other;
-  }
-
-  constexpr BarrettModBaseT operator*=(const BarrettModBaseT &other) {
-    x = reduce(static_cast<M2>(x) * static_cast<M2>(other.x));
-    return *this;
-  }
-
-  constexpr BarrettModBaseT operator*(const BarrettModBaseT &other) const {
-    BarrettModBaseT copy = *this;
-    return copy *= other;
-  }
-
-  constexpr BarrettModBaseT inv() const {
-    return x == 1
-               ? BarrettModBaseT{1}
-               : -BarrettModBaseT{mod() / x} * BarrettModBaseT{mod() % x}.inv();
+  void set_mod(M mod) {
+    mod_ = mod;
+    inv_mod = static_cast<M2>(-1) / mod;
   }
 
 private:
-  struct Store {
-    void set_mod(M mod_) {
-      mod = mod_;
-      inv_mod = static_cast<M2>(-1) / mod;
-    }
-
-    M reduce(M2 x) const {
-      auto q = MultiplierT<M>::mul_hi(x, inv_mod);
-      auto r = x - q * mod;
-      return r >= mod ? r - mod : r;
-    }
-
-    M mod;
-    M2 inv_mod;
-  };
-
-  static Store &store() { return Singleton<Store>::instance(); }
-
-  static M reduce(M2 x_) { return store().reduce(x_); }
-
-  M x;
+  M mod_;
+  M2 inv_mod;
 };
 
-} // namespace barrett_details
-
-namespace std {
-
-template <typename M, int PHANTOM>
-ostream &operator<<(ostream &out,
-                    const barrett_details::BarrettModBaseT<M, PHANTOM> &m) {
-  return out << m.get();
-}
-
-} // namespace std
-
 template <int PHANTOM = 0>
-using BarrettModT = barrett_details::BarrettModBaseT<uint32_t, PHANTOM>;
+using BarrettModT = ModWrapperT<BarrettModBaseT<uint32_t, PHANTOM>>;
 template <int PHANTOM = 0>
-using BarrettMod64T = barrett_details::BarrettModBaseT<uint64_t, PHANTOM>;
+using BarrettMod64T = ModWrapperT<BarrettModBaseT<uint64_t, PHANTOM>>;
+
+} // namespace mod_details
+
+using mod_details::BarrettMod64T;
+using mod_details::BarrettModT;

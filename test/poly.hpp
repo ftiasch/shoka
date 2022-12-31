@@ -20,8 +20,8 @@ using Poly = PolyT<Mod>;
 struct RandomPoly {
 public:
   explicit RandomPoly()
-      : gen{std::random_device{}()}, dist0{0, Mod::MOD - 1}, dist1{1, Mod::MOD -
-                                                                          1} {}
+      : gen{std::random_device{}()}, dist0{0, Mod::mod() - 1},
+        dist1{1, Mod::mod() - 1} {}
 
   Poly get(int deg) {
     Poly r(deg + 1);

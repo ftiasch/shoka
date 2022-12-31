@@ -1,117 +1,40 @@
 #pragma once
 
-#include "singleton.h"
+#include "mod_wrapper.h"
 
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <type_traits>
 
-namespace non_const_mod_details {
+namespace mod_details {
 
-template <typename M> struct Multiplier;
+template <typename M> struct NonConstMultiplierT;
 
-template <> struct Multiplier<uint32_t> { using M2 = uint64_t; };
+template <> struct NonConstMultiplierT<uint32_t> { using M2 = uint64_t; };
 
-template <> struct Multiplier<uint64_t> { using M2 = __uint128_t; };
+template <> struct NonConstMultiplierT<uint64_t> { using M2 = __uint128_t; };
 
-template <typename M, int PHANTOM> struct NonConstModBaseT {
-  using M2 = typename Multiplier<M>::M2;
+template <typename M_, int PHANTOM> struct NonConstModBaseT {
+  using M = M_;
+  using M2 = typename NonConstMultiplierT<M_>::M2;
 
-  template <typename T = M>
-  explicit constexpr NonConstModBaseT(T x_ = 0) : x{static_cast<M>(x_)} {}
+  M mod() { return mod_; }
 
-  static constexpr NonConstModBaseT mul_id() { return NonConstModBaseT{1}; }
+  M reduce(M2 x) { return x % mod_; }
 
-  static void set_mod(M mod_) { store().set_mod(mod_); }
-
-  static constexpr NonConstModBaseT normalize(M2 x) {
-    return NonConstModBaseT{reduce(x)};
-  }
-
-  static M mod() { return store().mod; }
-
-  constexpr M get() const { return x; }
-
-  constexpr NonConstModBaseT &operator+=(const NonConstModBaseT &other) {
-    x += other.x;
-    if (x >= mod()) {
-      x -= mod();
-    }
-    return *this;
-  }
-
-  constexpr NonConstModBaseT operator+(const NonConstModBaseT &other) const {
-    NonConstModBaseT copy = *this;
-    return copy += other;
-  }
-
-  constexpr NonConstModBaseT &operator-=(const NonConstModBaseT &other) {
-    x += mod() - other.x;
-    if (x >= mod()) {
-      x -= mod();
-    }
-    return *this;
-  }
-
-  constexpr NonConstModBaseT operator-() const {
-    NonConstModBaseT copy{0};
-    copy -= *this;
-    return copy;
-  }
-
-  constexpr NonConstModBaseT operator-(const NonConstModBaseT &other) const {
-    NonConstModBaseT copy = *this;
-    return copy -= other;
-  }
-
-  constexpr NonConstModBaseT operator*=(const NonConstModBaseT &other) {
-    x = reduce(static_cast<M2>(x) * static_cast<M2>(other.x));
-    return *this;
-  }
-
-  constexpr NonConstModBaseT operator*(const NonConstModBaseT &other) const {
-    NonConstModBaseT copy = *this;
-    return copy *= other;
-  }
-
-  constexpr NonConstModBaseT inv() const {
-    return x == 1 ? NonConstModBaseT{1}
-                  : -NonConstModBaseT{mod() / x} *
-                        NonConstModBaseT{mod() % x}.inv();
-  }
+  void set_mod(M mod) { mod_ = mod; }
 
 private:
-  struct Store {
-    void set_mod(M mod_) { mod = mod_; }
-
-    M reduce(M2 x) const { return x % mod; }
-
-    M mod;
-  };
-
-  static Store &store() { return Singleton<Store>::instance(); }
-
-  static M reduce(M2 x_) { return store().reduce(x_); }
-
-  M x;
+  M mod_;
 };
 
-} // namespace non_const_mod_details
-
-namespace std {
-
-template <typename M, int PHANTOM>
-ostream &
-operator<<(ostream &out,
-           const non_const_mod_details::NonConstModBaseT<M, PHANTOM> &m) {
-  return out << m.get();
-}
-
-} // namespace std
-
 template <int PHANTOM = 0>
-using NonConstModT = non_const_mod_details::NonConstModBaseT<uint32_t, PHANTOM>;
+using NonConstModT = ModWrapperT<NonConstModBaseT<uint32_t, PHANTOM>>;
 template <int PHANTOM = 0>
-using NonConstMod64T =
-    non_const_mod_details::NonConstModBaseT<uint64_t, PHANTOM>;
+using NonConstMod64T = ModWrapperT<NonConstModBaseT<uint64_t, PHANTOM>>;
+
+} // namespace mod_details
+
+using mod_details::NonConstMod64T;
+using mod_details::NonConstModT;

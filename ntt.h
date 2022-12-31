@@ -29,7 +29,7 @@ template <typename Mod_> struct NttT {
   static void dit(int n, Mod *a) {
     assert_power_of_two(n);
     for (int m = 1; m < n; m <<= 1) {
-      const Mod root = binpow(G, (Mod::MOD - 1) / (m << 1));
+      const Mod root = binpow(G, (Mod::mod() - 1) / (m << 1));
       for (int i = 0; i < n; i += m << 1) {
         Mod twiddle(1);
         for (int r = i; r < i + m; ++r) {
@@ -46,7 +46,7 @@ template <typename Mod_> struct NttT {
   static void dif(int n, Mod *a) {
     assert_power_of_two(n);
     for (int m = n; m >>= 1;) {
-      const Mod root = binpow(G, Mod::MOD - 1 - (Mod::MOD - 1) / (m << 1));
+      const Mod root = binpow(G, Mod::mod() - 1 - (Mod::mod() - 1) / (m << 1));
       for (int i = 0; i < n; i += m << 1) {
         Mod twiddle(1);
         for (int r = i; r < i + m; ++r) {
@@ -74,10 +74,10 @@ private:
 
   private:
     static constexpr bool is_primitive_root(Mod g) {
-      for (int d = 2; d * d <= Mod::MOD - 1; ++d) {
-        if ((Mod::MOD - 1) % d == 0 &&
+      for (int d = 2; d * d <= Mod::mod() - 1; ++d) {
+        if ((Mod::mod() - 1) % d == 0 &&
             (binpow(g, d).get() == 1 ||
-             binpow(g, (Mod::MOD - 1) / d).get() == 1)) {
+             binpow(g, (Mod::mod() - 1) / d).get() == 1)) {
           return false;
         }
       }
