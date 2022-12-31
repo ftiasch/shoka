@@ -7,9 +7,10 @@
 
 namespace mod_details {
 
-template <typename M_, typename M2_, M_ MOD> struct ModBaseT {
+template <typename M_, typename M2_, M_ MOD_> struct ModBaseT {
   using M = M_;
   using M2 = M2_;
+  static constexpr M MOD = MOD_;
 
   static_assert(MOD <= (std::numeric_limits<M_>::max() >> 1));
 

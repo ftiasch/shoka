@@ -2,8 +2,6 @@
 #include "fixed_size_matrix.h"
 #include "mod.h"
 
-#include "debug.h"
-
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>

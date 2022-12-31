@@ -18,6 +18,7 @@ template <> struct NonConstMultiplierT<uint64_t> { using M2 = __uint128_t; };
 template <typename M_, int PHANTOM> struct NonConstModBaseT {
   using M = M_;
   using M2 = typename NonConstMultiplierT<M_>::M2;
+  static constexpr M MOD = 0;
 
   M mod() { return mod_; }
 

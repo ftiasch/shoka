@@ -54,6 +54,9 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
 
   int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
+  bool operator==(const PolyT &o) const { return vector() == o.vector(); }
+  bool operator!=(const PolyT &o) const { return !(*this == o); }
+
   PolyT operator+(const PolyT &o) const {
     if (deg() < o.deg()) {
       return o + *this;

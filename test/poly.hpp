@@ -1,3 +1,4 @@
+#include "mod.h"
 #include "montgomery.h"
 #include "poly.h"
 #include "poly_div.h"
@@ -14,28 +15,23 @@
 
 namespace poly {
 
-using Mod = MontgomeryT<998'244'353>;
-using Poly = PolyT<Mod>;
+constexpr uint32_t MOD = 998'244'353;
 
-struct RandomPoly {
+template <typename Mod> struct RandomPoly {
 public:
+  using Poly = PolyT<Mod>;
+
   explicit RandomPoly()
       : gen{std::random_device{}()}, dist0{0, Mod::mod() - 1},
         dist1{1, Mod::mod() - 1} {}
 
-  Poly get(int deg) {
+  Poly operator()(int deg, bool invertible = false) {
     Poly r(deg + 1);
     for (int i = 0; i <= deg; ++i) {
       r[i] = mod0();
     }
-    return r;
-  }
-
-  Poly get1(int deg) {
-    Poly r(deg + 1);
-    r[0] = mod1();
-    for (int i = 1; i <= deg; ++i) {
-      r[i] = mod0();
+    if (invertible) {
+      r[0] = mod1();
     }
     return r;
   }
@@ -48,7 +44,7 @@ private:
   std::uniform_int_distribution<> dist0, dist1;
 };
 
-Mod slow_eval(const std::vector<Mod> &c, Mod x) {
+template <typename Mod> Mod slow_eval(const std::vector<Mod> &c, Mod x) {
   Mod result{0};
   for (int i = c.size(); i--;) {
     result = result * x + c[i];
@@ -58,8 +54,14 @@ Mod slow_eval(const std::vector<Mod> &c, Mod x) {
 
 } // namespace poly
 
-TEST_CASE("poly") {
+TEMPLATE_TEST_CASE("poly", "[template]", ModT<poly::MOD>,
+                   MontgomeryT<poly::MOD>) {
   using namespace poly;
+
+  using Mod = TestType;
+  using Poly = PolyT<Mod>;
+
+  RandomPoly<Mod> random_poly;
 
   SECTION("constructor") {
     REQUIRE(Poly{Mod{1}, Mod{2}}.deg() == 1);
@@ -72,10 +74,10 @@ TEST_CASE("poly") {
   SECTION("addition") {
     auto f_deg = GENERATE(range(-1, N));
     auto g_deg = GENERATE(range(-1, N));
-    auto f = RandomPoly{}.get(f_deg);
-    auto g = RandomPoly{}.get(g_deg);
+    auto f = random_poly(f_deg);
+    auto g = random_poly(g_deg);
     auto sum_fg = f + g;
-    std::vector<Mod> expected_sum_fg(std::max(f_deg, g_deg) + 1);
+    Poly expected_sum_fg(std::max(f_deg, g_deg) + 1);
     for (int i = 0; i <= std::max(f_deg, g_deg); ++i) {
       if (i <= f_deg) {
         expected_sum_fg[i] += f[i];
@@ -84,9 +86,7 @@ TEST_CASE("poly") {
         expected_sum_fg[i] += g[i];
       }
     }
-    for (int i = 0; i <= std::max(f_deg, g_deg); ++i) {
-      REQUIRE(sum_fg[i].get() == expected_sum_fg[i].get());
-    }
+    REQUIRE(sum_fg == expected_sum_fg);
   }
 
   SECTION("subtracion") {
@@ -94,18 +94,15 @@ TEST_CASE("poly") {
     auto f_deg = GENERATE(range(0, N));
     if (f_deg <= sum_deg) {
       auto g_deg = sum_deg - f_deg;
-      auto f = RandomPoly{}.get(f_deg);
-      auto g_coef = RandomPoly{}.get(g_deg).vector();
-      auto neg_g_coef = g_coef;
+      auto f = random_poly(f_deg);
+      auto g = random_poly(g_deg);
+      Poly neg_g(g_deg + 1);
       for (int i = 0; i <= g_deg; ++i) {
-        neg_g_coef[i] = -neg_g_coef[i];
+        neg_g[i] = -g[i];
       }
-      Poly g{g_coef}, neg_g{neg_g_coef};
       auto diff_fg = f - g;
       auto alt_diff_fg = f + neg_g;
-      for (int i = 0; i <= std::max(f_deg, g_deg); ++i) {
-        REQUIRE(diff_fg[i].get() == alt_diff_fg[i].get());
-      }
+      REQUIRE(diff_fg == alt_diff_fg);
     }
   }
 
@@ -114,67 +111,56 @@ TEST_CASE("poly") {
     auto f_deg = GENERATE(range(0, N));
     if (f_deg <= sum_deg) {
       auto g_deg = sum_deg - f_deg;
-      auto f = RandomPoly{}.get(f_deg);
-      auto g = RandomPoly{}.get(g_deg);
-      auto g_coef = RandomPoly{}.get(g_deg).vector();
-      auto neg_g_coef = g_coef;
-      for (int i = 0; i <= g_deg; ++i) {
-        neg_g_coef[i] = -neg_g_coef[i];
-      }
-      std::vector<Mod> expected_prod_fg(sum_deg + 1);
+      auto f = random_poly(f_deg);
+      auto g = random_poly(g_deg);
+      Poly expected_prod_fg(sum_deg + 1);
       for (int i = 0; i <= f_deg; ++i) {
         for (int j = 0; j <= g_deg; ++j) {
           expected_prod_fg[i + j] += f[i] * g[j];
         }
       }
       auto prod_fg = f * g;
-      for (int i = 0; i <= sum_deg; ++i) {
-        REQUIRE(prod_fg[i].get() == expected_prod_fg[i].get());
-      }
+      REQUIRE(prod_fg == expected_prod_fg);
       f *= g;
-      for (int i = 0; i <= sum_deg; ++i) {
-        REQUIRE(f[i].get() == expected_prod_fg[i].get());
-      }
+      REQUIRE(f == expected_prod_fg);
     }
   }
 
   SECTION("inverse") {
     auto f_deg = GENERATE(range(0, N));
-    auto f = RandomPoly{}.get1(f_deg);
+    auto f = random_poly(f_deg, true);
     PolyInv<Poly> inv{};
     auto inv_f = inv(f);
     REQUIRE(inv_f.deg() == f.deg());
     auto id = f * inv_f;
     id.resize(f_deg + 1);
-    REQUIRE(id[0].get() == 1);
+    REQUIRE(id[0] == Mod{1});
     for (int i = 1; i <= f_deg; ++i) {
-      REQUIRE(id[i].get() == 0);
+      REQUIRE(id[i] == Mod{0});
     }
   }
 
   SECTION("division") {
     auto f_deg = GENERATE(range(0, N));
     auto g_deg = GENERATE(range(0, N));
-    auto f = RandomPoly{}.get(f_deg);
-    auto g = RandomPoly{}.get1(g_deg);
+    auto f = random_poly(f_deg);
+    auto g = random_poly(g_deg, true);
     PolyDiv<Poly> div{};
     auto q = div(f, g);
     REQUIRE(q.deg() == std::max(f.deg(), g.deg()));
     auto gq = g * q;
     gq.resize(f.size());
-    for (int i = 0; i <= f_deg; ++i) {
-      REQUIRE(f[i].get() == gq[i].get());
-    }
+    REQUIRE(f == gq);
   }
 
   SECTION("logarithm") {
     auto f_deg = GENERATE(range(0, N));
-    auto f = RandomPoly{}.get(f_deg);
+    auto f = random_poly(f_deg);
     f[0] = Mod{1};
     PolyLog<Poly> log{};
     auto log_f = log(f);
     REQUIRE(log_f.deg() == f_deg);
-    std::vector<Mod> expected_log_f(f_deg + 1);
+    Poly expected_log_f(f_deg + 1);
     for (int i = 1; i <= f_deg; ++i) {
       expected_log_f[i] = Mod{i} * f[i];
       for (int j = 1; j <= i; ++j) {
@@ -184,14 +170,12 @@ TEST_CASE("poly") {
     for (int i = 1; i <= f_deg; ++i) {
       expected_log_f[i] *= Mod{i}.inv();
     }
-    for (int i = 0; i <= f_deg; ++i) {
-      REQUIRE(log_f[i].get() == expected_log_f[i].get());
-    }
+    REQUIRE(log_f == expected_log_f);
   }
 
   SECTION("exponentiation") {
     auto f_deg = GENERATE(range(0, N));
-    auto f = RandomPoly{}.get(f_deg);
+    auto f = random_poly(f_deg);
     f[0] = Mod{0};
     PolyExp<Poly> exp{};
     auto exp_f = exp(f);
@@ -207,16 +191,14 @@ TEST_CASE("poly") {
       }
       expected_exp_f[i] *= Mod{i}.inv();
     }
-    for (int i = 0; i <= f_deg; ++i) {
-      REQUIRE(exp_f[i].get() == expected_exp_f[i].get());
-    }
+    REQUIRE(exp_f == expected_exp_f);
   }
 
   SECTION("multi_eval") {
     auto f_deg = GENERATE(range(0, N));
-    auto f = RandomPoly{}.get(f_deg).vector();
+    auto f = random_poly(f_deg).vector();
     auto m = GENERATE(0, N);
-    auto a = RandomPoly{}.get(m - 1).vector();
+    auto a = random_poly(m - 1).vector();
     PolyMultiEval<Poly> eval;
     auto result = eval(f, a);
     for (int i = 0; i < m; ++i) {
@@ -228,7 +210,7 @@ TEST_CASE("poly") {
     auto n = GENERATE(range(0, N));
     std::vector<Poly> mons(n);
     for (int i = 0; i < n; ++i) {
-      mons[i] = RandomPoly{}.get(3);
+      mons[i] = random_poly(3);
     }
     PolyProduct<Poly> prod;
     auto p = prod(mons);
@@ -236,9 +218,6 @@ TEST_CASE("poly") {
     for (auto &&mon : mons) {
       expected_p *= mon;
     }
-    REQUIRE(p.deg() == expected_p.deg());
-    for (int i = 0; i <= p.deg(); ++i) {
-      REQUIRE(p[i].get() == expected_p[i].get());
-    }
+    REQUIRE(p == expected_p);
   }
 }

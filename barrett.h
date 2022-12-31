@@ -36,6 +36,7 @@ template <> struct BarrettMultiplierT<uint64_t> {
 template <typename M_, int PHANTOM> struct BarrettModBaseT {
   using M = M_;
   using M2 = typename BarrettMultiplierT<M>::M2;
+  static constexpr M MOD = 0;
 
   M mod() { return mod_; }
 
