@@ -1,16 +1,18 @@
 #pragma once
 
-#include <concepts>
 #include <iostream>
 #include <limits>
 #include <list>
 #include <map>
 #include <queue>
-#include <ranges>
 #include <set>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if (__cplusplus >= 202002L)
+#include <ranges>
+#endif
 
 namespace debug {
 
@@ -24,9 +26,9 @@ static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
 
 } // namespace debug
 
-template <typename T>
-requires std::integral<T>
-struct Binary {
+template <typename T> struct Binary {
+  static_assert(std::is_integral_v<T>);
+
   explicit Binary(T value_, int length_ = std::numeric_limits<T>::digits)
       : value{value_}, length{length_} {}
 
@@ -46,6 +48,19 @@ ostream &operator<<(ostream &out, const pair<A, B> &v) {
   return out << tuple<A, B>(v.first, v.second);
 }
 
+template <typename T> ostream &operator<<(ostream &out, const Binary<T> &b) {
+  out << "(";
+#if (__cplusplus >= 202002L)
+  for (auto i : std::ranges::iota_view(0, b.length)) {
+#else
+  for (int i = 0; i < b.length; ++i) {
+#endif
+    out << (b.value >> i & 1);
+  }
+  return out << ")_2";
+}
+
+#if (__cplusplus >= 202002L)
 template <ranges::forward_range RangeT>
 ostream &operator<<(ostream &out, RangeT &&range) requires(
     !same_as<ranges::range_value_t<RangeT>, char>) {
@@ -71,14 +86,7 @@ ostream &operator<<(ostream &out, priority_queue<T, S, C> pq) {
   }
   return out << v;
 }
-
-template <typename T> ostream &operator<<(ostream &out, const Binary<T> &b) {
-  out << "(";
-  for (auto i : std::ranges::iota_view(0, b.length)) {
-    out << (b.value >> i & 1);
-  }
-  return out << ")_2";
-}
+#endif
 
 } // namespace std
 

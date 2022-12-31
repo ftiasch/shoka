@@ -48,6 +48,15 @@ TEST_CASE("debug") {
 
   SECTION("std::string") { test_helper(std::string{"shoka"}, "shoka"sv); }
 
+  SECTION("Binary") {
+    test_helper(Binary{233, 10}, "(1001011100)_2"sv);
+    test_helper(Binary<int>{233}, "(1001011100000000000000000000000)_2"sv);
+    test_helper(
+        Binary<uint64_t>{233},
+        "(1001011100000000000000000000000000000000000000000000000000000000)_2"sv);
+  }
+
+#if (__cplusplus >= 202002L)
   SECTION("std::basic_string") {
     test_helper(std::basic_string<Foo>{Foo{2}, Foo{3}, Foo{5}},
                 "[Foo(2), Foo(3), Foo(5)]"sv);
@@ -85,16 +94,9 @@ TEST_CASE("debug") {
                 "[(2, Foo(3)), (3, Foo(5))]"sv);
   }
 
-  SECTION("Binary") {
-    test_helper(Binary{233, 10}, "(1001011100)_2"sv);
-    test_helper(Binary<int>{233}, "(1001011100000000000000000000000)_2"sv);
-    test_helper(
-        Binary<uint64_t>{233},
-        "(1001011100000000000000000000000000000000000000000000000000000000)_2"sv);
-  }
-
   SECTION("FixedSizeMatrixT") {
     using Matrix = FixedSizeMatrixT<int, 2>;
     test_helper(Matrix{{2, 3}, {4, 5}}, "[[2, 3], [4, 5]]");
   }
+#endif
 }

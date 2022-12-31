@@ -1,4 +1,5 @@
 #include "binpow.hpp"
+#include "debug.hpp"
 #include "fast_io.hpp"
 #include "mod.hpp"
 #include "nd_vector.hpp"
@@ -9,6 +10,3 @@
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
 
-#if (__cplusplus >= 202002L)
-#include "debug.hpp"
-#endif
