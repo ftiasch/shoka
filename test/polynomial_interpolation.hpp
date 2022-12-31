@@ -31,7 +31,7 @@ TEST_CASE("polynomial_interpolation") {
 
   auto n = GENERATE(take(d, random(0U, MOD - 1)));
   PolynomialInterpolation<Mod> interpolate(d);
-  auto output = interpolate(values, Mod{n});
-  auto answer = eval(coef, Mod{n});
-  REQUIRE(output.get() == answer.get());
+  auto result = interpolate(values, Mod{n});
+  auto expected = eval(coef, Mod{n});
+  REQUIRE(result == expected);
 }

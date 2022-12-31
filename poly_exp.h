@@ -7,7 +7,7 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
   Poly operator()(const Poly &f) { return Base::template single<4>(f); }
 
   void _(int n, Mod *out, const Mod *f) {
-    if (f[0].get() != 0) {
+    if (f[0] != Mod{0}) {
       throw std::invalid_argument("[x^0] f != 0");
     }
     if (n == 1) {

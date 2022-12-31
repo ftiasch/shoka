@@ -25,6 +25,12 @@ template <typename Mod> struct ModWrapperT {
 
   constexpr M get() const { return x; }
 
+  bool operator==(const ModWrapperT &other) const {
+    return get() == other.get();
+  }
+
+  bool operator!=(const ModWrapperT &other) const { return !(*this == other); }
+
   constexpr ModWrapperT &operator+=(const ModWrapperT &other) {
     x += other.x;
     if (x >= mod()) {

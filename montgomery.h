@@ -61,6 +61,14 @@ template <typename M, M MOD> struct MontgomeryBaseT {
     return y >= MOD ? y - MOD : y;
   }
 
+  bool operator==(const MontgomeryBaseT &other) const {
+    return get() == other.get();
+  }
+
+  bool operator!=(const MontgomeryBaseT &other) const {
+    return !(*this == other);
+  }
+
   constexpr MontgomeryBaseT &operator+=(const MontgomeryBaseT &other) {
     x += other.x;
     if (x >= MOD2) {
