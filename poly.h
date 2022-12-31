@@ -15,11 +15,44 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
 
   using Vector::vector;
 
+  static constexpr size_t NUMBER_OF_BUFFER = 5;
+
+  static void copy_and_fill0(int n, Mod *dst, int m, const Mod *src) {
+    m = std::min(n, m);
+    std::copy(src, src + m, dst);
+    std::fill(dst + m, dst + n, Mod{0});
+  }
+
+  static void copy_and_fill0(int n, Mod *dst, const std::vector<Mod> &src) {
+    copy_and_fill0(n, dst, src.size(), src.data());
+  }
+
+  static void dot_product_and_dit(int n, Mod inv_n, Mod *out, const Mod *a,
+                                  const Mod *b) {
+    for (int i = 0; i < n; ++i) {
+      out[i] = inv_n * a[i] * b[i];
+    }
+    Ntt::dit(n, out);
+  }
+
+  static void reserve(int n) {
+    if (buffer()[0].size() < n) {
+      for (int i = 0; i < NUMBER_OF_BUFFER; ++i) {
+        buffer()[i].resize(n);
+      }
+    }
+  }
+
+  template <int index> static Mod *raw_buffer() {
+    static_assert(0 <= index && index < NUMBER_OF_BUFFER);
+    return buffer()[index].data();
+  }
+
   explicit PolyT(const Vector &v) : std::vector<Mod>{v} {}
 
-  int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
-
   const Vector &vector() const { return *this; }
+
+  int deg() const { return static_cast<int>(std::vector<Mod>::size()) - 1; }
 
   PolyT operator+(const PolyT &o) const {
     if (deg() < o.deg()) {
@@ -65,56 +98,21 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     }
 
     int n = Ntt::min_power_of_two(deg_plus_1);
-    factory().reserve(n);
-    Mod *b0 = factory().template raw_buffer<0>();
-    Mod *b1 = factory().template raw_buffer<1>();
-    Factory::copy_and_fill0(n, b0, *this);
+    reserve(n);
+    Mod *b0 = raw_buffer<0>();
+    Mod *b1 = raw_buffer<1>();
+    copy_and_fill0(n, b0, *this);
     Ntt::dif(n, b0);
-    Factory::copy_and_fill0(n, b1, o);
+    copy_and_fill0(n, b1, o);
     Ntt::dif(n, b1);
-    Factory::dot_product_and_dit(n, Mod{n}.inv(), b0, b0, b1);
+    dot_product_and_dit(n, Mod{n}.inv(), b0, b0, b1);
     return PolyT(b0, b0 + deg_plus_1);
   }
 
   PolyT &operator*=(const PolyT &o) { return *this = *this * o; }
 
-  struct Factory {
-    static const size_t NUMBER_OF_BUFFER = 5;
+private:
+  using Buffer = std::array<std::vector<Mod>, NUMBER_OF_BUFFER>;
 
-    void reserve(int n) {
-      if (buffer[0].size() < n) {
-        for (int i = 0; i < NUMBER_OF_BUFFER; ++i) {
-          buffer[i].resize(n);
-        }
-      }
-    }
-
-    template <int index> Mod *raw_buffer() {
-      static_assert(0 <= index && index < NUMBER_OF_BUFFER);
-      return buffer[index].data();
-    }
-
-    static void copy_and_fill0(int n, Mod *dst, int m, const Mod *src) {
-      m = std::min(n, m);
-      std::copy(src, src + m, dst);
-      std::fill(dst + m, dst + n, Mod{0});
-    }
-
-    static void copy_and_fill0(int n, Mod *dst, const std::vector<Mod> &src) {
-      copy_and_fill0(n, dst, src.size(), src.data());
-    }
-
-    static void dot_product_and_dit(int n, Mod inv_n, Mod *out, const Mod *a,
-                                    const Mod *b) {
-      for (int i = 0; i < n; ++i) {
-        out[i] = inv_n * a[i] * b[i];
-      }
-      Ntt::dit(n, out);
-    }
-
-  private:
-    std::array<std::vector<Mod>, NUMBER_OF_BUFFER> buffer;
-  };
-
-  static Factory &factory() { return Singleton<Factory>::instance(); }
+  static Buffer &buffer() { return Singleton<Buffer>::instance(); }
 };

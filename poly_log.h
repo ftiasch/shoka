@@ -15,9 +15,9 @@ template <typename Poly> struct PolyLog : public PolyOp<Poly, PolyLog> {
       throw std::invalid_argument("[x^0] f != 1");
     }
     Ntt::assert_power_of_two(n);
-    factory().reserve(n);
+    Poly::reserve(n);
     // log f = \int f' / f
-    const auto d_f = factory().template raw_buffer<3>();
+    const auto d_f = Poly::template raw_buffer<3>();
     d_f[n - 1] = Mod{0};
     for (int i = 1; i < n; ++i) {
       d_f[i - 1] = Mod{i} * f[i];

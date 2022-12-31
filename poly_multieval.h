@@ -13,7 +13,7 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
   std::vector<Mod> operator()(const std::vector<Mod> &c,
                               const std::vector<Mod> &a) {
     int m = Ntt::min_power_of_two(std::max<size_t>({c.size(), a.size(), 2}));
-    factory().reserve(m << 1);
+    Poly::reserve(m << 1);
     int log_m = (__builtin_ctz(m)) + 1;
     std::vector<std::vector<Mod>> dif_rev_q(log_m, std::vector<Mod>(m << 1));
     for (int i = 0; i < m; ++i) {
@@ -40,9 +40,9 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
           }
           Ntt::dif(1 << l, dif_rev_q[l].data() + s + (1 << l));
         } else {
-          Factory::dot_product_and_dit(1 << l, inv_n, dif_rev_q[l].data() + s,
-                                       dif_rev_q[l - 1].data() + s,
-                                       dif_rev_q[l - 1].data() + s + (1 << l));
+          Poly::dot_product_and_dit(1 << l, inv_n, dif_rev_q[l].data() + s,
+                                    dif_rev_q[l - 1].data() + s,
+                                    dif_rev_q[l - 1].data() + s + (1 << l));
           dif_rev_q[l][s] -= Mod{1};
           dif_rev_q[l][s + (1 << l)] = Mod{1};
         }
@@ -50,17 +50,17 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
     }
     auto &q1 = dif_rev_q[log_m - 1];
     std::reverse(q1.data(), q1.data() + (m + 1));
-    const auto dif_rev_inv_q1 = factory().template raw_buffer<2>();
+    const auto dif_rev_inv_q1 = Poly::template raw_buffer<2>();
     inv._(m, dif_rev_inv_q1, q1.data());
     // mul_t(m, inv_q1, c)
     std::fill(dif_rev_inv_q1 + m, dif_rev_inv_q1 + (m << 1), Mod{0});
     std::reverse(dif_rev_inv_q1, dif_rev_inv_q1 + (m + 1));
     Ntt::dif(m << 1, dif_rev_inv_q1);
-    const auto dif_c = factory().template raw_buffer<3>();
-    Factory::copy_and_fill0(m << 1, dif_c, c.size(), c.data());
+    const auto dif_c = Poly::template raw_buffer<3>();
+    Poly::copy_and_fill0(m << 1, dif_c, c.size(), c.data());
     Ntt::dif(m << 1, dif_c);
-    auto pnow = factory().template raw_buffer<0>();
-    auto ppre = factory().template raw_buffer<1>();
+    auto pnow = Poly::template raw_buffer<0>();
+    auto ppre = Poly::template raw_buffer<1>();
     mul_t(m << 1, pnow, dif_rev_inv_q1, dif_c);
     for (int l = log_m; l-- > 1;) {
       std::swap(pnow, ppre);
@@ -77,8 +77,8 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
 
 private:
   void mul_t(int n, Mod *out, Mod *dif_rev_a, Mod *dif_c) {
-    const auto b = factory().template raw_buffer<2>();
-    Factory::dot_product_and_dit(n, Mod{n}.inv(), b, dif_rev_a, dif_c);
+    const auto b = Poly::template raw_buffer<2>();
+    Poly::dot_product_and_dit(n, Mod{n}.inv(), b, dif_rev_a, dif_c);
     std::copy(b + (n >> 1), b + n, out);
   }
 
