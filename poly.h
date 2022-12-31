@@ -115,7 +115,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   PolyT &operator*=(const PolyT &o) { return *this = *this * o; }
 
 private:
-  using Buffer = std::array<std::vector<Mod>, NUMBER_OF_BUFFER>;
+  struct Buffer : public std::array<std::vector<Mod>, NUMBER_OF_BUFFER> {};
 
   static Buffer &buffer() { return Singleton<Buffer>::instance(); }
 };
