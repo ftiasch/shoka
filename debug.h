@@ -11,6 +11,7 @@
 #include <vector>
 
 #if (__cplusplus >= 202002L)
+#include <concepts>
 #include <ranges>
 #endif
 
