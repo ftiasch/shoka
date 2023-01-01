@@ -22,8 +22,8 @@ public:
   using Poly = PolyT<Mod>;
 
   explicit RandomPoly()
-      : gen{std::random_device{}()}, dist0{0, Mod::mod() - 1},
-        dist1{1, Mod::mod() - 1} {}
+      : gen{Catch::getSeed()}, dist0{0, Mod::mod() - 1}, dist1{1, Mod::mod() -
+                                                                      1} {}
 
   Poly operator()(int deg, bool invertible = false) {
     Poly r(deg + 1);

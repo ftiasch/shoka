@@ -1,46 +1,25 @@
 #include "sparse_table.h"
-#include "bit_rmq.h"
 
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
 
-namespace rmq {
-
-template <template <typename, typename> class RMQ, typename Compare>
-void test_helper() {
-  constexpr int n = 5;
-
-  using namespace Catch::Generators;
-  auto A = GENERATE(take(1, chunk(n, random(0U, ~0U))));
-
-  using T = std::pair<uint32_t, int>;
-  std::vector<T> a(n);
+TEST_CASE("sparse_table") {
+  auto n = GENERATE(range(1, 100));
+  std::minstd_rand gen{Catch::getSeed()};
+  std::uniform_int_distribution<> dist(1, n);
+  std::vector<int> a(n);
   for (int i = 0; i < n; ++i) {
-    a[i].first = A[i];
-    a[i].second = i;
+    a[i] = dist(gen);
   }
-
-  RMQ<T, Compare> rmq(a);
-  Compare compare;
-  for (int i = 0; i < n; ++i) {
-    T run_min = a[i];
-    REQUIRE(rmq(i, i) == run_min);
-    for (int j = i + 1; j < n; ++j) {
-      run_min = compare(run_min, a[j]) ? run_min : a[j];
-      REQUIRE(rmq(i, j) == run_min);
+  using Semilattice = SemilatticeT<int, INT_MAX>;
+  SparseTable<Semilattice> rmq(a);
+  for (int i = 0; i <= n; ++i) {
+    REQUIRE(rmq(i, i) == Semilattice::id);
+    Semilattice::T running_meet = Semilattice::id;
+    for (int j = i; j < n; ++j) {
+      running_meet = Semilattice::meet(running_meet, a[j]);
+      REQUIRE(rmq(i, j + 1) == running_meet);
     }
-  }
-}
-
-} // namespace rmq
-
-TEST_CASE("rmq") {
-  SECTION("SparseTable<T, std::less>") {
-    rmq::test_helper<SparseTable, std::less<>>();
-  }
-
-  SECTION("SparseTable<T, std::greater>") {
-    rmq::test_helper<SparseTable, std::greater<>>();
   }
 }

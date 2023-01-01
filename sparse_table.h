@@ -4,44 +4,48 @@
 #include <functional>
 #include <vector>
 
-template <typename T, typename Compare = std::less<T>> struct SparseTable {
-  explicit SparseTable() = default;
+template <typename T_, T_ id_, typename Compare = std::less<T_>>
+struct SemilatticeT {
+  using T = T_;
+
+  static constexpr T id = id_;
+
+  static constexpr T meet(const T &x, const T &y) {
+    return Compare{}(x, y) ? x : y;
+  }
+};
+
+template <typename Semilattice> struct SparseTable {
+  using T = typename Semilattice::T;
 
   explicit SparseTable(const std::vector<T> &value)
-      : n(value.size()), l(log2n(n)), log(n), table(l, std::vector<T>(n)) {
-    log[0] = 0;
-    for (int i = 1; i < n; ++i) {
-      log[i] = log[i - 1] + (1 << (log[i - 1] + 1) < i + 1);
+      : n{static_cast<int>(value.size())}, l(log2n(n)), log(n + 1),
+        table(l, std::vector<T>(n)) {
+    log[1] = 0;
+    for (int i = 2; i <= n; ++i) {
+      log[i] = log[i - 1] + ((1 << (log[i - 1] + 1)) < i);
     }
     table[0] = value;
     for (int i = 1; i < l; ++i) {
       for (int j = 0; j + (1 << i) <= n; ++j) {
-        table[i][j] = min(table[i - 1][j], table[i - 1][j + (1 << (i - 1))]);
+        table[i][j] = Semilattice::meet(table[i - 1][j],
+                                        table[i - 1][j + (1 << (i - 1))]);
       }
     }
   }
 
-  SparseTable &operator=(SparseTable &&o) {
-    n = o.n;
-    l = o.l;
-    log = std::move(o.log);
-    table = std::move(o.table);
-    return *this;
-  }
-
+  // = meet(v[l], ..., v[r - 1])
   T operator()(int l, int r) const {
+    if (l == r) {
+      return Semilattice::id;
+    }
     const int lv = log[r - l];
-    return min(table[lv][l], table[lv][r - (1 << lv) + 1]);
+    return Semilattice::meet(table[lv][l], table[lv][r - (1 << lv)]);
   }
 
 private:
   static constexpr int log2n(int n) {
     return n > 1 ? 32 - __builtin_clz(n - 1) : 1;
-  }
-
-  static T min(const T &a, const T &b) {
-    static Compare compare;
-    return compare(a, b) ? a : b;
   }
 
   int n, l;
