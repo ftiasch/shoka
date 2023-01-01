@@ -1,5 +1,5 @@
 #include "mod.h"
-#include "montgomery.h"
+#include "mont.h"
 #include "poly.h"
 #include "poly_div.h"
 #include "poly_exp.h"
@@ -54,8 +54,7 @@ template <typename Mod> Mod slow_eval(const std::vector<Mod> &c, Mod x) {
 
 } // namespace poly
 
-TEMPLATE_TEST_CASE("poly", "[template]", ModT<poly::MOD>,
-                   MontgomeryT<poly::MOD>) {
+TEMPLATE_TEST_CASE("poly", "[template]", ModT<poly::MOD>, MontT<poly::MOD>) {
   using namespace poly;
 
   using Mod = TestType;
