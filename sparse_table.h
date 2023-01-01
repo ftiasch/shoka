@@ -15,10 +15,11 @@ struct SemilatticeT {
   }
 };
 
-template <typename Semilattice> struct SparseTable {
+template <typename Semilattice_> struct SparseTableT {
+  using Semilattice = Semilattice_;
   using T = typename Semilattice::T;
 
-  explicit SparseTable(const std::vector<T> &value)
+  explicit SparseTableT(const std::vector<T> &value)
       : n{static_cast<int>(value.size())}, l(log2n(n)), log(n + 1),
         table(l, std::vector<T>(n)) {
     log[1] = 0;
