@@ -117,5 +117,5 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
 private:
   struct Buffer : public std::array<std::vector<Mod>, NUMBER_OF_BUFFER> {};
 
-  static Buffer &buffer() { return Singleton<Buffer>::instance(); }
+  static Buffer &buffer() { return singleton<Buffer>(); }
 };
