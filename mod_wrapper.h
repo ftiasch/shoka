@@ -50,9 +50,6 @@ template <typename Mod> struct ModWrapperT {
 
 private:
   // traits
-  template <typename T>
-  using has_set_mod_t =
-      decltype(std::declval<T &>().set_mod(std::declval<M>()));
   template <typename T> using has_static_mod_t = decltype(T::MOD);
   static constexpr bool has_static_mod =
       std::experimental::is_detected_v<has_static_mod_t, Mod>;
@@ -64,7 +61,7 @@ private:
 
 public:
   static void set_mod(M mod) {
-    if constexpr (std::experimental::is_detected_v<has_set_mod_t, Mod>) {
+    if constexpr (!has_static_mod) {
       singleton<Mod>().set_mod(mod);
     }
   }
