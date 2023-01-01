@@ -83,14 +83,10 @@ public:
     return ModWrapperT{static_cast<M>(x % mod())};
   }
 
-  template <typename T = M> explicit constexpr ModWrapperT(T x_ = 0) {
+  template <typename T = M>
+  explicit constexpr ModWrapperT(T x_ = 0) : x{construct(static_cast<M>(x_))} {
     static_assert(std::numeric_limits<T>::digits <=
                   std::numeric_limits<M>::digits);
-    if constexpr (has_wrap) {
-      x = Mod::wrap(static_cast<M>(x_));
-    } else {
-      x = static_cast<M>(x_);
-    }
   }
 
   constexpr M get() const {
@@ -176,6 +172,14 @@ public:
   }
 
 private:
+  static constexpr M construct(M x) {
+    if constexpr (has_wrap) {
+      return Mod::wrap(x);
+    } else {
+      return x;
+    }
+  }
+
   M x;
 };
 
