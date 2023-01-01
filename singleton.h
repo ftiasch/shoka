@@ -10,3 +10,5 @@ template <class T> struct Singleton {
     return store;
   }
 };
+
+template <typename T> T &singleton() { return Singleton<T>::instance(); }

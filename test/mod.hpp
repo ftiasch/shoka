@@ -1,6 +1,7 @@
 #include "barrett.h"
 #include "binpow.h"
 #include "mod.h"
+#include "mod_v2.h"
 #include "montgomery.h"
 #include "non_const_mod.h"
 
@@ -18,6 +19,57 @@ constexpr uint64_t MOD_64 = (1ULL << 62) - 57;
 
 } // namespace mod
 
+TEMPLATE_TEST_CASE("mod_32_v2", "[template]", v2::ModT<mod::MOD_32>,
+                   v2::MontT<mod::MOD_32>, v2::BarrettT) {
+  using namespace mod;
+
+  using Mod = TestType;
+
+  Mod::set_mod(MOD_32);
+
+  { REQUIRE(Mod::mod() == MOD_32); }
+
+  {
+    for (int i = 0; i < N; ++i) {
+      REQUIRE(Mod{i}.get() == i);
+    }
+  }
+
+  {
+    for (int i = 0; i < N; ++i) {
+      REQUIRE(Mod::normalize(233 + i * static_cast<typename Mod::M2>(MOD_32)) ==
+              Mod{233});
+    }
+  }
+
+  {
+    REQUIRE((-Mod{0}).get() == 0);
+    REQUIRE((-Mod{233}).get() == MOD_32 - 233);
+  }
+
+  {
+    Mod sum{0};
+    for (int i = 0; i < N; ++i) {
+      sum += Mod{100'000 * i};
+    }
+    for (int i = 0; i < N; ++i) {
+      sum -= Mod{100'000 * i};
+    }
+    REQUIRE(sum == Mod{0});
+  }
+
+  { REQUIRE(binpow(Mod{233}, MOD_32 - 1) == Mod{1}); }
+
+  BENCHMARK("bench") {
+    Mod result{1};
+    for (int i = 1; i < N; ++i) {
+      result *= Mod{i};
+    }
+    REQUIRE(result.get() == 815987315);
+    return result;
+  };
+}
+
 TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<mod::MOD_32>,
                    MontgomeryT<mod::MOD_32>, BarrettModT<>, NonConstModT<>) {
   using namespace mod;
@@ -29,7 +81,6 @@ TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<mod::MOD_32>,
   { REQUIRE(Mod::mod() == MOD_32); }
 
   {
-    REQUIRE(Mod{233}.get() == 233);
     for (int i = 0; i < N; ++i) {
       REQUIRE(Mod{i}.get() == i);
     }
