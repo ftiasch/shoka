@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
+#include <stdexcept>
 #include <type_traits>
 
 template <typename Monoid> struct UniversalEuclidean {
-  template <typename T> Monoid operator()(T n, T a, T b, T c) const {
-    static_assert(std::is_integral_v<T>);
+  Monoid operator()(uint64_t n, uint64_t a, uint64_t b, uint64_t c) const {
+    if (n && a > (std::numeric_limits<uint64_t>::max() - b) / n) {
+      throw std::invalid_argument("a * n + b >= 2^64");
+    }
     auto r = Monoid::R();
     auto u = Monoid::U();
     auto prefix = u.power(b / c) * r;
