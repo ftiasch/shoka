@@ -19,7 +19,7 @@ template <typename Mod> struct PolynomialInterpolation {
     {
       Mod b{1};
       for (int i = d - 1; i >= 0; --i) {
-        b = (Mod{0} - b) * inverse[d - i] * (n - Mod{i + 1});
+        b = -b * inverse[d - i] * (n - Mod{i + 1});
         result += values[i] * b;
       }
     }
