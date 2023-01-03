@@ -6,6 +6,7 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -14,18 +15,6 @@
 #include <concepts>
 #include <ranges>
 #endif
-
-namespace debug {
-
-template <typename Tuple, size_t... Index>
-static inline std::ostream &serialize_tuple(std::ostream &out, const Tuple &t,
-                                            std::index_sequence<Index...>) {
-  out << "(";
-  (..., (out << (Index == 0 ? "" : ", ") << std::get<Index>(t)));
-  return out << ")";
-}
-
-} // namespace debug
 
 template <typename T> struct Binary {
   static_assert(std::is_integral_v<T>);
@@ -41,7 +30,14 @@ namespace std {
 
 template <typename... T>
 ostream &operator<<(ostream &out, const tuple<T...> &t) {
-  return debug::serialize_tuple(out, t, make_index_sequence<sizeof...(T)>());
+  out << '(';
+  std::apply(
+      [&out](const T &...args) {
+        int index = 0;
+        ((out << args << (++index != sizeof...(T) ? ", " : "")), ...);
+      },
+      t);
+  return out << ')';
 }
 
 template <typename A, typename B>
