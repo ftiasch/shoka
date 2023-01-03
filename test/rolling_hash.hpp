@@ -20,13 +20,13 @@ using Mod1 = ModT<998'244'353>;
 using Mod2 = ModT<1'000'000'007>;
 
 using SingleHash = RollingHashT<Mod1>;
-using DoubleHash = RollingHashT<Mod1, Mod2>;
-using TripleHash = RollingHashT<Mod1, Mod2, Mont64T<1'000'000'007>>;
+using DoubleHash1 = RollingHashT<Mod1, Mod2>;
+using DoubleHash2 = RollingHashT<Mod1, MontT<1'000'000'007>>;
 
 } // namespace rolling_hash
 
 TEMPLATE_TEST_CASE("rolling_hash", "[template]", rolling_hash::SingleHash,
-                   rolling_hash::DoubleHash, rolling_hash::TripleHash) {
+                   rolling_hash::DoubleHash1, rolling_hash::DoubleHash2) {
   using Hash = TestType;
 
   std::minstd_rand gen{Catch::getSeed()};
