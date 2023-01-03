@@ -1,4 +1,5 @@
 #include "mod.h"
+#include "mont.h"
 #include "rolling_hash.h"
 
 #include <bits/stdc++.h>
@@ -20,11 +21,12 @@ using Mod2 = ModT<1'000'000'007>;
 
 using SingleHash = RollingHashT<Mod1>;
 using DoubleHash = RollingHashT<Mod1, Mod2>;
+using TripleHash = RollingHashT<Mod1, Mod2, Mont64T<1'000'000'007>>;
 
 } // namespace rolling_hash
 
 TEMPLATE_TEST_CASE("rolling_hash", "[template]", rolling_hash::SingleHash,
-                   rolling_hash::DoubleHash) {
+                   rolling_hash::DoubleHash, rolling_hash::TripleHash) {
   using Hash = TestType;
 
   std::minstd_rand gen{Catch::getSeed()};
