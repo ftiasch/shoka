@@ -6,7 +6,7 @@
 #include "poly.hpp"
 #include "polynomial_interpolation.hpp"
 #include "rmq.hpp"
+#include "rolling_hash.hpp"
 #include "segment_tree.hpp"
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
-
