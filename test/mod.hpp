@@ -1,5 +1,6 @@
 #include "barrett.h"
 #include "binpow.h"
+#include "dyn_mod.h"
 #include "mod.h"
 #include "mont.h"
 
@@ -18,7 +19,7 @@ constexpr uint64_t MOD_64 = (1ULL << 62) - 57;
 } // namespace mod
 
 TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<mod::MOD_32>,
-                   MontT<mod::MOD_32>, BarrettT<>) {
+                   MontT<mod::MOD_32>, BarrettT<>, DynModT<>) {
   using namespace mod;
 
   using Mod = TestType;
@@ -69,7 +70,7 @@ TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<mod::MOD_32>,
 }
 
 TEMPLATE_TEST_CASE("mod_64", "[template]", Mod64T<mod::MOD_64>,
-                   Mont64T<mod::MOD_64>, Barrett64T<>) {
+                   Mont64T<mod::MOD_64>, Barrett64T<>, DynMod64T<>) {
   using namespace mod;
 
   using Mod = TestType;
