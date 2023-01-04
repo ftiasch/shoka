@@ -16,7 +16,7 @@ private:
 
 } // namespace y_combinator_details
 
-template <class Fun> decltype(auto) y_combinator(Fun &&fun) {
+template <class Fun> static inline decltype(auto) y_combinator(Fun &&fun) {
   return y_combinator_details::y_combinator_result<std::decay_t<Fun>>(
       std::forward<Fun>(fun));
 }

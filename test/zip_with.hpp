@@ -18,6 +18,13 @@ TEST_CASE("zip_with") {
     REQUIRE(result == T{3, "233"});
   }
 
+  SECTION("zip2_with_cv") {
+    const T x{1, "2"};
+    auto result =
+        zip_with([]<typename T>(T x, T y) { return x + y; }, x, T{2, "33"});
+    REQUIRE(result == T{3, "233"});
+  }
+
   SECTION("zip3_with") {
     auto result = zip_with([]<typename T>(T x, T y, T z) { return x + y + z; },
                            T{1, "2"}, T{2, "a"}, T{3, "b"});
