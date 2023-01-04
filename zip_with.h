@@ -28,9 +28,8 @@ template <typename Func, typename... Ts>
 static constexpr decltype(auto) zip_with(Func &&func, Ts &&...tuples) {
   using namespace zip_with_details;
   static_assert(are_same_v<std::decay_t<Ts>...>);
-  // constexpr auto size =
-  //     std::tuple_size_v<std::tuple_element_t<0, std::tuple<Ts...>>>;
-  constexpr auto size = std::min({std::tuple_size_v<std::decay_t<Ts>>...});
+  constexpr auto size = std::tuple_size_v<
+      std::decay_t<std::tuple_element_t<0, std::tuple<Ts...>>>>;
   return make_tuple(std::forward<Func>(func), std::make_index_sequence<size>{},
                     std::forward<Ts>(tuples)...);
 }

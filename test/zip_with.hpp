@@ -5,6 +5,11 @@
 #include <catch2/catch_all.hpp>
 
 TEST_CASE("zip_with") {
+  SECTION("zip2_not_same") {
+    REQUIRE_FALSE(
+        zip_with_details::are_same_v<std::tuple<int>, std::tuple<int, int>>);
+  }
+
   using T = std::tuple<int, std::string>;
 
   SECTION("zip1_with") {
