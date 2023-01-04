@@ -1,6 +1,7 @@
 #pragma once
 
 #include "singleton.h"
+#include "zip_with.h"
 
 #include <iostream>
 #include <random>
@@ -32,16 +33,16 @@ template <typename... Mods> struct RollingHashT {
 
   RollingHashT operator+(const RollingHashT &o) const {
     return RollingHashT{
-        zip3_with([]<typename Mod>(Mod h, Mod p, Mod oh) { return h * p + oh; },
-                  hash, singleton<SeedStore>().get_power(o.length), o.hash),
+        zip_with([]<typename Mod>(Mod h, Mod p, Mod oh) { return h * p + oh; },
+                 hash, singleton<SeedStore>().get_power(o.length), o.hash),
         length + o.length};
   }
 
   RollingHashT operator-(const RollingHashT &o) const {
     return RollingHashT{
-        zip3_with([]<typename Mod>(Mod h, Mod oh, Mod p) { return h - oh * p; },
-                  hash, o.hash,
-                  singleton<SeedStore>().get_power(length - o.length)),
+        zip_with([]<typename Mod>(Mod h, Mod oh, Mod p) { return h - oh * p; },
+                 hash, o.hash,
+                 singleton<SeedStore>().get_power(length - o.length)),
         length - o.length};
   }
 
@@ -50,36 +51,7 @@ template <typename... Mods> struct RollingHashT {
 
 private:
   template <typename Fun> static inline Hash make_with(Fun &&fun) {
-    return std::apply([&](auto &&...x) { return std::make_tuple(fun(x)...); },
-                      Hash{});
-  }
-
-  template <typename Fun>
-  static inline Hash zip_with(Fun &&fun, const Hash &u, const Hash &v) {
-    return std::apply(
-        [&](auto &&...x) {
-          return std::apply(
-              [&](auto &&...y) { return std::make_tuple(fun(x, y)...); }, v);
-        },
-        u);
-  }
-
-  template <typename Fun>
-  static inline Hash zip3_with(Fun &&fun, const Hash &u, const Hash &v,
-                               const Hash &w) {
-    return std::apply(
-        [&](auto &&...x) {
-          return std::apply(
-              [&](auto &&...y) {
-                return std::apply(
-                    [&](auto &&...z) {
-                      return std::make_tuple(fun(x, y, z)...);
-                    },
-                    w);
-              },
-              v);
-        },
-        u);
+    return zip_with(std::forward<Fun>(fun), Hash{});
   }
 
   struct SeedStore {
