@@ -11,4 +11,6 @@ template <class T> struct Singleton {
   }
 };
 
-template <typename T> T &singleton() { return Singleton<T>::instance(); }
+template <typename T> static inline T &singleton() {
+  return Singleton<T>::instance();
+}

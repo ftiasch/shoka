@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-template <typename T> static constexpr T is_prime(T n) {
+template <typename T> static inline constexpr T is_prime(T n) {
   static_assert(std::is_integral_v<T>);
   if (n < 2) {
     return false;
