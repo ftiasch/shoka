@@ -10,13 +10,15 @@ TEST_CASE("fast_io") {
   long long big_int64 = INT64_MAX;
   std::fprintf(tmpf, "%d 0 %d\n", -big_int, big_int);
   std::fprintf(tmpf, "%lld 0 %lld\n", -big_int64, big_int64);
+  std::fprintf(tmpf, "2 33\n");
   std::rewind(tmpf);
+
   FastIO io{tmpf};
   REQUIRE(io.read1<>() == -big_int);
   REQUIRE(io.read1<>() == 0);
   REQUIRE(io.read1<>() == big_int);
-  REQUIRE(io.read1<long long>() == -big_int64);
-  REQUIRE(io.read1<long long>() == 0);
-  REQUIRE(io.read1<long long>() == big_int64);
+  REQUIRE(io.read<long long, int, long long>() ==
+          std::tuple<long long, int, long long>{-big_int64, 0, big_int64});
+  REQUIRE(io.read_vector(2) == std::vector<int>{2, 33});
   std::fclose(tmpf);
 }

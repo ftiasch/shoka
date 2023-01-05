@@ -1,11 +1,10 @@
+#include "io_base.h"
+
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
-#include <type_traits>
 
-#include <iostream>
-
-struct FastIO {
+struct FastIO : public IOBaseT<FastIO> {
   explicit FastIO(std::FILE *f_ = stdin) : f{f_} {}
 
   template <typename T = int> auto read1() {
