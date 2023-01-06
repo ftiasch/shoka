@@ -7,20 +7,38 @@
 
 namespace universal_euclidean {
 
-struct TestMonoid {
-  static TestMonoid mul_id() { return TestMonoid{0, 0, 0}; }
+struct StringMonoid {
+  static StringMonoid mul_id() { return {""}; }
 
-  static TestMonoid R() { return TestMonoid{1, 0, 0}; }
+  static StringMonoid R() { return {"R"}; }
 
-  static TestMonoid U() { return TestMonoid{0, 1, 0}; }
+  static StringMonoid U() { return {"U"}; }
 
-  TestMonoid operator*(const TestMonoid &o) const {
-    return TestMonoid{r + o.r, u + o.u, u_sum + u * o.r + o.u_sum};
+  StringMonoid operator*(const StringMonoid &o) const { return {s + o.s}; }
+
+  StringMonoid &operator*=(const StringMonoid &o) {
+    return *this = (*this * o);
   }
 
-  TestMonoid &operator*=(const TestMonoid &o) { return *this = (*this * o); }
+  StringMonoid power(int n) const { return binpow(*this, n); }
 
-  TestMonoid power(int n) const { return binpow(*this, n); }
+  std::string s;
+};
+
+struct SumMonoid {
+  static SumMonoid mul_id() { return {0, 0, 0}; }
+
+  static SumMonoid R() { return {1, 0, 0}; }
+
+  static SumMonoid U() { return {0, 1, 0}; }
+
+  SumMonoid operator*(const SumMonoid &o) const {
+    return {r + o.r, u + o.u, u_sum + u * o.r + o.u_sum};
+  }
+
+  SumMonoid &operator*=(const SumMonoid &o) { return *this = (*this * o); }
+
+  SumMonoid power(int n) const { return binpow(*this, n); }
 
   uint64_t r, u, u_sum;
 };
@@ -28,14 +46,22 @@ struct TestMonoid {
 } // namespace universal_euclidean
 
 TEST_CASE("universal_euclidean") {
-  auto c = GENERATE(range(1, 10));
-  auto a = GENERATE(range(0, 10));
-  auto b = GENERATE(range(0, 10));
+  using namespace universal_euclidean;
 
-  uint64_t answer = 0;
-  for (int n = 0; n < 10; ++n) {
-    answer += (a * n + b) / c;
-    REQUIRE(UniversalEuclidean<universal_euclidean::TestMonoid>{}(n, a, b, c)
-                .u_sum == answer);
+  SECTION("string") {
+    REQUIRE(UniversalEuclidean<StringMonoid>{}(5, 19, 15, 10).s ==
+            "URUURUURUURUURUUR");
+  }
+
+  SECTION("sum") {
+    auto c = GENERATE(range(1, 10));
+    auto a = GENERATE(range(0, 10));
+    auto b = GENERATE(range(0, 10));
+
+    uint64_t answer = 0;
+    for (int n = 0; n < 10; ++n) {
+      answer += (a * n + b) / c;
+      REQUIRE(UniversalEuclidean<SumMonoid>{}(n, a, b, c).u_sum == answer);
+    }
   }
 }

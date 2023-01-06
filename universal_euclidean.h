@@ -7,6 +7,7 @@
 #include <type_traits>
 
 template <typename Monoid> struct UniversalEuclidean {
+  // sum_{i = 0}^{n} (a * i + b) / c
   Monoid operator()(uint64_t n, uint64_t a, uint64_t b, uint64_t c) const {
     if (n && a > (std::numeric_limits<uint64_t>::max() - b) / n) {
       throw std::invalid_argument("a * n + b >= 2^64");
