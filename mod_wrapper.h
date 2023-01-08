@@ -132,7 +132,7 @@ public:
     return *this;
   }
 
-  constexpr ModWrapperT inv() const { return binpow(*this, Mod::MOD - 2); }
+  constexpr ModWrapperT inv() const { return binpow(*this, mod() - 2); }
 
   // helper arith
 
