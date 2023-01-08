@@ -132,14 +132,7 @@ public:
     return *this;
   }
 
-  constexpr ModWrapperT inv() const {
-    if constexpr (has_wrap) {
-      return binpow(*this, Mod::MOD - 2);
-    } else {
-      return x == 1 ? ModWrapperT{1}
-                    : -ModWrapperT{mod() / x} * ModWrapperT{mod() % x}.inv();
-    }
-  }
+  constexpr ModWrapperT inv() const { return binpow(*this, Mod::MOD - 2); }
 
   // helper arith
 

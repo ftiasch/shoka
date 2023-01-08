@@ -16,7 +16,36 @@ constexpr uint32_t MOD_32 = 998'244'353;
 // https://primes.utm.edu/lists/2small/0bit.html
 constexpr uint64_t MOD_64 = (1ULL << 62) - 57;
 
+template <uint32_t MOD> constexpr uint32_t wrong_inv(uint32_t a) {
+  return a == 1 ? 1
+                : static_cast<uint64_t>(MOD - MOD / a) *
+                      wrong_inv<MOD>(MOD % a) % MOD;
+}
+
 } // namespace mod
+
+TEST_CASE("mod_inv") {
+  constexpr uint32_t SMALL_MOD = (1 << 18) - 5;
+
+  BENCHMARK("baseline") {
+    uint32_t result{1};
+    for (int i = 1; i < SMALL_MOD; ++i) {
+      result = static_cast<uint64_t>(result) * mod::wrong_inv<SMALL_MOD>(i) %
+               SMALL_MOD;
+    }
+    REQUIRE(result + 1 == SMALL_MOD);
+  };
+
+  BENCHMARK("bench") {
+    using Mod = ModT<SMALL_MOD>;
+
+    Mod result{1};
+    for (int i = 1; i < SMALL_MOD; ++i) {
+      result *= Mod{i}.inv();
+    }
+    REQUIRE(result == -Mod{1});
+  };
+}
 
 TEMPLATE_TEST_CASE("mod_32", "[template]", ModT<mod::MOD_32>,
                    MontT<mod::MOD_32>, BarrettT<>, DynModT<>) {
