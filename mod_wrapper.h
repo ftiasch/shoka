@@ -132,7 +132,21 @@ public:
     return *this;
   }
 
-  constexpr ModWrapperT inv() const { return binpow(*this, mod() - 2); }
+  constexpr ModWrapperT inv() const {
+#ifdef SHOKA_EUCLIDEAN_INV
+    if constexpr (!has_wrap) {
+      return ModWrapperT{inv(x, mod())};
+    }
+#endif
+    return binpow(*this, mod() - 2);
+  }
+
+  static constexpr M inv(M a, M m) {
+    return a == 1
+               ? 1
+               : (1 + static_cast<M2>(a - inv(m % a, a)) * static_cast<M2>(m)) /
+                     a;
+  }
 
   // helper arith
 
