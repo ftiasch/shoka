@@ -7,7 +7,7 @@
 struct FastIO : public IOBaseT<FastIO> {
   explicit FastIO(std::FILE *f_ = stdin) : f{f_} {}
 
-  template <typename T> void read_(T &&v) {
+  template <typename T> void read1(T &&v) {
     if constexpr (std::is_same_v<std::decay_t<T>, char>) {
       v = getc();
     } else {

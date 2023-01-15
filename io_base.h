@@ -29,7 +29,7 @@ template <typename IO> struct IOBaseT {
         read(e);
       }
     } else {
-      reinterpret_cast<IO *>(this)->template read_(std::forward<T>(v));
+      reinterpret_cast<IO *>(this)->template read1(std::forward<T>(v));
     }
     return v;
   }
