@@ -1,6 +1,6 @@
 #include "binpow.hpp"
 #include "debug.hpp"
-#include "fast_io.hpp"
+#include "io.hpp"
 #include "mod.hpp"
 #include "nd_vector.hpp"
 #include "poly.hpp"

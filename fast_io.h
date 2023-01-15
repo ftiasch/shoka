@@ -7,11 +7,11 @@
 struct FastIO : public IOBaseT<FastIO> {
   explicit FastIO(std::FILE *f_ = stdin) : f{f_} {}
 
-  template <typename T = int> auto read1() {
-    if constexpr (std::is_same_v<T, char>) {
-      return getc();
+  template <typename T> void read_(T &&v) {
+    if constexpr (std::is_same_v<std::decay_t<T>, char>) {
+      v = getc();
     } else {
-      if constexpr (std::is_integral_v<T>) {
+      if constexpr (std::is_integral_v<std::decay_t<T>>) {
         char c = getc();
         while (!std::isdigit(c) && c != '-') {
           c = getc();
@@ -21,11 +21,11 @@ struct FastIO : public IOBaseT<FastIO> {
           is_neg = true;
           c = getc();
         }
-        T r = 0;
+        std::decay_t<T> r = 0;
         for (; std::isdigit(c); c = getc()) {
           r = r * 10 + (c - '0');
         }
-        return is_neg ? -r : r;
+        v = is_neg ? -r : r;
       } else {
         static_assert(!sizeof(T *));
       }

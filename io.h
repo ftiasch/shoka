@@ -13,11 +13,7 @@ struct IO : public IOBaseT<IO> {
     }
   }
 
-  template <typename T = int> T read1() {
-    T v;
-    std::cin >> v;
-    return v;
-  }
+  template <typename T> void read(T &&v) { std::cin >> v; }
 
   template <typename T> std::ostream &operator<<(const T &o) {
     return std::cout << o;
