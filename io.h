@@ -5,6 +5,8 @@
 #include <iostream>
 
 struct IO : public IOBaseT<IO> {
+  friend class IOBaseT<IO>;
+
   explicit IO(bool sync = false) {
     if (sync) {
       std::ios::sync_with_stdio(false);
@@ -13,9 +15,10 @@ struct IO : public IOBaseT<IO> {
     }
   }
 
-  template <typename T> void read1(T &&v) { std::cin >> v; }
-
   template <typename T> std::ostream &operator<<(const T &o) {
     return std::cout << o;
   }
+
+private:
+  template <typename T> void read1(T &&v) { std::cin >> v; }
 };

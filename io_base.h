@@ -19,10 +19,11 @@ inline constexpr bool is_specialization_of_v =
 } // namespace io
 
 template <typename IO> struct IOBaseT {
-  template <typename T_ = int> std::decay_t<T_> read(T_ &&v = int{}) {
+  template <typename T_ = int>
+  std::decay_t<T_> read(T_ &&v = std::decay_t<T_>{}) {
     using T = std::decay_t<T_>;
     if constexpr (io::is_specialization_of_v<std::tuple, T>) {
-      readn_(v, std::make_index_sequence<std::tuple_size_v<T>>());
+      read_t_(v, std::make_index_sequence<std::tuple_size_v<T>>());
 
     } else if constexpr (io::is_specialization_of_v<std::vector, T>) {
       for (auto &e : v) {
@@ -46,7 +47,7 @@ template <typename IO> struct IOBaseT {
 
 private:
   template <typename Tuple, std::size_t... Index>
-  void readn_(Tuple &t, std::index_sequence<Index...>) {
+  void read_t_(Tuple &t, std::index_sequence<Index...>) {
     (..., (std::get<Index>(t) = read(std::tuple_element_t<Index, Tuple>{})));
   }
 };
