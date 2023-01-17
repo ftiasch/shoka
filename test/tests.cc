@@ -1,6 +1,7 @@
 #include "binpow.hpp"
 #include "debug.hpp"
 #include "io.hpp"
+#include "lca.hpp"
 #include "mod.hpp"
 #include "nd_vector.hpp"
 #include "poly.hpp"
