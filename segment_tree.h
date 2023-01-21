@@ -26,39 +26,39 @@ template <typename Node, typename Impl> struct SegmentTreeBase {
   Node &get_node(int l, int r) { return nodes[l + r | (l != r)]; }
 
 protected:
-  template <typename H> void traverse_all(H &&h, int l, int r) {
+  template <typename Op> void traverse_all(Op &&op, int l, int r) {
     Node &n = get_node(l, r);
-    h.update(l, r, n);
+    op(l, r, n);
     if (l < r) {
       int m = (l + r) >> 1;
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
       static_cast<Impl *>(this)->propagate(l, m, r, n, ln, rn);
-      traverse_all(std::forward<H>(h), l, m);
-      traverse_all(std::forward<H>(h), m + 1, r);
+      traverse_all(std::forward<Op>(op), l, m);
+      traverse_all(std::forward<Op>(op), m + 1, r);
       static_cast<Impl *>(this)->collect(l, m, r, n, ln, rn);
     }
   }
 
-  template <typename H, int direction>
-  void traverse(H &&h, int l, int r, int a, int b) {
+  template <typename Op, int direction>
+  void traverse(Op &&op, int l, int r, int a, int b) {
     if (b < l || r < a) {
       return;
     }
     Node &n = get_node(l, r);
     if (a <= l && r <= b) {
-      h.update(l, r, n);
+      op(l, r, n);
     } else {
       int m = (l + r) >> 1;
       Node &ln = get_node(l, m);
       Node &rn = get_node(m + 1, r);
       static_cast<Impl *>(this)->propagate(l, m, r, n, ln, rn);
       if (direction) {
-        traverse<H, 1>(std::forward<H>(h), m + 1, r, a, b);
-        traverse<H, 1>(std::forward<H>(h), l, m, a, b);
+        traverse<Op, 1>(std::forward<Op>(op), m + 1, r, a, b);
+        traverse<Op, 1>(std::forward<Op>(op), l, m, a, b);
       } else {
-        traverse<H, 0>(std::forward<H>(h), l, m, a, b);
-        traverse<H, 0>(std::forward<H>(h), m + 1, r, a, b);
+        traverse<Op, 0>(std::forward<Op>(op), l, m, a, b);
+        traverse<Op, 0>(std::forward<Op>(op), m + 1, r, a, b);
       }
       static_cast<Impl *>(this)->collect(l, m, r, n, ln, rn);
     }

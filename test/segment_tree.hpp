@@ -3,7 +3,6 @@
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
-#include <catch2/generators/catch_generators_all.hpp>
 
 namespace segment_tree {
 
@@ -14,7 +13,7 @@ struct Node {
 };
 
 struct Build {
-  void update(int l, int r, Node &n) const {
+  void operator()(int l, int r, Node &n) const {
     if (l == r) {
       n = Node{0U, a[l]};
     } else {
@@ -26,7 +25,7 @@ struct Build {
 };
 
 struct Add {
-  void update(int l, int r, Node &n) {
+  void operator()(int l, int r, Node &n) {
     n.tag += d;
     n.sum += static_cast<u32>(r - l + 1) * d;
   }
@@ -35,7 +34,7 @@ struct Add {
 };
 
 struct Sum {
-  void update(int l, int r, Node &n) { result += n.sum; }
+  void operator()(int l, int r, Node &n) { result += n.sum; }
 
   u32 result = 0;
 };
@@ -63,25 +62,27 @@ struct SegmentTree : public SegmentTreeBase<Node, SegmentTree> {
 } // namespace segment_tree
 
 TEST_CASE("segment_tree") {
-  constexpr int n = 1000;
+  auto n = GENERATE(range(1, 100));
 
-  using namespace Catch::Generators;
-  auto a = GENERATE(take(1, chunk(n, random(0U, ~0U))));
-  auto L = GENERATE(take(1, chunk(n, random(0, n - 1))));
-  auto R = GENERATE(take(1, chunk(n, random(0, n - 1))));
-  auto D = GENERATE(take(1, chunk(n, random(0U, ~0U))));
+  std::minstd_rand gen{Catch::getSeed()};
 
   using namespace segment_tree;
+  std::vector<u32> a(n);
+  for (int i = 0; i < n; ++i) {
+    a[i] = std::uniform_int_distribution<u32>(0U, ~0U)(gen);
+  }
   SegmentTree tree(a);
   for (int q = 0; q < n; ++q) {
-    auto [l, r] = std::tie(L[q], R[q]);
+    auto l = std::uniform_int_distribution<>(0, n - 1)(gen);
+    auto r = std::uniform_int_distribution<>(0, n - 1)(gen);
     if (l > r) {
       std::swap(l, r);
     }
-    if (D[q] & 1) {
-      tree.traverse(Add{D[q]}, l, r);
+    auto d = std::uniform_int_distribution<u32>(0U, ~0U)(gen);
+    if (d & 1) {
+      tree.traverse(Add{d}, l, r);
       for (int i = l; i <= r; ++i) {
-        a[i] += D[q];
+        a[i] += d;
       }
     } else {
       Sum sum;

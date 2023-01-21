@@ -8,5 +8,5 @@ using Long = long long;
 using u64 = uint64_t;
 
 #if (__cplusplus >= 202002L)
-namespace R = std::ranges;
+namespace ranges = std::ranges;
 #endif
