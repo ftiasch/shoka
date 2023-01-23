@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binpow.h"
+#include "primitive_root.h"
 
 #include <algorithm>
 #include <array>
@@ -13,77 +13,81 @@
 
 #include <stdexcept>
 
-template <typename Mod_> struct NttT {
-  using Mod = Mod_;
-
+template <typename Mod> struct NttT {
   static void assert_power_of_two(int n) {
     if (n & (n - 1)) {
       throw std::invalid_argument(std::to_string(n) + " is not a power of two");
     }
   }
 
-  static int min_power_of_two(int n) {
+  static constexpr int min_power_of_two(int n) {
     return n == 1 ? 1 : 1 << (32 - __builtin_clz(n - 1));
   }
 
-  static void dit(int n, Mod *a) {
+  static constexpr Mod get_primitive_root() { return G; }
+
+  void reserve(int n) {
+    if (max_n < n) {
+      assert_power_of_two(n);
+      if ((Mod::mod() - 1) % n != 0) {
+        throw std::invalid_argument(std::to_string(n) +
+                                    " is not a divisor of (Mod::mod() - 1)");
+      }
+      max_n = n;
+      twiddles.resize(max_n + 1);
+      twiddles[0] = Mod{1};
+      auto omega = binpow(G, (Mod::mod() - 1) / n);
+      for (int i = 1; i <= max_n; ++i) {
+        twiddles[i] = twiddles[i - 1] * omega;
+      }
+      for (int i = 0; i < NUMBER_OF_BUFFER; ++i) {
+        buffers[i].reserve(max_n);
+      }
+    }
+  }
+
+  template <int i> Mod *raw_buffer() { return buffers[i].data(); }
+
+  void dit(int n, Mod *a) {
     assert_power_of_two(n);
     for (int m = 1; m < n; m <<= 1) {
-      const Mod root = binpow(G, (Mod::mod() - 1) / (m << 1));
+      auto step = max_n / (m << 1);
       for (int i = 0; i < n; i += m << 1) {
-        Mod twiddle(1);
+        int tid = 0;
         for (int r = i; r < i + m; ++r) {
-          Mod tmp = twiddle * a[r + m];
+          Mod tmp = twiddles[tid] * a[r + m];
           a[r + m] = a[r];
           a[r + m] -= tmp;
           a[r] += tmp;
-          twiddle *= root;
+          tid += step;
         }
       }
     }
   }
 
-  static void dif(int n, Mod *a) {
+  void dif(int n, Mod *a) {
     assert_power_of_two(n);
     for (int m = n; m >>= 1;) {
-      const Mod root = binpow(G, Mod::mod() - 1 - (Mod::mod() - 1) / (m << 1));
+      auto step = max_n / (m << 1);
       for (int i = 0; i < n; i += m << 1) {
-        Mod twiddle(1);
+        int tid = max_n;
         for (int r = i; r < i + m; ++r) {
           Mod tmp = a[r];
           tmp -= a[r + m];
           a[r] += a[r + m];
-          a[r + m] = twiddle * tmp;
-          twiddle *= root;
+          a[r + m] = twiddles[tid] * tmp;
+          tid -= step;
         }
       }
     }
   }
 
-  static Mod get_primitive_root() { return G; }
-
 private:
-  struct FiniteField {
-    static constexpr Mod primitive_root() {
-      int g = 2;
-      while (!is_primitive_root(Mod{g})) {
-        g++;
-      }
-      return Mod{g};
-    }
+  static constexpr int NUMBER_OF_BUFFER = 5;
 
-  private:
-    static constexpr bool is_primitive_root(Mod g) {
-      for (int d = 2; d * d <= Mod::mod() - 1; ++d) {
-        if ((Mod::mod() - 1) % d == 0 &&
-            (binpow(g, d).get() == 1 ||
-             binpow(g, (Mod::mod() - 1) / d).get() == 1)) {
-          return false;
-        }
-      }
-      return true;
-    }
-  };
+  static constexpr Mod G = FiniteField<Mod>::primitive_root();
 
-  static constexpr Mod G = FiniteField::primitive_root();
+  int max_n = 0;
+  std::vector<Mod> twiddles;
+  std::array<std::vector<Mod>, NUMBER_OF_BUFFER> buffers;
 };

@@ -13,7 +13,7 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
     if (n == 1) {
       out[0] = Mod{1};
     } else {
-      Ntt::assert_power_of_two(n);
+      Poly::assert_power_of_two(n);
       Poly::reserve(n);
       const auto b0 = Poly::template raw_buffer<0>();
       const auto b1 = Poly::template raw_buffer<1>();
@@ -26,28 +26,28 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
         for (int i = 0; i < m; ++i) {
           b0[i] = Mod{i} * f[i];
         }
-        Ntt::dif(m, b0);
+        Poly::dif(m, b0);
         Poly::dot_product_and_dit(m, inv_m, b0, b0, b1);
         for (int i = 0; i < m; ++i) {
           b0[i] -= Mod{i} * out[i];
         }
         std::fill(b0 + m, b0 + (m << 1), Mod{0});
-        Ntt::dif(m << 1, b0);
+        Poly::dif(m << 1, b0);
         Poly::copy_and_fill0(m << 1, b3, m, b2);
-        Ntt::dif(m << 1, b3);
+        Poly::dif(m << 1, b3);
         Poly::dot_product_and_dit(m << 1, inv_2m, b0, b0, b3);
         for (int i = 0; i < m; ++i) {
           b0[i] = b0[i] * log.cached_inv(m + i) + f[m + i];
         }
         std::fill(b0 + m, b0 + (m << 1), Mod{0});
-        Ntt::dif(m << 1, b0);
+        Poly::dif(m << 1, b0);
         Poly::dot_product_and_dit(m << 1, inv_2m, b0, b0, b1);
         std::copy(b0, b0 + m, out + m);
         Poly::copy_and_fill0(m << 2, b1, m << 1, out);
-        Ntt::dif(m << 2, b1);
+        Poly::dif(m << 2, b1);
         Poly::dot_product_and_dit(m << 1, inv_2m, b0, b1, b3);
         std::fill(b0, b0 + m, Mod{0});
-        Ntt::dif(m << 1, b0);
+        Poly::dif(m << 1, b0);
         Poly::dot_product_and_dit(m << 1, inv_2m, b0, b0, b3);
         for (int i = m; i < m << 1; ++i) {
           b2[i] = Mod{0} - b0[i];
@@ -58,22 +58,22 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
       for (int i = 0; i < m; ++i) {
         b0[i] = Mod{i} * f[i];
       }
-      Ntt::dif(m, b0);
+      Poly::dif(m, b0);
       Poly::dot_product_and_dit(m, inv_m, b0, b0, b1);
       for (int i = 0; i < m; ++i) {
         b0[i] -= Mod{i} * out[i];
       }
       Poly::copy_and_fill0(m, b0 + m, m >> 1, b0 + (m >> 1));
       std::fill(b0 + (m >> 1), b0 + m, Mod{0});
-      Ntt::dif(m, b0);
-      Ntt::dif(m, b0 + m);
+      Poly::dif(m, b0);
+      Poly::dif(m, b0 + m);
       Poly::copy_and_fill0(m, b3 + m, m >> 1, b2 + (m >> 1));
-      Ntt::dif(m, b3 + m);
+      Poly::dif(m, b3 + m);
       for (int i = 0; i < m; ++i) {
         b0[m + i] = inv_m * (b0[i] * b3[m + i] + b0[m + i] * b3[i]);
       }
       Poly::dot_product_and_dit(m, inv_m, b0, b0, b3);
-      Ntt::dit(m, b0 + m);
+      Poly::dit(m, b0 + m);
       for (int i = 0; i < m >> 1; ++i) {
         b0[(m >> 1) + i] += b0[m + i];
       }
@@ -81,7 +81,7 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
         b0[i] = b0[i] * log.cached_inv(m + i) + f[m + i];
       }
       std::fill(b0 + m, b0 + (m << 1), Mod{0});
-      Ntt::dif(m << 1, b0);
+      Poly::dif(m << 1, b0);
       Mod inv_2m = inv_m * Mod{2}.inv();
       Poly::dot_product_and_dit(m << 1, inv_2m, b0, b0, b1);
       std::copy(b0, b0 + m, out + m);

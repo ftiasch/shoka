@@ -4,10 +4,9 @@
 
 template <typename Poly, template <typename> class Impl> struct PolyOp {
   using Mod = typename Poly::Mod;
-  using Ntt = typename Poly::Ntt;
 
   template <int index> Poly single(const Poly &f) {
-    int n = Ntt::min_power_of_two(f.size());
+    int n = Poly::min_power_of_two(f.size());
     Poly::reserve(n);
     Poly out(n);
     auto b2 = Poly::template raw_buffer<index>();
@@ -18,6 +17,4 @@ template <typename Poly, template <typename> class Impl> struct PolyOp {
   }
 };
 
-#define SHOKA_HELPER_USING_POLY_OP                                             \
-  using Mod = typename Base::Mod;                                              \
-  using Ntt = typename Base::Ntt
+#define SHOKA_HELPER_USING_POLY_OP using Mod = typename Base::Mod;

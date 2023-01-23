@@ -10,12 +10,18 @@
 
 template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   using Mod = Mod_;
-  using Ntt = NttT<Mod>;
   using Vector = std::vector<Mod>;
 
-  using Vector::vector;
-
-  static constexpr size_t NUMBER_OF_BUFFER = 5;
+  static void assert_power_of_two(int n) { Ntt::assert_power_of_two(n); }
+  static constexpr int min_power_of_two(int n) {
+    return Ntt::min_power_of_two(n);
+  }
+  static void reserve(int n) { return ntt().reserve(n); }
+  template <int i> static Mod *raw_buffer() {
+    return ntt().template raw_buffer<i>();
+  }
+  static void dif(int n, Mod *a) { ntt().dif(n, a); }
+  static void dit(int n, Mod *a) { ntt().dit(n, a); }
 
   static void copy_and_fill0(int n, Mod *dst, int m, const Mod *src) {
     m = std::min(n, m);
@@ -32,21 +38,10 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     for (int i = 0; i < n; ++i) {
       out[i] = inv_n * a[i] * b[i];
     }
-    Ntt::dit(n, out);
+    ntt().dit(n, out);
   }
 
-  static void reserve(int n) {
-    if (buffer()[0].size() < n) {
-      for (int i = 0; i < NUMBER_OF_BUFFER; ++i) {
-        buffer()[i].resize(n);
-      }
-    }
-  }
-
-  template <int index> static Mod *raw_buffer() {
-    static_assert(0 <= index && index < NUMBER_OF_BUFFER);
-    return buffer()[index].data();
-  }
+  using Vector::vector;
 
   explicit PolyT(const Vector &v) : std::vector<Mod>{v} {}
 
@@ -100,14 +95,14 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
       return result;
     }
 
-    int n = Ntt::min_power_of_two(deg_plus_1);
+    int n = min_power_of_two(deg_plus_1);
     reserve(n);
     Mod *b0 = raw_buffer<0>();
     Mod *b1 = raw_buffer<1>();
     copy_and_fill0(n, b0, *this);
-    Ntt::dif(n, b0);
+    dif(n, b0);
     copy_and_fill0(n, b1, o);
-    Ntt::dif(n, b1);
+    dif(n, b1);
     dot_product_and_dit(n, Mod{n}.inv(), b0, b0, b1);
     return PolyT(b0, b0 + deg_plus_1);
   }
@@ -115,7 +110,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   PolyT &operator*=(const PolyT &o) { return *this = *this * o; }
 
 private:
-  struct Buffer : public std::array<std::vector<Mod>, NUMBER_OF_BUFFER> {};
+  using Ntt = NttT<Mod>;
 
-  static Buffer &buffer() { return singleton<Buffer>(); }
+  static Ntt &ntt() { return singleton<Ntt>(); }
 };
