@@ -1,8 +1,8 @@
 #include <vector>
 
-class OrdinaryDSU {
+class Dsu {
 public:
-  explicit OrdinaryDSU(int n) : parent(n, -1) {}
+  explicit Dsu(int n) : parent(n, -1) {}
 
   int find(int u) {
     if (!~parent[u]) {
