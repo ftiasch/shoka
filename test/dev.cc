@@ -27,14 +27,6 @@ template <typename Mod> struct PolyGenT {
 
     const bool acyclic;
 
-    auto slice(int l, int r) {
-      Vector v(r - l);
-      for (int i = l; i < r; ++i) {
-        v[i - l] = at(i);
-      }
-      return v;
-    }
-
   protected:
     virtual Mod compute(int) = 0;
   };
@@ -56,7 +48,7 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Dummy : public CachedOp {
-    explicit Dummy() : CachedOp{true} {}
+    explicit Dummy() : CachedOp{false} {}
 
     void delegate(OpPtr op) override { weak = op; }
 
@@ -96,7 +88,7 @@ template <typename Mod> struct PolyGenT {
 
   struct Add : public Op {
     explicit Add(OpPtr p_, OpPtr q_)
-        : Op{p_->acyclic || q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{p_->acyclic && q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
 
   private:
     Mod compute(int i) override { return p->at(i) + q->at(i); }
@@ -106,7 +98,7 @@ template <typename Mod> struct PolyGenT {
 
   struct Sub : public Op {
     explicit Sub(OpPtr p_, OpPtr q_)
-        : Op{p_->acyclic || q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{p_->acyclic && q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
 
   private:
     Mod compute(int i) override { return p->at(i) - q->at(i); }
@@ -146,7 +138,13 @@ template <typename Mod> struct PolyGenT {
     Mod compute(int i) override {
       if (known.size() <= i) {
         auto n = Poly::min_power_of_two(i + 1);
-        known = Poly{p->slice(0, n)} * Poly{q->slice(0, n)};
+        Poly::reserve(n << 1);
+        Poly pp(n), qq(n);
+        for (int i = 0; i < n; ++i) {
+          pp[i] = p->at(i);
+          qq[i] = q->at(i);
+        }
+        known = pp * qq;
         known.resize(n);
       }
       return known[i];
@@ -200,8 +198,6 @@ template <typename Mod> struct PolyGenT {
     // NOTE: Not using const reference to prohibit r-values.
     void delegate(Wrapper &o) { op->delegate(o.op); }
 
-    auto slice(int l, int r) { return op->slice(l, r); }
-
   private:
     static OpPtr smart_mul(OpPtr p, OpPtr q) {
       if (p->acyclic) {
@@ -211,6 +207,8 @@ template <typename Mod> struct PolyGenT {
         return std::make_shared<Mul>(p, q);
       }
       if (q->acyclic) {
+        std::cerr << "semi"
+                  << "\n";
         return std::make_shared<SemiMul>(p, q);
       }
       return std::make_shared<FullMul>(p, q);
@@ -237,9 +235,17 @@ TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
   using PolyGen = PolyGenT<Mod>;
 
+  auto take = [&](PolyGen::Wrapper w, int n) {
+    std::vector<Mod> v(n);
+    for (int i = 0; i < n; ++i) {
+      v[i] = w[i];
+    }
+    return v;
+  };
+
   SECTION("const") {
     auto p = PolyGen::const_({Mod{1}});
-    REQUIRE(p.slice(0, 5) ==
+    REQUIRE(take(p, 5) ==
             std::vector<Mod>{Mod{1}, Mod{0}, Mod{0}, Mod{0}, Mod{0}});
   }
 
@@ -247,14 +253,14 @@ TEST_CASE("poly_gen") {
     auto p = PolyGen::const_({Mod{1}, Mod{0}, Mod{3}});
     auto q = PolyGen::const_({Mod{0}, Mod{2}});
     auto r = p + q;
-    REQUIRE(r.slice(0, 5) ==
+    REQUIRE(take(r, 5) ==
             std::vector<Mod>{Mod{1}, Mod{2}, Mod{3}, Mod{0}, Mod{0}});
   }
 
   SECTION("add_self") {
     auto p = PolyGen::const_({Mod{1}});
     auto r = p + p;
-    REQUIRE(r.slice(0, 5) ==
+    REQUIRE(take(r, 5) ==
             std::vector<Mod>{Mod{2}, Mod{0}, Mod{0}, Mod{0}, Mod{0}});
   }
 
@@ -262,7 +268,7 @@ TEST_CASE("poly_gen") {
     auto p = PolyGen::const_({Mod{2}, Mod{3}});
     auto q = PolyGen::const_({Mod{1}});
     auto r = p - q;
-    REQUIRE(r.slice(0, 5) ==
+    REQUIRE(take(r, 5) ==
             std::vector<Mod>{Mod{1}, Mod{3}, Mod{0}, Mod{0}, Mod{0}});
   }
 
@@ -277,25 +283,36 @@ TEST_CASE("poly_gen") {
   SECTION("shift") {
     auto p = PolyGen::const_({Mod{2}, Mod{3}});
     auto r = p.shift(1);
-    REQUIRE(r.slice(0, 5) ==
+    REQUIRE(take(r, 5) ==
             std::vector<Mod>{Mod{0}, Mod{2}, Mod{3}, Mod{0}, Mod{0}});
   }
 
   SECTION("recur_geo_sum") {
     // f(z) = f(z) * z^2 + 1
-    auto one = PolyGen::const_({Mod{1}});
     auto f = PolyGen::dummy();
-    auto rhs = f.shift(2) + one;
+    auto rhs = f.shift(2) + PolyGen::const_({Mod{1}});
     f.delegate(rhs);
     REQUIRE(f[1000000] == Mod{1});
     REQUIRE(f[1000001] == Mod{0});
   }
 
   SECTION("mul") {
-    // (1 + z)^3 = 1 + 3 z + 3 z^2 + z^3
+    // (1 + z)^4 = 1 + 4 z + 6 z^2 + 4 z^3 * z^4
     auto f = PolyGen::const_({Mod{1}, Mod{1}});
-    auto r = f * f * f;
-    REQUIRE(r.slice(0, 5) ==
-            std::vector<Mod>{Mod{1}, Mod{3}, Mod{3}, Mod{1}, Mod{0}});
+    auto f2 = f * f;
+    auto f4 = f2 * f2;
+    REQUIRE(take(f4, 10) == std::vector<Mod>{Mod{1}, Mod{4}, Mod{6}, Mod{4},
+                                             Mod{1}, Mod{0}, Mod{0}, Mod{0},
+                                             Mod{0}, Mod{0}});
+  }
+
+  SECTION("recur_fib") {
+    // f(z) = f(z) * (z + z^2) + 1
+    auto f = PolyGen::dummy();
+    auto rhs = f * PolyGen::const_({Mod{0}, Mod{1}, Mod{1}}) +
+               PolyGen::const_({Mod{1}});
+    f.delegate(rhs);
+    REQUIRE(take(f, 5) ==
+            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}});
   }
 }
