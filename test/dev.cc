@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "debug.h"
+
 template <typename Mod> struct PolyGenT {
   using Vector = std::vector<Mod>;
   using Poly = PolyT<Mod>;
@@ -158,12 +160,54 @@ template <typename Mod> struct PolyGenT {
   struct SemiMul : public Op {
     // q is acyclic
     explicit SemiMul(OpPtr p_, OpPtr q_)
-        : Op{false}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{false}, p{std::move(p_)}, q{std::move(q_)}, known{1}, buffer{} {
+      if (q->at(0) != Mod{0}) {
+        throw std::logic_error("q[0] != 0");
+      }
+    }
 
   private:
-    Mod compute(int i) override { return Mod{0}; }
+    using Op::at;
+
+    Mod compute(int i) override {
+      if (known <= i) {
+        std::cerr << KV(known) << KV(i) << "\n";
+        auto n = Poly::min_power_of_two(i + 1);
+        buffer.resize(n);
+        while (known <= i) {
+          recur(0, n, known++);
+        }
+      }
+      return buffer[i];
+    }
+
+    void recur(int l, int r, int k) {
+      std::cerr << "recur:" << KV(l) << KV(r) << KV(k) << "\n";
+      if (l + 1 < r) {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          Poly pp(m - l), qq(r - l);
+          for (int i = 0; i < m - l; ++i) {
+            pp[i] = at(l + i);
+          }
+          for (int i = 0; i < r - l; ++i) {
+            qq[i] = q->at(i);
+          }
+          std::cerr << KV(pp) << KV(qq) << "\n";
+          auto rr = pp * qq;
+          for (int i = m; i < r; ++i) {
+            buffer[i] += rr[i - l];
+          }
+          recur(m, r, k);
+        }
+      }
+    }
 
     OpPtr p, q;
+    int known;
+    std::vector<Mod> buffer;
   };
 
   struct FullMul : public CachedOp {
@@ -207,8 +251,6 @@ template <typename Mod> struct PolyGenT {
         return std::make_shared<Mul>(p, q);
       }
       if (q->acyclic) {
-        std::cerr << "semi"
-                  << "\n";
         return std::make_shared<SemiMul>(p, q);
       }
       return std::make_shared<FullMul>(p, q);
