@@ -10,31 +10,30 @@ template <typename Mod> struct PolyGenT {
   using Vector = std::vector<Mod>;
 
   struct Op {
+    virtual ~Op() = default;
+
     virtual Mod compute(int) = 0;
 
-    Mod at(int i) {
-      up_to(i + 1);
+    virtual Mod at(int i) { return compute(i); }
+  };
+
+  struct CachedOp : public Op {
+    using Op::compute;
+
+    Mod at(int i) override {
+      while (cache.size() <= i) {
+        cache.push_back(compute(cache.size()));
+      }
       return cache[i];
     }
 
-    Mod *at(int l, int r) {
-      up_to(r);
-      return cache.data() + l;
-    }
-
   private:
-    void up_to(int r) {
-      while (cache.size() < r) {
-        cache.push_back(compute(cache.size()));
-      }
-    }
-
     std::vector<Mod> cache;
   };
 
   using OpPtr = std::shared_ptr<Op>;
 
-  struct Dummy : public Op {
+  struct Dummy : public CachedOp {
     void delegate(OpPtr op) { weak = op; }
 
     Mod compute(int i) override {
@@ -170,9 +169,7 @@ TEST_CASE("poly_gen") {
     auto f = PolyGen::dummy();
     auto rhs = f.shift(2) + one;
     f.delegate(rhs);
-    REQUIRE(f[0] == Mod{1});
-    REQUIRE(f[1] == Mod{0});
-    REQUIRE(f[2] == Mod{1});
-    REQUIRE(f[3] == Mod{0});
+    REQUIRE(f[1000000] == Mod{1});
+    REQUIRE(f[1000001] == Mod{0});
   }
 }
