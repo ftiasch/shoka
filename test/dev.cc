@@ -6,19 +6,30 @@
 
 #include <iostream>
 
+/* TODO
+ * SemiMul & FullMul
+ * Integral
+ */
 template <typename Mod> struct PolyGenT {
   using Vector = std::vector<Mod>;
 
   struct Op {
+    explicit Op(bool online_) : online{online_} {}
+
     virtual ~Op() = default;
 
-    virtual Mod compute(int) = 0;
-
     virtual Mod at(int i) { return compute(i); }
+
+    const bool online;
+
+  protected:
+    virtual Mod compute(int) = 0;
   };
 
   struct CachedOp : public Op {
     using Op::compute;
+
+    explicit CachedOp(bool online) : Op{online} {}
 
     Mod at(int i) override {
       while (cache.size() <= i) {
@@ -34,8 +45,11 @@ template <typename Mod> struct PolyGenT {
   using OpPtr = std::shared_ptr<Op>;
 
   struct Dummy : public CachedOp {
+    explicit Dummy() : CachedOp{true} {}
+
     void delegate(OpPtr op) { weak = op; }
 
+  private:
     Mod compute(int i) override {
       if (auto d = weak.lock()) {
         return d->at(i);
@@ -48,8 +62,9 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Const : public Op {
-    explicit Const(const Vector &c_) : c{c_} {}
+    explicit Const(const Vector &c_) : Op{true}, c{c_} {}
 
+  private:
     Mod compute(int i) override {
       return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
     }
@@ -58,8 +73,10 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Shift : public Op {
-    explicit Shift(OpPtr p_, int s_) : p{std::move(p_)}, s{s_} {}
+    explicit Shift(OpPtr p_, int s_)
+        : Op{p_->online}, p{std::move(p_)}, s{s_} {}
 
+  private:
     Mod compute(int i) override { return i < s ? Mod{0} : p->at(i - s); }
 
     OpPtr p;
@@ -67,17 +84,31 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Add : public Op {
-    explicit Add(OpPtr p_, OpPtr q_) : p{std::move(p_)}, q{std::move(q_)} {}
+    explicit Add(OpPtr p_, OpPtr q_)
+        : Op{p_->online || q_->online}, p{std::move(p_)}, q{std::move(q_)} {}
 
+  private:
     Mod compute(int i) override { return p->at(i) + q->at(i); }
 
     OpPtr p, q;
   };
 
   struct Sub : public Op {
-    explicit Sub(OpPtr p_, OpPtr q_) : p{std::move(p_)}, q{std::move(q_)} {}
+    explicit Sub(OpPtr p_, OpPtr q_)
+        : Op{p_->online || q_->online}, p{std::move(p_)}, q{std::move(q_)} {}
 
+  private:
     Mod compute(int i) override { return p->at(i) - q->at(i); }
+
+    OpPtr p, q;
+  };
+
+  struct Mul : public Op {
+    explicit Mul(OpPtr p_, OpPtr q_)
+        : Op{p_->online || q_->online}, p{std::move(p_)}, q{std::move(q_)} {}
+
+  private:
+    Mod compute(int i) override { return Mod{0}; }
 
     OpPtr p, q;
   };
@@ -99,10 +130,17 @@ template <typename Mod> struct PolyGenT {
       return Wrapper<Sub>{op, o.op};
     }
 
+    template <typename U> auto operator*(const Wrapper<U> &o) {
+      return Wrapper<Mul>{op, o.op};
+    }
+
     auto shift(int s) { return Wrapper<Shift>(op, s); }
 
     // NOTE: Not using const reference to prohibit r-values.
-    template <typename U> void delegate(Wrapper<U> &o) { op->delegate(o.op); }
+    template <typename U> void delegate(Wrapper<U> &o) {
+      static_assert(std::is_same_v<T, Dummy>);
+      op->delegate(o.op);
+    }
 
     std::shared_ptr<T> op;
   };
