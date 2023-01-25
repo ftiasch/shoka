@@ -1,27 +1,24 @@
 #include <vector>
 
-class Dsu {
+class Dsu : public std::vector<int> {
 public:
-  explicit Dsu(int n) : parent(n, -1) {}
+  explicit Dsu(int n) : std::vector<int>(n, -1) {}
 
   int find(int u) {
-    if (!~parent[u]) {
+    if ((*this)[u] == -1) {
       return u;
     }
-    if (parent[u] != u) {
-      parent[u] = find(parent[u]);
+    if ((*this)[u] != u) {
+      (*this)[u] = find((*this)[u]);
     }
-    return parent[u];
+    return (*this)[u];
   }
 
   bool merge(int a, int b) {
     if (find(a) == find(b)) {
       return false;
     }
-    parent[find(a)] = find(b);
+    (*this)[find(a)] = find(b);
     return true;
   }
-
-private:
-  std::vector<int> parent;
 };

@@ -24,7 +24,6 @@ template <typename IO> struct IOBaseT {
     using T = std::decay_t<T_>;
     if constexpr (io::is_specialization_of_v<std::tuple, T>) {
       read_t_(v, std::make_index_sequence<std::tuple_size_v<T>>());
-
     } else if constexpr (io::is_specialization_of_v<std::vector, T>) {
       for (auto &e : v) {
         read(e);
