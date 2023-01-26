@@ -157,14 +157,11 @@ template <typename Mod> struct PolyGenT {
     Poly known;
   };
 
-  struct SemiMul : public Op {
-    // q is acyclic
-    explicit SemiMul(OpPtr p_, OpPtr q_)
+  struct OnlineMul : public Op {
+    explicit OnlineMul(OpPtr p_, OpPtr q_)
         : Op{false}, p{std::move(p_)}, q{std::move(q_)}, known{0} {}
 
   private:
-    using Op::at;
-
     Mod compute(int i) override {
       if (known <= i) {
         auto n = Poly::min_power_of_two(i + 1);
@@ -176,7 +173,21 @@ template <typename Mod> struct PolyGenT {
       return buffer[i];
     }
 
-    void recur(int l, int r, int k) {
+  protected:
+    virtual void recur(int, int, int) = 0;
+
+    OpPtr p, q;
+    int known;
+    std::vector<Mod> buffer;
+  };
+
+  struct SemiMul : public OnlineMul {
+    using OnlineMul::OnlineMul;
+
+  private:
+    using OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
+
+    void recur(int l, int r, int k) override {
       if (l + 1 == r) {
         buffer[l] += q->at(0) == Mod{0} ? Mod{0} : p->at(l) * q->at(0);
       } else {
@@ -201,20 +212,15 @@ template <typename Mod> struct PolyGenT {
         }
       }
     }
-
-    OpPtr p, q;
-    int known;
-    std::vector<Mod> buffer;
   };
 
-  struct FullMul : public CachedOp {
-    explicit FullMul(OpPtr p_, OpPtr q_)
-        : CachedOp{false}, p{std::move(p_)}, q{std::move(q_)} {}
+  struct FullMul : public OnlineMul {
+    using OnlineMul::OnlineMul;
 
   private:
-    Mod compute(int i) override { return Mod{0}; }
+    using OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
 
-    OpPtr p, q;
+    void recur(int l, int r, int k) override {}
   };
 
   struct Wrapper {
@@ -357,6 +363,15 @@ TEST_CASE("poly_gen") {
             std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
   }
 
+  SECTION("recur_fib_large") {
+    // f(z) = f(z) * (z + z^2) + 1
+    auto f = PolyGen::dummy();
+    auto rhs =
+        f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) + PolyGen::value({Mod{1}});
+    f.delegate(rhs);
+    REQUIRE(f[100000] == Mod{56136314});
+  }
+
   SECTION("recur_fib_2") {
     // f(z) = f(z) * (z + z^2) + 1
     auto f = PolyGen::dummy();
@@ -378,6 +393,16 @@ TEST_CASE("poly_gen") {
   }
 
   SECTION("recur_fib_4") {
+    // f(z) = (f(z) * (1 + z)) * z + 1
+    auto f = PolyGen::dummy();
+    auto rhs = f.shift(1) * PolyGen::value({Mod{1}, Mod{1}}) +
+               PolyGen::value({Mod{1}});
+    f.delegate(rhs);
+    REQUIRE(take(f, 6) ==
+            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
+  }
+
+  SECTION("recur_fib_fg") {
     // f(z) = g(z) * z + 1
     // g(z) = f(z) * (1 + z)
     auto f = PolyGen::dummy();
@@ -389,4 +414,17 @@ TEST_CASE("poly_gen") {
     REQUIRE(take(f, 6) ==
             std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
   }
+
+  /*
+  SECTION("recur_catalan") {
+    // f(z) = g(z) * z + 1
+    // g(z) = f(z) * (1 + z)
+    auto f = PolyGen::dummy();
+    auto rhs = (f * f).shift(1) + PolyGen::value({Mod{1}});
+    f.delegate(rhs);
+    REQUIRE(take(f, 6) ==
+            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14},
+  Mod{42}});
+  }
+  */
 }
