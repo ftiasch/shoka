@@ -11,15 +11,18 @@
 #include "debug.h"
 
 template <typename Mod> struct PolyGenT {
-  using Vector = std::vector<Mod>;
+private:
   using Poly = PolyT<Mod>;
+  using Vector = std::vector<Mod>;
+  static_assert(std::is_same_v<typename Poly::Vector, Vector>);
 
   struct Op;
 
   using OpPtr = std::shared_ptr<Op>;
 
   struct Op {
-    explicit Op(bool acyclic_) : acyclic{acyclic_} {}
+    explicit Op(bool acyclic_, int min_deg_)
+        : acyclic{acyclic_}, min_deg{min_deg_} {}
 
     virtual ~Op() = default;
 
@@ -28,35 +31,36 @@ template <typename Mod> struct PolyGenT {
     virtual void delegate(OpPtr) {}
 
     const bool acyclic;
+    const int min_deg;
 
   protected:
     virtual Mod compute(int) = 0;
   };
 
-  struct CachedOp : public Op {
-    using Op::compute;
-
+  struct CachedOp : Op {
     using Op::Op;
 
     Mod at(int i) override {
-      if (~computing && computing <= i) {
-        throw std::logic_error("Loop detected.");
+      if (~next && next <= i) {
+        throw std::logic_error("Loop");
       }
       while (cache.size() <= i) {
-        computing = cache.size();
-        cache.push_back(compute(computing));
-        computing = -1;
+        next = cache.size();
+        cache.push_back(compute(next));
+        next = -1;
       }
       return cache[i];
     }
 
   private:
-    int computing = -1;
+    using Op::compute;
+
+    int next = -1;
     std::vector<Mod> cache;
   };
 
   struct Dummy : public CachedOp {
-    explicit Dummy() : CachedOp{false} {}
+    explicit Dummy() : CachedOp{false, 0} {}
 
     void delegate(OpPtr op) override { weak = op; }
 
@@ -73,9 +77,17 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Value : public Op {
-    explicit Value(const Vector &c_) : Op{true}, c{c_} {}
+    explicit Value(const Vector &c_) : Op{true, get_min_deg(c_)}, c{c_} {}
 
   private:
+    static int get_min_deg(const Vector &c) {
+      int i = 0;
+      while (i < static_cast<int>(c.size()) && c[i] == Mod{0}) {
+        i++;
+      }
+      return i;
+    }
+
     Mod compute(int i) override {
       return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
     }
@@ -85,7 +97,7 @@ template <typename Mod> struct PolyGenT {
 
   struct Shift : public Op {
     explicit Shift(OpPtr p_, int s_)
-        : Op{p_->acyclic}, p{std::move(p_)}, s{s_} {}
+        : Op{p_->acyclic, p_->min_deg + s_}, p{std::move(p_)}, s{s_} {}
 
   private:
     Mod compute(int i) override { return i < s ? Mod{0} : p->at(i - s); }
@@ -96,7 +108,8 @@ template <typename Mod> struct PolyGenT {
 
   struct Add : public Op {
     explicit Add(OpPtr p_, OpPtr q_)
-        : Op{p_->acyclic && q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{p_->acyclic && q_->acyclic, 0}, p{std::move(p_)}, q{std::move(
+                                                                   q_)} {}
 
   private:
     Mod compute(int i) override { return p->at(i) + q->at(i); }
@@ -106,7 +119,8 @@ template <typename Mod> struct PolyGenT {
 
   struct Sub : public Op {
     explicit Sub(OpPtr p_, OpPtr q_)
-        : Op{p_->acyclic && q_->acyclic}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{p_->acyclic && q_->acyclic, 0}, p{std::move(p_)}, q{std::move(
+                                                                   q_)} {}
 
   private:
     Mod compute(int i) override { return p->at(i) - q->at(i); }
@@ -117,7 +131,7 @@ template <typename Mod> struct PolyGenT {
   struct ModInv : public CachedOp {
     using Op::at;
 
-    explicit ModInv() : CachedOp{true} {}
+    explicit ModInv() : CachedOp{true, 1} {}
 
     Mod compute(int i) override {
       return i < 2 ? Mod{i}
@@ -126,25 +140,25 @@ template <typename Mod> struct PolyGenT {
   };
 
   struct Integral : public Op {
-    explicit Integral(OpPtr p_, Mod c_)
-        : Op{p_->acyclic}, p{std::move(p_)}, c{c_} {}
+    explicit Integral(OpPtr p_)
+        : Op{p_->acyclic, p_->min_deg + 1}, p{std::move(p_)} {}
 
   private:
     Mod compute(int i) override {
-      return i ? p->at(i - 1) * singleton<ModInv>().at(i) : c;
+      return i ? p->at(i - 1) * singleton<ModInv>().at(i) : Mod{0};
     }
 
     OpPtr p;
-    Mod c;
   };
 
   struct Mul : public Op {
     explicit Mul(OpPtr p_, OpPtr q_)
-        : Op{true}, p{std::move(p_)}, q{std::move(q_)} {}
+        : Op{true, p_->min_deg + q_->min_deg}, p{std::move(p_)}, q{std::move(
+                                                                     q_)} {}
 
   private:
     Mod compute(int i) override {
-      if (known.size() <= i) {
+      if (done.size() <= i) {
         auto n = Poly::min_power_of_two(i + 1);
         Poly::reserve(n << 1);
         Poly pp(n), qq(n);
@@ -152,31 +166,33 @@ template <typename Mod> struct PolyGenT {
           pp[i] = p->at(i);
           qq[i] = q->at(i);
         }
-        known = pp * qq;
-        known.resize(n);
+        done = pp * qq;
+        done.resize(n);
       }
-      return known[i];
+      return done[i];
     }
 
     OpPtr p, q;
 
-    Poly known;
+    Poly done;
   };
 
   struct OnlineMul : public Op {
     explicit OnlineMul(OpPtr p_, OpPtr q_)
-        : Op{false}, p{std::move(p_)}, q{std::move(q_)}, known{0} {}
+        : Op{false, p_->min_deg + q_->min_deg}, p{std::move(p_)},
+          q{std::move(q_)}, done{0} {}
 
   private:
     Mod compute(int i) override {
-      if (known <= i) {
-        auto n = Poly::min_power_of_two(i + 1);
-        result.resize(n);
-        buffer[0].resize(n);
-        buffer[1].resize(n);
-        while (known <= i) {
-          recur(0, n, known++);
-        }
+      if (result.size() <= i) {
+        auto size = Poly::min_power_of_two(i + 1);
+        Poly::reserve(size);
+        result.resize(size);
+        buffer[0].resize(size);
+        buffer[1].resize(size);
+      }
+      while (done <= i) {
+        recur(0, result.size(), done++);
       }
       return result[i];
     }
@@ -184,8 +200,25 @@ template <typename Mod> struct PolyGenT {
   protected:
     virtual void recur(int, int, int) = 0;
 
+    const Mod *middle_product(int size, int pl, int pr, int ql, int qr) {
+      auto b0 = buffer[0].data();
+      auto b1 = buffer[1].data();
+      std::fill(b0, b0 + size, Mod{0});
+      for (int i = pl; i < pr; ++i) {
+        b0[i - pl] = p->at(i);
+      }
+      std::fill(b1, b1 + size, Mod{0});
+      for (int i = ql; i < qr; ++i) {
+        b1[i - ql] = q->at(i);
+      }
+      Poly::dif(size, b0);
+      Poly::dif(size, b1);
+      Poly::dot_product_and_dit(size, b0, b0, b1);
+      return b0;
+    }
+
     OpPtr p, q;
-    int known;
+    int done;
     std::vector<Mod> result;
     std::array<std::vector<Mod>, 2> buffer;
   };
@@ -194,33 +227,21 @@ template <typename Mod> struct PolyGenT {
     using OnlineMul::OnlineMul;
 
   private:
-    using OnlineMul::result, OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
+    using OnlineMul::result, OnlineMul::p, OnlineMul::q,
+        OnlineMul::middle_product;
 
     void recur(int l, int r, int k) override {
       if (l + 1 == r) {
-        result[l] += q->at(0) == Mod{0} ? Mod{0} : p->at(l) * q->at(0);
+        result[l] += q->min_deg ? Mod{0} : p->at(l) * q->at(0);
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
           recur(l, m, k);
         } else {
           if (k == m) {
-            auto n = m - l;
-            Poly::reserve(n << 1);
-            auto b0 = buffer[0].data();
-            auto b1 = buffer[1].data();
-            for (int i = 0; i < n; ++i) {
-              b0[i] = p->at(l + i);
-            }
-            std::fill(b0 + n, b0 + (n << 1), Mod{0});
-            for (int i = 0; i < n << 1; ++i) {
-              b1[i] = q->at(i);
-            }
-            Poly::dif(n << 1, b0);
-            Poly::dif(n << 1, b1);
-            Poly::dot_product_and_dit(n << 1, b0, b0, b1);
+            auto b = middle_product(r - l, l, m, 0, r - l);
             for (int i = m; i < r; ++i) {
-              result[i] += b0[i - l];
+              result[i] += b[i - l];
             }
           }
           recur(m, r, k);
@@ -233,9 +254,34 @@ template <typename Mod> struct PolyGenT {
     using OnlineMul::OnlineMul;
 
   private:
-    using OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
+    using OnlineMul::result, OnlineMul::p, OnlineMul::q,
+        OnlineMul::middle_product;
 
-    void recur(int l, int r, int k) override {}
+    void recur(int l, int r, int k) override {
+      if (l + 1 == r) {
+        result[l] += q->min_deg ? Mod{0} : p->at(l) * q->at(0);
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            auto qlen = l ? r - l : m - l;
+            auto b = middle_product(r - l, l, m, 0, qlen);
+            for (int i = m; i < r; ++i) {
+              result[i] += b[i - l];
+            }
+            if (l) {
+              auto b = middle_product(r - l, 0, r - l, l, m);
+              for (int i = m; i < r; ++i) {
+                result[i] += b[i - l];
+              }
+            }
+          }
+          recur(m, r, k);
+        }
+      }
+    }
   };
 
   struct Wrapper {
@@ -243,47 +289,42 @@ template <typename Mod> struct PolyGenT {
 
     auto operator[](int i) { return op->at(i); }
 
-    auto operator+(const Wrapper &o) {
-      return Wrapper{std::make_shared<Add>(op, o.op)};
-    }
+    auto operator+(const Wrapper &o) const { return wrap<Add>(op, o.op); }
 
-    auto operator-(const Wrapper &o) {
-      return Wrapper{std::make_shared<Sub>(op, o.op)};
-    }
+    auto operator-(const Wrapper &o) const { return wrap<Sub>(op, o.op); }
 
-    auto operator*(const Wrapper &o) { return Wrapper{smart_mul(op, o.op)}; }
+    auto operator*(const Wrapper &o) const { return smart_mul(op, o.op); }
 
-    auto integrate(Mod c = Mod{0}) {
-      return Wrapper{std::make_shared<Integral>(op, c)};
-    }
+    auto integrate() const { return wrap<Integral>(op); }
 
-    auto shift(int s) { return Wrapper{std::make_shared<Shift>(op, s)}; }
+    auto shift(int s) const { return wrap<Shift>(op, s); }
 
-    // NOTE: Not using const reference to prohibit r-values.
+    // NOTE: `Wrapper&` prohibits r-values.
     void delegate(Wrapper &o) { op->delegate(o.op); }
 
   private:
-    static OpPtr smart_mul(OpPtr p, OpPtr q) {
+    static Wrapper smart_mul(OpPtr p, OpPtr q) {
       if (p->acyclic) {
-        p.swap(q);
+        return q->acyclic ? wrap<Mul>(p, q) : wrap<SemiMul>(q, p);
+      } else {
+        return q->acyclic ? wrap<SemiMul>(p, q) : wrap<FullMul>(p, q);
       }
-      if (p->acyclic) {
-        return std::make_shared<Mul>(p, q);
-      }
-      if (q->acyclic) {
-        return std::make_shared<SemiMul>(p, q);
-      }
-      return std::make_shared<FullMul>(p, q);
     }
 
     OpPtr op;
   };
 
-  static auto value(const std::vector<Mod> &values) {
-    return Wrapper{std::make_shared<Value>(values)};
+  template <typename T, typename... Args> static Wrapper wrap(Args &&...args) {
+    static_assert(std::is_base_of_v<Op, T>);
+    return Wrapper{std::make_shared<T>(std::forward<Args>(args)...)};
   }
 
-  static auto dummy() { return Wrapper{std::make_shared<Dummy>()}; }
+public:
+  static auto value(const std::vector<Mod> &values) {
+    return wrap<Value>(values);
+  }
+
+  static auto dummy() { return wrap<Dummy>(); }
 };
 
 #include "mod.h"
@@ -297,7 +338,7 @@ TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
   using PolyGen = PolyGenT<Mod>;
 
-  auto take = [&](PolyGen::Wrapper w, int n) {
+  auto take = [&](auto w, int n) {
     std::vector<Mod> v(n);
     for (int i = 0; i < n; ++i) {
       v[i] = w[i];
@@ -336,8 +377,8 @@ TEST_CASE("poly_gen") {
 
   SECTION("integral") {
     auto p = PolyGen::value({Mod{2}, Mod{3}});
-    auto r = p.integrate(Mod{1});
-    REQUIRE(r[0] == Mod{1});
+    auto r = p.integrate();
+    REQUIRE(r[0] == Mod{0});
     REQUIRE(r[1] == Mod{2});
     REQUIRE(r[2] * Mod{2} == Mod{3});
   }
@@ -371,50 +412,12 @@ TEST_CASE("poly_gen") {
   SECTION("recur_fib") {
     // f(z) = f(z) * (z + z^2) + 1
     auto f = PolyGen::dummy();
-    auto rhs =
-        f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) + PolyGen::value({Mod{1}});
-    f.delegate(rhs);
-    REQUIRE(take(f, 6) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
-  }
-
-  SECTION("recur_fib_large") {
-    // f(z) = f(z) * (z + z^2) + 1
-    auto f = PolyGen::dummy();
-    auto rhs =
-        f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) + PolyGen::value({Mod{1}});
-    f.delegate(rhs);
-    REQUIRE(f[100000] == Mod{56136314});
-  }
-
-  SECTION("recur_fib_2") {
-    // f(z) = f(z) * (z + z^2) + 1
-    auto f = PolyGen::dummy();
-    auto rhs =
-        PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) * f + PolyGen::value({Mod{1}});
-    f.delegate(rhs);
-    REQUIRE(take(f, 6) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
-  }
-
-  SECTION("recur_fib_3") {
-    // f(z) = (f(z) * (1 + z)) * z + 1
-    auto f = PolyGen::dummy();
     auto rhs = (f * PolyGen::value({Mod{1}, Mod{1}})).shift(1) +
                PolyGen::value({Mod{1}});
     f.delegate(rhs);
     REQUIRE(take(f, 6) ==
             std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
-  }
-
-  SECTION("recur_fib_4") {
-    // f(z) = (f(z) * (1 + z)) * z + 1
-    auto f = PolyGen::dummy();
-    auto rhs = f.shift(1) * PolyGen::value({Mod{1}, Mod{1}}) +
-               PolyGen::value({Mod{1}});
-    f.delegate(rhs);
-    REQUIRE(take(f, 6) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
+    REQUIRE(f[100000] == Mod{56136314});
   }
 
   SECTION("recur_fib_fg") {
@@ -430,16 +433,12 @@ TEST_CASE("poly_gen") {
             std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}, Mod{8}});
   }
 
-  /*
   SECTION("recur_catalan") {
-    // f(z) = g(z) * z + 1
-    // g(z) = f(z) * (1 + z)
+    // f(z) = f * f * z + 1
     auto f = PolyGen::dummy();
     auto rhs = (f * f).shift(1) + PolyGen::value({Mod{1}});
     f.delegate(rhs);
     REQUIRE(take(f, 6) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14},
-  Mod{42}});
+            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}, Mod{42}});
   }
-  */
 }
