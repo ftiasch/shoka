@@ -165,12 +165,14 @@ template <typename Mod> struct PolyGenT {
     Mod compute(int i) override {
       if (known <= i) {
         auto n = Poly::min_power_of_two(i + 1);
-        buffer.resize(n);
+        result.resize(n);
+        buffer[0].resize(n);
+        buffer[1].resize(n);
         while (known <= i) {
           recur(0, n, known++);
         }
       }
-      return buffer[i];
+      return result[i];
     }
 
   protected:
@@ -178,34 +180,43 @@ template <typename Mod> struct PolyGenT {
 
     OpPtr p, q;
     int known;
-    std::vector<Mod> buffer;
+    std::vector<Mod> result;
+    std::array<std::vector<Mod>, 2> buffer;
   };
 
   struct SemiMul : public OnlineMul {
     using OnlineMul::OnlineMul;
 
   private:
-    using OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
+    using OnlineMul::result, OnlineMul::buffer, OnlineMul::p, OnlineMul::q;
 
     void recur(int l, int r, int k) override {
       if (l + 1 == r) {
-        buffer[l] += q->at(0) == Mod{0} ? Mod{0} : p->at(l) * q->at(0);
+        result[l] += q->at(0) == Mod{0} ? Mod{0} : p->at(l) * q->at(0);
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
           recur(l, m, k);
         } else {
           if (k == m) {
-            Poly pp(m - l), qq(r - l);
-            for (int i = 0; i < m - l; ++i) {
-              pp[i] = p->at(l + i);
+            auto n = m - l;
+            Poly::reserve(n << 1);
+            auto b0 = buffer[0].data();
+            auto b1 = buffer[1].data();
+            for (int i = 0; i < n; ++i) {
+              b0[i] = p->at(l + i);
             }
-            for (int i = 0; i < r - l; ++i) {
-              qq[i] = q->at(i);
+            for (int i = n; i < n << 1; ++i) {
+              b0[i] = Mod{0};
             }
-            auto rr = pp * qq;
+            for (int i = 0; i < n << 1; ++i) {
+              b1[i] = q->at(i);
+            }
+            Poly::dif(n << 1, b0);
+            Poly::dif(n << 1, b1);
+            Poly::dot_product_and_dit(n << 1, Mod{n << 1}.inv(), b0, b0, b1);
             for (int i = m; i < r; ++i) {
-              buffer[i] += rr[i - l];
+              result[i] += b0[i - l];
             }
           }
           recur(m, r, k);
