@@ -20,9 +20,7 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
       const auto b2 = Poly::template raw_buffer<2>();
       const auto b3 = Poly::template raw_buffer<3>();
       out[0] = b1[0] = b1[1] = b2[0] = Mod{1};
-      Mod inv_m(1);
       for (int m = 1; m < (n >> 1); m <<= 1) {
-        const Mod inv_2m = inv_m * Mod{2}.inv();
         for (int i = 0; i < m; ++i) {
           b0[i] = Mod{i} * f[i];
         }
@@ -52,7 +50,6 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
         for (int i = m; i < m << 1; ++i) {
           b2[i] = Mod{0} - b0[i];
         }
-        inv_m = inv_2m;
       }
       int m = n >> 1;
       for (int i = 0; i < m; ++i) {
@@ -69,6 +66,7 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
       Poly::dif(m, b0 + m);
       Poly::copy_and_fill0(m, b3 + m, m >> 1, b2 + (m >> 1));
       Poly::dif(m, b3 + m);
+      auto inv_m = Poly::power_of_two_inv(m);
       for (int i = 0; i < m; ++i) {
         b0[m + i] = inv_m * (b0[i] * b3[m + i] + b0[m + i] * b3[i]);
       }
@@ -82,7 +80,6 @@ template <typename Poly> struct PolyExp : public PolyOp<Poly, PolyExp> {
       }
       std::fill(b0 + m, b0 + (m << 1), Mod{0});
       Poly::dif(m << 1, b0);
-      Mod inv_2m = inv_m * Mod{2}.inv();
       Poly::dot_product_and_dit(m << 1, b0, b0, b1);
       std::copy(b0, b0 + m, out + m);
     }

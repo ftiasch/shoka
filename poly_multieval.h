@@ -23,7 +23,8 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
       Poly::dif(2, dif_rev_q[0].data() + (i << 1));
     }
     for (int l = 1; l < log_m; ++l) {
-      Mod inv_n{Mod{1 << l}.inv()}, G{FiniteField<Mod>::primitive_root()},
+      Mod inv_n{Poly::power_of_two_inv(1 << l)},
+          G{FiniteField<Mod>::primitive_root()},
           zeta{binpow(G, Mod::mod() - 1 - (Mod::mod() >> (l + 1)))};
       for (int s = 0; s < (m << 1); s += (2 << l)) {
         if (l + 1 < log_m) {

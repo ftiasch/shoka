@@ -20,6 +20,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   template <int i> static Mod *raw_buffer() {
     return ntt().template raw_buffer<i>();
   }
+  static Mod power_of_two_inv(int n) { return ntt().power_of_two_inv(n); }
   static void dif(int n, Mod *a) { ntt().dif(n, a); }
   static void dit(int n, Mod *a) { ntt().dit(n, a); }
 
@@ -34,7 +35,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   }
 
   static void dot_product_and_dit(int n, Mod *out, const Mod *a, const Mod *b) {
-    auto inv_n = ntt().power_of_two_inv(n);
+    auto inv_n = power_of_two_inv(n);
     for (int i = 0; i < n; ++i) {
       out[i] = inv_n * a[i] * b[i];
     }
