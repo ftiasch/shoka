@@ -33,8 +33,8 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     copy_and_fill0(n, dst, src.size(), src.data());
   }
 
-  static void dot_product_and_dit(int n, Mod inv_n, Mod *out, const Mod *a,
-                                  const Mod *b) {
+  static void dot_product_and_dit(int n, Mod *out, const Mod *a, const Mod *b) {
+    auto inv_n = ntt().power_of_two_inv(n);
     for (int i = 0; i < n; ++i) {
       out[i] = inv_n * a[i] * b[i];
     }
@@ -103,7 +103,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     dif(n, b0);
     copy_and_fill0(n, b1, o);
     dif(n, b1);
-    dot_product_and_dit(n, Mod{n}.inv(), b0, b0, b1);
+    dot_product_and_dit(n, b0, b0, b1);
     return {b0, b0 + deg_plus_1};
   }
 

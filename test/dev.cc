@@ -214,7 +214,7 @@ template <typename Mod> struct PolyGenT {
             }
             Poly::dif(n << 1, b0);
             Poly::dif(n << 1, b1);
-            Poly::dot_product_and_dit(n << 1, Mod{n << 1}.inv(), b0, b0, b1);
+            Poly::dot_product_and_dit(n << 1, b0, b0, b1);
             for (int i = m; i < r; ++i) {
               result[i] += b0[i - l];
             }

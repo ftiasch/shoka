@@ -41,7 +41,7 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
           }
           Poly::dif(1 << l, dif_rev_q[l].data() + s + (1 << l));
         } else {
-          Poly::dot_product_and_dit(1 << l, inv_n, dif_rev_q[l].data() + s,
+          Poly::dot_product_and_dit(1 << l, dif_rev_q[l].data() + s,
                                     dif_rev_q[l - 1].data() + s,
                                     dif_rev_q[l - 1].data() + s + (1 << l));
           dif_rev_q[l][s] -= Mod{1};
@@ -79,7 +79,7 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
 private:
   void mul_t(int n, Mod *out, Mod *dif_rev_a, Mod *dif_c) {
     const auto b = Poly::template raw_buffer<2>();
-    Poly::dot_product_and_dit(n, Mod{n}.inv(), b, dif_rev_a, dif_c);
+    Poly::dot_product_and_dit(n, b, dif_rev_a, dif_c);
     std::copy(b + (n >> 1), b + n, out);
   }
 

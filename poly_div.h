@@ -34,8 +34,7 @@ template <typename Poly> struct PolyDiv {
       Poly::dif(n, inv_g);
       Poly::copy_and_fill0(n, b0, m, f);
       Poly::dif(n, b0);
-      const Mod inv_n = Mod{n}.inv();
-      Poly::dot_product_and_dit(n, inv_n, b0, b0, inv_g);
+      Poly::dot_product_and_dit(n, b0, b0, inv_g);
 
       std::copy(b0, b0 + m, out);
 
@@ -43,13 +42,13 @@ template <typename Poly> struct PolyDiv {
       Poly::dif(n, b0);
       std::copy(g, g + n, b1);
       Poly::dif(n, b1);
-      Poly::dot_product_and_dit(n, inv_n, b0, b0, b1);
+      Poly::dot_product_and_dit(n, b0, b0, b1);
       std::fill(b0, b0 + m, Mod{0});
       for (int i = m; i < n; ++i) {
         b0[i] -= f[i];
       }
       Poly::dif(n, b0);
-      Poly::dot_product_and_dit(n, inv_n, b0, b0, inv_g);
+      Poly::dot_product_and_dit(n, b0, b0, inv_g);
       for (int i = m; i < n; ++i) {
         out[i] = Mod{0} - b0[i];
       }

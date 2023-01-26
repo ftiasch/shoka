@@ -34,6 +34,12 @@ template <typename Mod> struct NttT {
                                     " is not a divisor of (Mod::mod() - 1)");
       }
       max_n = n;
+      auto log_max_n = __builtin_ctz(max_n);
+      power_of_two_invs.resize(log_max_n + 1);
+      power_of_two_invs[0] = Mod{1};
+      for (int i = 1; i <= log_max_n; ++i) {
+        power_of_two_invs[i] = power_of_two_invs[i - 1] * Mod{2}.inv();
+      }
       twiddles.resize(max_n + 1);
       twiddles[0] = Mod{1};
       auto omega = binpow(G, (Mod::mod() - 1) / n);
@@ -47,6 +53,10 @@ template <typename Mod> struct NttT {
   }
 
   template <int i> Mod *raw_buffer() { return buffers[i].data(); }
+
+  Mod power_of_two_inv(int n) const {
+    return power_of_two_invs[__builtin_ctz(n)];
+  }
 
   void dit(int n, Mod *a) {
     assert_power_of_two(n);
@@ -88,6 +98,6 @@ private:
   static constexpr Mod G = FiniteField<Mod>::primitive_root();
 
   int max_n = 0;
-  std::vector<Mod> twiddles;
+  std::vector<Mod> power_of_two_invs, twiddles;
   std::array<std::vector<Mod>, NUMBER_OF_BUFFER> buffers;
 };
