@@ -39,13 +39,19 @@ template <typename Mod> struct PolyGenT {
     using Op::Op;
 
     Mod at(int i) override {
+      if (~computing && computing <= i) {
+        throw std::logic_error("Loop detected.");
+      }
       while (cache.size() <= i) {
-        cache.push_back(compute(cache.size()));
+        computing = cache.size();
+        cache.push_back(compute(computing));
+        computing = -1;
       }
       return cache[i];
     }
 
   private:
+    int computing = -1;
     std::vector<Mod> cache;
   };
 
