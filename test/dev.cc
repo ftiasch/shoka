@@ -206,9 +206,7 @@ template <typename Mod> struct PolyGenT {
             for (int i = 0; i < n; ++i) {
               b0[i] = p->at(l + i);
             }
-            for (int i = n; i < n << 1; ++i) {
-              b0[i] = Mod{0};
-            }
+            std::fill(b0 + n, b0 + (n << 1), Mod{0});
             for (int i = 0; i < n << 1; ++i) {
               b1[i] = q->at(i);
             }
