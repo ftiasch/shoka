@@ -11,7 +11,9 @@
 
 template <typename Mod> struct PolyGenT {
 private:
-  using Ntt = NttT<Mod>;
+  static constexpr int SHORT_ZEALOUS_THRESHOLD = 16;
+
+  using Ntt = NttT<Mod, 0>;
 
   static Ntt &ntt() { return singleton<Ntt>(); }
 
@@ -152,6 +154,28 @@ private:
     PtrOp p, q;
   };
 
+  struct ShortZealousConv : public CachedOp {
+    explicit ShortZealousConv(PtrOp p_, PtrOp q_)
+        : CachedOp{p_->min_deg() + q_->min_deg(),
+                   '(' + p_->name + "*_{short_semi}" + q_->name + ')'},
+          p{std::move(p_)}, q{std::move(q_)} {}
+
+  private:
+    using CachedOp::cache;
+
+    void compute_next() override {
+      int k = cache.size();
+      Mod result{0};
+      for (int i = std::max<int>(!!p->min_deg(), k - q->max_deg());
+           i <= k - !!q->min_deg(); ++i) {
+        result += (*p)[i] * (*q)[k - i];
+      }
+      cache.push_back(result);
+    }
+
+    PtrOp p, q;
+  };
+
   struct SemiConv : public CachedOp {
     using CachedOp::cache;
 
@@ -257,8 +281,9 @@ private:
     }
 
     static Wrapper smart_semi(const PtrOp &p, const PtrOp &q) {
-      return q->max_deg() < 16 ? wrap<ShortZealousConv>(p, q)
-                               : wrap<SemiConv>(p, q);
+      return q->max_deg() < SHORT_ZEALOUS_THRESHOLD
+                 ? wrap<ShortZealousConv>(p, q)
+                 : wrap<SemiConv>(p, q);
     }
 
     PtrOp op;
@@ -322,11 +347,19 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum_2") {
     // f(z) = f(z) * z + 1
-    auto [f, uf] = PolyGen::var("f");
-    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}}, "C") +
-               PolyGen::value({Mod{1}}, "1");
+    auto [f, uf] = PolyGen::var();
+    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}}) + PolyGen::value({Mod{1}});
     uf->delegate(rhs);
     REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{1}});
+  }
+
+  SECTION("geo_sum_short_zealous") {
+    // f(z) = f(z) * (z + z^2 + z^3) + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}, Mod{1}}) +
+               PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{4}, Mod{7}});
   }
 
   SECTION("fib") {
@@ -502,7 +535,7 @@ private:
     using Op::at;
 
     explicit ModInv() : CachedOp{true, 1} {}
-
+2
     Mod compute(int i) override {
       return i < 2 ? Mod{i}
                    : Mod{Mod::mod() - Mod::mod() / i} * at(Mod::mod() % i);
