@@ -207,29 +207,68 @@ private:
     PtrOp p, q;
   };
 
-  struct SemiConv : public CachedOp {
+  struct ConvBase : public CachedOp {
     using CachedOp::cache;
 
-    explicit SemiConv(PtrOp p_, PtrOp q_)
+    explicit ConvBase(PtrOp p_, PtrOp q_, const std::string &conv_name)
         : CachedOp{p_->min_deg() + q_->min_deg(),
-                   '(' + p_->name + "*_{semi}" + q_->name + ')'},
+                   '(' + p_->name + "*_{" + conv_name + '}' + q_->name + ')'},
           p{std::move(p_)}, q{std::move(q_)} {
       cache.resize(1);
     }
 
+  protected:
+    void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
+      copy_and_fill0(n, buffer.data(), p, pbegin, pend);
+      copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
+      ntt().dif(n, buffer.data());
+      ntt().dif(n, buffer1.data());
+      auto inv_n = ntt().power_of_two_inv(n);
+      for (int i = 0; i < n; ++i) {
+        buffer[i] = inv_n * buffer[i] * buffer1[i];
+      }
+      ntt().dit(n, buffer.data());
+    }
+
+    PtrOp p, q;
+    std::vector<Mod> buffer;
+
   private:
+    static void copy_and_fill0(int n, Mod *dst, const PtrOp &p, int l, int r) {
+      for (int i = 0; i < r - l; ++i) {
+        dst[i] = (*p)[l + i];
+      }
+      std::fill(dst + (r - l), dst + n, Mod{0});
+    }
+
+    virtual void recur(int, int, int) = 0;
+
+    int computed() const override { return computed_; }
+
     void compute_next() override {
       int next = computed_;
       if (next == cache.size()) {
         auto new_size = cache.size() << 1;
         ntt().reserve(new_size);
         cache.resize(new_size);
-        buffer_p.resize(new_size);
-        buffer_q.resize(new_size);
+        buffer.resize(new_size);
+        buffer1.resize(new_size);
       }
       recur(0, cache.size(), next);
       computed_++;
     }
+
+    int computed_ = 0;
+    std::vector<Mod> buffer1;
+  };
+
+  struct SemiConv : public ConvBase {
+    explicit SemiConv(PtrOp p, PtrOp q)
+        : ConvBase{std::move(p), std::move(q), "semi"} {}
+
+  private:
+    using ConvBase::cache, ConvBase::p, ConvBase::q, ConvBase::middle_product,
+        ConvBase::buffer;
 
     void recur(int l, int r, int k) {
       if (l + 1 == r) {
@@ -240,43 +279,50 @@ private:
           recur(l, m, k);
         } else {
           if (k == m) {
-            auto n = r - l;
-            copy_and_fill0(n, buffer_p.data(), p, l, m);
-            copy_and_fill0(n, buffer_q.data(), q, 0, n);
-            ntt().dif(n, buffer_p.data());
-            ntt().dif(n, buffer_q.data());
-            dot_product_and_dit(n, buffer_p.data(), buffer_p.data(),
-                                buffer_q.data());
+            middle_product(r - l, l, m, 0, r - l);
             for (int i = m; i < r; ++i) {
-              cache[i] += buffer_p[i - l];
+              cache[i] += buffer[i - l];
             }
           }
           recur(m, r, k);
         }
       }
     }
+  };
 
-    int computed() const override { return computed_; }
+  struct FullConv : public ConvBase {
+    explicit FullConv(PtrOp p, PtrOp q)
+        : ConvBase{std::move(p), std::move(q), "full"} {}
 
-    static void copy_and_fill0(int n, Mod *dst, const PtrOp &p, int l, int r) {
-      for (int i = 0; i < r - l; ++i) {
-        dst[i] = (*p)[l + i];
+  private:
+    using ConvBase::cache, ConvBase::p, ConvBase::q, ConvBase::middle_product,
+        ConvBase::buffer;
+
+    void recur(int l, int r, int k) {
+      if (l + 1 == r) {
+        cache[l] += q->min_deg() ? Mod{0} : (*p)[l] * (*q)[0];
+        cache[l] += !l || p->min_deg() ? Mod{0} : (*p)[0] * (*q)[l];
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            middle_product(r - l, l, m, 0, l ? r - l : m - l);
+            for (int i = m; i < r; ++i) {
+              cache[i] += buffer[i - l];
+            }
+            if (!l) {
+              middle_product(r - l, 0, r - l, l, m);
+              for (int i = m; i < r; ++i) {
+                cache[i] += buffer[i - l];
+              }
+            }
+          }
+          recur(m, r, k);
+        }
       }
-      std::fill(dst + (r - l), dst + n, Mod{0});
     }
-
-    static void dot_product_and_dit(int n, Mod *out, const Mod *a,
-                                    const Mod *b) {
-      auto inv_n = ntt().power_of_two_inv(n);
-      for (int i = 0; i < n; ++i) {
-        out[i] = inv_n * a[i] * b[i];
-      }
-      ntt().dit(n, out);
-    }
-
-    PtrOp p, q;
-    int computed_ = 0;
-    std::vector<Mod> buffer_p, buffer_q;
   };
 
   struct Var;
@@ -306,7 +352,7 @@ private:
         }
         return smart_semi(q, p);
       } else {
-        return q->is_value ? smart_semi(p, q) : wrap<ZealousConv>(p, q);
+        return q->is_value ? smart_semi(p, q) : wrap<FullConv>(p, q);
       }
     }
 
