@@ -2,8 +2,3 @@ add_executable(tests tests.cc)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR})
 catch_discover_tests(tests)
-
-add_executable(dev dev.cc)
-target_link_libraries(dev PRIVATE Catch2::Catch2WithMain)
-target_include_directories(dev PRIVATE ${CMAKE_SOURCE_DIR})
-catch_discover_tests(dev)

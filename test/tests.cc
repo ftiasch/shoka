@@ -5,6 +5,7 @@
 #include "mod.hpp"
 #include "nd_vector.hpp"
 #include "poly.hpp"
+#include "poly_gen.hpp"
 #include "polynomial_interpolation.hpp"
 #include "rmq.hpp"
 #include "rolling_hash.hpp"
