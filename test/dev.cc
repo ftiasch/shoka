@@ -1,3 +1,6 @@
+#include "ntt.h"
+#include "singleton.h"
+
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -8,6 +11,10 @@
 
 template <typename Mod> struct PolyGenT {
 private:
+  using Ntt = NttT<Mod>;
+
+  static Ntt &ntt() { return singleton<Ntt>(); }
+
   using Vector = std::vector<Mod>;
 
   struct Op;
@@ -37,27 +44,29 @@ private:
     using Op::Op;
 
     Mod operator[](int i) override {
-      // std::cerr << ">" << this->name << "[" << i << "]" << std::endl;
-      while (cache.size() <= i) {
+      while (computed() <= i) {
         if (hwm <= i) {
-          throw std::logic_error("Loop");
+          throw std::logic_error("loop detected");
         }
-        hwm = cache.size();
-        auto result = compute(hwm);
-        cache.push_back(result);
+        hwm = computed();
+        // std::cerr << ">" << this->name << "[" << hwm << "]" << std::endl;
+        compute_next();
+        // std::cerr << "<" << this->name << "[" << hwm << "]=" << cache[hwm]
+        //           << std::endl;
         hwm = INT_MAX;
       }
-      // std::cerr << "<" << this->name << "[" << i << "]=" << cache[i]
-      //           << std::endl;
       return cache[i];
     }
 
   protected:
-    virtual Mod compute(int) = 0;
+    virtual void compute_next() = 0;
+
+    virtual int computed() const { return cache.size(); }
+
+    Vector cache;
 
   private:
     int hwm = INT_MAX;
-    Vector cache;
   };
 
   struct Value : public Op {
@@ -125,20 +134,97 @@ private:
   struct ZealousConv : public CachedOp {
     explicit ZealousConv(PtrOp p_, PtrOp q_)
         : CachedOp{p_->min_deg() + q_->min_deg(),
-                   '(' + p_->name + '*' + q_->name + ')',
-                   p_->is_value && q_->is_value},
+                   '(' + p_->name + '*' + q_->name + ')'},
           p{std::move(p_)}, q{std::move(q_)} {}
 
   private:
-    Mod compute(int k) override {
+    using CachedOp::cache;
+
+    void compute_next() override {
+      int k = cache.size();
       Mod result{0};
-      for (int i = p->min_deg(); i <= k - q->min_deg(); ++i) {
+      for (int i = !!p->min_deg(); i <= k - !!q->min_deg(); ++i) {
         result += (*p)[i] * (*q)[k - i];
       }
-      return result;
+      cache.push_back(result);
     }
 
     PtrOp p, q;
+  };
+
+  struct SemiConv : public CachedOp {
+    using CachedOp::cache;
+
+    explicit SemiConv(PtrOp p_, PtrOp q_)
+        : CachedOp{p_->min_deg() + q_->min_deg(),
+                   '(' + p_->name + "*_{semi}" + q_->name + ')'},
+          p{std::move(p_)}, q{std::move(q_)} {
+      if (!q->is_value) {
+        throw std::logic_error("q is not a value");
+      }
+      cache.resize(1);
+    }
+
+  private:
+    void compute_next() override {
+      int next = computed_;
+      if (next == cache.size()) {
+        auto new_size = cache.size() << 1;
+        ntt().reserve(new_size);
+        cache.resize(new_size);
+        buffer_p.resize(new_size);
+        buffer_q.resize(new_size);
+      }
+      recur(0, cache.size(), next);
+      computed_++;
+    }
+
+    void recur(int l, int r, int k) {
+      if (l + 1 == r) {
+        cache[l] += q->min_deg() ? Mod{0} : (*p)[l] * (*q)[0];
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            auto n = r - l;
+            copy_and_fill0(n, buffer_p.data(), p, l, m);
+            copy_and_fill0(n, buffer_q.data(), q, 0, n);
+            ntt().dif(n, buffer_p.data());
+            ntt().dif(n, buffer_q.data());
+            dot_product_and_dit(n, buffer_p.data(), buffer_p.data(),
+                                buffer_q.data());
+            for (int i = m; i < r; ++i) {
+              cache[i] += buffer_p[i - l];
+            }
+          }
+          recur(m, r, k);
+        }
+      }
+    }
+
+    int computed() const override { return computed_; }
+
+    static void copy_and_fill0(int n, Mod *dst, const PtrOp &p, int l, int r) {
+      for (int i = 0; i < r - l; ++i) {
+        dst[i] = (*p)[l + i];
+      }
+      std::fill(dst + (r - l), dst + n, Mod{0});
+    }
+
+    static void dot_product_and_dit(int n, Mod *out, const Mod *a,
+                                    const Mod *b) {
+      auto inv_n = ntt().power_of_two_inv(n);
+      for (int i = 0; i < n; ++i) {
+        out[i] = inv_n * a[i] * b[i];
+      }
+      ntt().dit(n, out);
+    }
+
+    PtrOp p, q;
+    int computed_ = 0;
+    std::vector<Mod> buffer_p, buffer_q;
   };
 
   struct Var;
@@ -154,12 +240,26 @@ private:
 
     Wrapper operator-(const Wrapper &o) const { return wrap<Sub>(op, o.op); }
 
-    Wrapper operator*(const Wrapper &o) const {
-      return wrap<ZealousConv>(op, o.op);
-    }
+    Wrapper operator*(const Wrapper &o) const { return smart_conv(op, o.op); }
 
   private:
     friend struct Var;
+
+    static Wrapper smart_conv(const PtrOp &p, const PtrOp &q) {
+      if (p->is_value) {
+        if (q->is_value) {
+          throw std::logic_error("Value*Value not supported");
+        }
+        return smart_semi(q, p);
+      } else {
+        return q->is_value ? smart_semi(p, q) : wrap<ZealousConv>(p, q);
+      }
+    }
+
+    static Wrapper smart_semi(const PtrOp &p, const PtrOp &q) {
+      return q->max_deg() < 16 ? wrap<ShortZealousConv>(p, q)
+                               : wrap<SemiConv>(p, q);
+    }
 
     PtrOp op;
   };
@@ -222,8 +322,9 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum_2") {
     // f(z) = f(z) * z + 1
-    auto [f, uf] = PolyGen::var();
-    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}}) + PolyGen::value({Mod{1}});
+    auto [f, uf] = PolyGen::var("f");
+    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}}, "C") +
+               PolyGen::value({Mod{1}}, "1");
     uf->delegate(rhs);
     REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{1}});
   }
@@ -235,6 +336,7 @@ TEST_CASE("poly_gen") {
         f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) + PolyGen::value({Mod{1}});
     uf->delegate(rhs);
     REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}});
+    REQUIRE(f[100000] == Mod{56136314});
   }
 
   SECTION("catalan_1") {

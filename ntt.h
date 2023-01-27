@@ -13,7 +13,7 @@
 
 #include <stdexcept>
 
-template <typename Mod> struct NttT {
+template <typename Mod, int NUMBER_OF_BUFFER = 5> struct NttT {
   static void assert_power_of_two(int n) {
     if (n & (n - 1)) {
       throw std::invalid_argument(std::to_string(n) + " is not a power of two");
@@ -93,8 +93,6 @@ template <typename Mod> struct NttT {
   }
 
 private:
-  static constexpr int NUMBER_OF_BUFFER = 5;
-
   static constexpr Mod G = FiniteField<Mod>::primitive_root();
 
   int max_n = 0;
