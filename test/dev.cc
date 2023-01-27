@@ -1,3 +1,239 @@
+#include <functional>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "debug.h"
+
+template <typename Mod> struct PolyGenT {
+private:
+  using Vector = std::vector<Mod>;
+
+  struct Op;
+
+  using PtrOp = std::shared_ptr<Op>;
+
+  struct Op {
+    explicit Op(int min_deg_, const std::string &name_, bool is_value_ = false)
+        : min_deg{min_deg_}, is_value{is_value_}, name{name_} {}
+
+    virtual ~Op() = default;
+
+    virtual Mod operator[](int) = 0;
+
+    const int min_deg;
+    const std::string name;
+    const bool is_value;
+  };
+
+  struct CachedOp : public Op {
+    using Op::Op;
+
+    Mod operator[](int i) override {
+      // std::cerr << ">" << this->name << "[" << i << "]" << std::endl;
+      while (cache.size() <= i) {
+        if (hwm <= i) {
+          throw std::logic_error("Loop");
+        }
+        hwm = cache.size();
+        auto result = compute(hwm);
+        cache.push_back(result);
+        hwm = INT_MAX;
+      }
+      // std::cerr << "<" << this->name << "[" << i << "]=" << cache[i]
+      //           << std::endl;
+      return cache[i];
+    }
+
+  protected:
+    virtual Mod compute(int) = 0;
+
+  private:
+    int hwm = INT_MAX;
+    Vector cache;
+  };
+
+  struct Value : public Op {
+    // TODO: add more vector constructors
+    explicit Value(const Vector &c_, const std::string &name_)
+        : Op{min_deg(c_), name_, true}, c{c_} {}
+
+    Mod operator[](int i) override {
+      return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
+    }
+
+  private:
+    static int min_deg(const Vector &c) {
+      int d = 0;
+      while (d < static_cast<int>(c.size()) && c[d] == Mod{0}) {
+        d++;
+      }
+      return d;
+    }
+
+    Vector c;
+  };
+
+  struct Add : public Op {
+    explicit Add(PtrOp p_, PtrOp q_)
+        : Op{std::min(p_->min_deg, q_->min_deg),
+             '(' + p_->name + '+' + q_->name + ')',
+             p_->is_value && q_->is_value},
+          p{std::move(p_)}, q{std::move(q_)} {}
+
+    Mod operator[](int i) override { return (*p)[i] + (*q)[i]; }
+
+  private:
+    PtrOp p, q;
+  };
+
+  struct Shift : public Op {
+    explicit Shift(PtrOp p_, int s_)
+        : Op{p_->min_deg + s_,
+             '(' + p_->name + "*z^" + std::to_string(s_) + ')', p_->is_value},
+          p{std::move(p_)}, s{s_} {}
+
+    Mod operator[](int i) override { return i < s ? Mod{0} : (*p)[i - s]; }
+
+  private:
+    PtrOp p;
+    int s;
+  };
+
+  struct ZealousMul : public CachedOp {
+    explicit ZealousMul(PtrOp p_, PtrOp q_)
+        : CachedOp{p_->min_deg + q_->min_deg,
+                   '(' + p_->name + '*' + q_->name + ')',
+                   p_->is_value && q_->is_value},
+          p{std::move(p_)}, q{std::move(q_)} {}
+
+  private:
+    Mod compute(int k) override {
+      Mod result{0};
+      for (int i = p->min_deg; i <= k - q->min_deg; ++i) {
+        result += (*p)[i] * (*q)[k - i];
+      }
+      return result;
+    }
+
+    PtrOp p, q;
+  };
+
+  struct Var;
+
+  struct Wrapper final {
+    explicit Wrapper(PtrOp op_) : op{std::move(op_)} {}
+
+    Mod operator[](int i) { return (*op)[i]; }
+
+    Wrapper shift(int s) const { return wrap<Shift>(op, s); }
+
+    Wrapper operator+(const Wrapper &o) const { return wrap<Add>(op, o.op); }
+
+    Wrapper operator*(const Wrapper &o) const {
+      return wrap<ZealousMul>(op, o.op);
+    }
+
+  private:
+    friend struct Var;
+
+    PtrOp op;
+  };
+
+  struct Var : public Op {
+    explicit Var(const std::string &name_) : Op{0, name_, false} {}
+
+    Mod operator[](int i) override { return (*p.lock())[i]; }
+
+    void delegate(Wrapper w) { p = w.op; }
+
+  private:
+    std::weak_ptr<Op> p;
+  };
+
+  template <typename T, typename... Args> static Wrapper wrap(Args &&...args) {
+    static_assert(std::is_base_of_v<Op, T>);
+    return Wrapper{std::make_shared<T>(std::forward<Args>(args)...)};
+  }
+
+public:
+  static std::pair<Wrapper, std::shared_ptr<Var>>
+  var(const std::string &name = "") {
+    auto v = std::make_shared<Var>(name);
+    return {Wrapper{v}, v};
+  }
+
+  static Wrapper value(const Vector &c, const std::string &name = "") {
+    return wrap<Value>(c, name);
+  }
+};
+
+#include "mod.h"
+
+#include <bits/stdc++.h>
+
+#include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators.hpp>
+
+TEST_CASE("poly_gen") {
+  using Mod = ModT<998'244'353>;
+  using PolyGen = PolyGenT<Mod>;
+  using Vector = std::vector<Mod>;
+
+  auto take = [&](auto w, int n) {
+    std::vector<Mod> p(n);
+    for (int i = 0; i < n; ++i) {
+      p[i] = w[i];
+    }
+    return p;
+  };
+
+  SECTION("geo_sum_1") {
+    // f(z) = f(z) * z + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs = f.shift(1) + PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{1}});
+  }
+
+  SECTION("geo_sum_2") {
+    // f(z) = f(z) * z + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs = f * PolyGen::value({Mod{0}, Mod{1}}) + PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{1}});
+  }
+
+  SECTION("fib") {
+    // f(z) = f(z) * (z + z^2) + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs =
+        f * PolyGen::value({Mod{0}, Mod{1}, Mod{1}}) + PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}});
+  }
+
+  SECTION("catalan_1") {
+    // f(z) = f(z) * f(z) * z + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs =
+        (f * f) * PolyGen::value({Mod{0}, Mod{1}}) + PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}});
+  }
+
+  SECTION("catalan_2") {
+    // f(z) = f(z) * f(z) * z + 1
+    auto [f, uf] = PolyGen::var("f");
+    auto rhs = f * (f * PolyGen::value({Mod{0}, Mod{1}}, "C")) +
+               PolyGen::value({Mod{1}}, "1");
+    uf->delegate(rhs);
+    REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}});
+  }
+}
+
+/*
 #include "poly.h"
 
 #include "singleton.h"
@@ -314,9 +550,9 @@ private:
     OpPtr op;
   };
 
-  template <typename T, typename... Args> static Wrapper wrap(Args &&...args) {
-    static_assert(std::is_base_of_v<Op, T>);
-    return Wrapper{std::make_shared<T>(std::forward<Args>(args)...)};
+  template <typename T, typename... Args> static Wrapper wrap(Args &&...args)
+{ static_assert(std::is_base_of_v<Op, T>); return
+Wrapper{std::make_shared<T>(std::forward<Args>(args)...)};
   }
 
 public:
@@ -439,6 +675,8 @@ TEST_CASE("poly_gen") {
     auto rhs = (f * f).shift(1) + PolyGen::value({Mod{1}});
     f.delegate(rhs);
     REQUIRE(take(f, 6) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}, Mod{42}});
+            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14},
+Mod{42}});
   }
 }
+*/
