@@ -15,16 +15,22 @@ private:
   using PtrOp = std::shared_ptr<Op>;
 
   struct Op {
-    explicit Op(int min_deg_, const std::string &name_, bool is_value_ = false)
-        : min_deg{min_deg_}, is_value{is_value_}, name{name_} {}
+    explicit Op(int min_deg__, const std::string &name_, bool is_value_ = false)
+        : min_deg_{min_deg__}, is_value{is_value_}, name{name_} {}
 
     virtual ~Op() = default;
 
     virtual Mod operator[](int) = 0;
 
-    const int min_deg;
+    int min_deg() const { return min_deg_; }
+
+    virtual int max_deg() const { return INT_MAX; }
+
     const std::string name;
     const bool is_value;
+
+  private:
+    const int min_deg_;
   };
 
   struct CachedOp : public Op {
@@ -57,14 +63,16 @@ private:
   struct Value : public Op {
     // TODO: add more vector constructors
     explicit Value(const Vector &c_, const std::string &name_)
-        : Op{min_deg(c_), name_, true}, c{c_} {}
+        : Op{get_min_deg(c_), name_, true}, c{c_} {}
 
     Mod operator[](int i) override {
       return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
     }
 
+    int max_deg() const override { return static_cast<int>(c.size()) - 1; }
+
   private:
-    static int min_deg(const Vector &c) {
+    static int get_min_deg(const Vector &c) {
       int d = 0;
       while (d < static_cast<int>(c.size()) && c[d] == Mod{0}) {
         d++;
@@ -77,7 +85,7 @@ private:
 
   struct Add : public Op {
     explicit Add(PtrOp p_, PtrOp q_)
-        : Op{std::min(p_->min_deg, q_->min_deg),
+        : Op{std::min(p_->min_deg(), q_->min_deg()),
              '(' + p_->name + '+' + q_->name + ')',
              p_->is_value && q_->is_value},
           p{std::move(p_)}, q{std::move(q_)} {}
@@ -88,9 +96,22 @@ private:
     PtrOp p, q;
   };
 
+  struct Sub : public Op {
+    explicit Sub(PtrOp p_, PtrOp q_)
+        : Op{std::min(p_->min_deg(), q_->min_deg()),
+             '(' + p_->name + '-' + q_->name + ')',
+             p_->is_value && q_->is_value},
+          p{std::move(p_)}, q{std::move(q_)} {}
+
+    Mod operator[](int i) override { return (*p)[i] - (*q)[i]; }
+
+  private:
+    PtrOp p, q;
+  };
+
   struct Shift : public Op {
     explicit Shift(PtrOp p_, int s_)
-        : Op{p_->min_deg + s_,
+        : Op{p_->min_deg() + s_,
              '(' + p_->name + "*z^" + std::to_string(s_) + ')', p_->is_value},
           p{std::move(p_)}, s{s_} {}
 
@@ -101,9 +122,9 @@ private:
     int s;
   };
 
-  struct ZealousMul : public CachedOp {
-    explicit ZealousMul(PtrOp p_, PtrOp q_)
-        : CachedOp{p_->min_deg + q_->min_deg,
+  struct ZealousConv : public CachedOp {
+    explicit ZealousConv(PtrOp p_, PtrOp q_)
+        : CachedOp{p_->min_deg() + q_->min_deg(),
                    '(' + p_->name + '*' + q_->name + ')',
                    p_->is_value && q_->is_value},
           p{std::move(p_)}, q{std::move(q_)} {}
@@ -111,7 +132,7 @@ private:
   private:
     Mod compute(int k) override {
       Mod result{0};
-      for (int i = p->min_deg; i <= k - q->min_deg; ++i) {
+      for (int i = p->min_deg(); i <= k - q->min_deg(); ++i) {
         result += (*p)[i] * (*q)[k - i];
       }
       return result;
@@ -131,8 +152,10 @@ private:
 
     Wrapper operator+(const Wrapper &o) const { return wrap<Add>(op, o.op); }
 
+    Wrapper operator-(const Wrapper &o) const { return wrap<Sub>(op, o.op); }
+
     Wrapper operator*(const Wrapper &o) const {
-      return wrap<ZealousMul>(op, o.op);
+      return wrap<ZealousConv>(op, o.op);
     }
 
   private:
@@ -225,9 +248,18 @@ TEST_CASE("poly_gen") {
 
   SECTION("catalan_2") {
     // f(z) = f(z) * f(z) * z + 1
-    auto [f, uf] = PolyGen::var("f");
-    auto rhs = f * (f * PolyGen::value({Mod{0}, Mod{1}}, "C")) +
-               PolyGen::value({Mod{1}}, "1");
+    auto [f, uf] = PolyGen::var();
+    auto rhs =
+        f * (f * PolyGen::value({Mod{0}, Mod{1}})) + PolyGen::value({Mod{1}});
+    uf->delegate(rhs);
+    REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}});
+  }
+
+  SECTION("catalan_3") {
+    // f(z) = f(z) * f(z) * z + 1
+    auto [f, uf] = PolyGen::var();
+    auto rhs =
+        f * (PolyGen::value({Mod{0}, Mod{1}}) * f) + PolyGen::value({Mod{1}});
     uf->delegate(rhs);
     REQUIRE(take(f, 5) == Vector{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}});
   }
@@ -257,8 +289,8 @@ private:
   using OpPtr = std::shared_ptr<Op>;
 
   struct Op {
-    explicit Op(bool acyclic_, int min_deg_)
-        : acyclic{acyclic_}, min_deg{min_deg_} {}
+    explicit Op(bool acyclic_, int min_deg()_)
+        : acyclic{acyclic_}, min_deg(){min_deg()_} {}
 
     virtual ~Op() = default;
 
@@ -267,7 +299,7 @@ private:
     virtual void delegate(OpPtr) {}
 
     const bool acyclic;
-    const int min_deg;
+    const int min_deg();
 
   protected:
     virtual Mod compute(int) = 0;
@@ -313,10 +345,10 @@ private:
   };
 
   struct Value : public Op {
-    explicit Value(const Vector &c_) : Op{true, get_min_deg(c_)}, c{c_} {}
+    explicit Value(const Vector &c_) : Op{true, get_min_deg()(c_)}, c{c_} {}
 
   private:
-    static int get_min_deg(const Vector &c) {
+    static int get_min_deg()(const Vector &c) {
       int i = 0;
       while (i < static_cast<int>(c.size()) && c[i] == Mod{0}) {
         i++;
@@ -333,7 +365,7 @@ private:
 
   struct Shift : public Op {
     explicit Shift(OpPtr p_, int s_)
-        : Op{p_->acyclic, p_->min_deg + s_}, p{std::move(p_)}, s{s_} {}
+        : Op{p_->acyclic, p_->min_deg() + s_}, p{std::move(p_)}, s{s_} {}
 
   private:
     Mod compute(int i) override { return i < s ? Mod{0} : p->at(i - s); }
@@ -377,7 +409,7 @@ private:
 
   struct Integral : public Op {
     explicit Integral(OpPtr p_)
-        : Op{p_->acyclic, p_->min_deg + 1}, p{std::move(p_)} {}
+        : Op{p_->acyclic, p_->min_deg() + 1}, p{std::move(p_)} {}
 
   private:
     Mod compute(int i) override {
@@ -389,8 +421,8 @@ private:
 
   struct Mul : public Op {
     explicit Mul(OpPtr p_, OpPtr q_)
-        : Op{true, p_->min_deg + q_->min_deg}, p{std::move(p_)}, q{std::move(
-                                                                     q_)} {}
+        : Op{true, p_->min_deg() + q_->min_deg()}, p{std::move(p_)},
+q{std::move( q_)} {}
 
   private:
     Mod compute(int i) override {
@@ -415,7 +447,7 @@ private:
 
   struct OnlineMul : public Op {
     explicit OnlineMul(OpPtr p_, OpPtr q_)
-        : Op{false, p_->min_deg + q_->min_deg}, p{std::move(p_)},
+        : Op{false, p_->min_deg() + q_->min_deg()}, p{std::move(p_)},
           q{std::move(q_)}, done{0} {}
 
   private:
@@ -468,7 +500,7 @@ private:
 
     void recur(int l, int r, int k) override {
       if (l + 1 == r) {
-        result[l] += q->min_deg ? Mod{0} : p->at(l) * q->at(0);
+        result[l] += q->min_deg() ? Mod{0} : p->at(l) * q->at(0);
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
@@ -495,7 +527,7 @@ private:
 
     void recur(int l, int r, int k) override {
       if (l + 1 == r) {
-        result[l] += q->min_deg ? Mod{0} : p->at(l) * q->at(0);
+        result[l] += q->min_deg() ? Mod{0} : p->at(l) * q->at(0);
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
