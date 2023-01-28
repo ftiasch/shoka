@@ -1,18 +1,28 @@
 #include <tuple>
 #include <vector>
 
+// TODO: min_deg
+// TODO: LazyMul
+// TODO: Cache
 template <typename Mod_, typename... Es> struct ContextT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
-  explicit ContextT()
-      : store{typename Es::template StoreT<ContextT>{*this}...} {}
+  using Values = std::vector<std::vector<Mod>>;
+
+  explicit ContextT(Values &&cvalues_)
+      : values{std::move(cvalues_)}, store{
+                                         typename Es::template StoreT<ContextT>{
+                                             *this}...} {}
+
+  template <int Index> auto &get_value() const { return values[Index]; }
 
   template <int Index> auto &get() { return std::get<Index>(store); }
 
 private:
   using Store = std::tuple<typename Es::template StoreT<ContextT>...>;
 
+  Values values;
   Store store;
 };
 
@@ -44,7 +54,7 @@ template <int Index> struct Var {
   };
 };
 
-struct Const {
+template <int Index> struct C {
   template <typename Ctx> struct StoreT {
     static constexpr bool is_value = true;
 
@@ -52,17 +62,15 @@ struct Const {
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    void const_set(const Vector &c_) { c = c_; }
+    using Mod = typename Ctx::Mod;
 
-    auto operator[](int i) const {
-      using Mod = typename Ctx::Mod;
-
-      return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
+    Mod operator[](int i) const {
+      auto &c = ctx.template get_value<Index>();
+      return i < c.size() ? c[i] : Mod{0};
     }
 
   private:
     Ctx &ctx;
-    Vector c;
   };
 };
 
@@ -102,16 +110,12 @@ TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
 
   // f(z) = f(z) * z + 1
-  ContextT<Mod, Add<Mul<Var<0>, Var<1>>, Var<2>>, Const, Const> ctx;
-  auto &f = ctx.get<0>();
-  auto &c1 = ctx.get<1>();
-  auto &c2 = ctx.get<2>();
-  REQUIRE_FALSE(f.is_value);
-  REQUIRE(c1.is_value);
-  REQUIRE(c2.is_value);
+  using GF = ContextT<Mod, Add<Mul<Var<0>, C<0>>, C<1>>>;
 
-  c1.const_set(std::vector<Mod>{Mod{0}, Mod{1}});
-  c2.const_set(std::vector<Mod>{Mod{1}});
+  GF ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, std::vector<Mod>{Mod{1}}}};
+
+  auto &f = ctx.get<0>();
+  REQUIRE_FALSE(f.is_value);
   REQUIRE(f[0] == Mod{1});
   REQUIRE(f[1] == Mod{1});
 }
