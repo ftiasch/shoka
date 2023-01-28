@@ -4,28 +4,28 @@
 // TODO: min_deg
 // TODO: LazyMul
 // TODO: Cache
-template <typename Mod_, typename... Es> struct ContextT {
+template <typename Mod_, int ConstN, typename... Es> struct ContextT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
-  using Values = std::vector<std::vector<Mod>>;
+  using CValue = Vector;
+  using CValues = std::array<CValue, ConstN>;
 
-  explicit ContextT(Values &&cvalues_)
-      : values{std::move(cvalues_)}, store{
-                                         typename Es::template StoreT<ContextT>{
-                                             *this}...} {}
+  explicit ContextT(CValues &&cvalues_)
+      : cvalues{std::move(cvalues_)},
+        store{typename Es::template StoreT<ContextT>{*this}...} {}
 
   template <int Index> auto &var() { return std::get<Index>(store); }
 
   template <int Index> auto const_at(int i) const {
-    const auto &c = values[Index];
+    const auto &c = cvalues[Index];
     return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
   }
 
 private:
   using Store = std::tuple<typename Es::template StoreT<ContextT>...>;
 
-  Values values;
+  CValues cvalues;
   Store store;
 };
 
@@ -111,9 +111,9 @@ TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
 
   // f(z) = f(z) * z + 1
-  using GF = ContextT<Mod, Add<Mul<Var<0>, Const<0>>, Const<1>>>;
+  using GF = ContextT<Mod, 2, Add<Mul<Var<0>, Const<0>>, Const<1>>>;
 
-  GF ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, std::vector<Mod>{Mod{1}}}};
+  GF ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
 
   auto &f = ctx.var<0>();
   REQUIRE_FALSE(f.is_value);
