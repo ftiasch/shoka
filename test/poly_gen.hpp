@@ -15,9 +15,12 @@ template <typename Mod_, typename... Es> struct ContextT {
                                          typename Es::template StoreT<ContextT>{
                                              *this}...} {}
 
-  template <int Index> auto &get_value() const { return values[Index]; }
+  template <int Index> auto &var() { return std::get<Index>(store); }
 
-  template <int Index> auto &get() { return std::get<Index>(store); }
+  template <int Index> auto const_at(int i) const {
+    const auto &c = values[Index];
+    return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
+  }
 
 private:
   using Store = std::tuple<typename Es::template StoreT<ContextT>...>;
@@ -32,10 +35,9 @@ template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
   static constexpr bool is_value = (P::template StoreT<Ctx>::is_value) &&
                                    (Q::template StoreT<Ctx>::is_value);
 
-  explicit BinaryOpStoreT(Ctx &ctx_) : ctx{ctx_}, p{ctx_}, q{ctx_} {}
+  explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
 protected:
-  Ctx &ctx;
   typename P::template StoreT<Ctx> p;
   typename Q::template StoreT<Ctx> q;
 };
@@ -48,13 +50,13 @@ template <int Index> struct Var {
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    typename Ctx::Mod operator[](int i) { return ctx.template get<Index>()[i]; }
+    typename Ctx::Mod operator[](int i) { return ctx.template var<Index>()[i]; }
 
     Ctx &ctx;
   };
 };
 
-template <int Index> struct C {
+template <int Index> struct Const {
   template <typename Ctx> struct StoreT {
     static constexpr bool is_value = true;
 
@@ -64,10 +66,7 @@ template <int Index> struct C {
 
     using Mod = typename Ctx::Mod;
 
-    Mod operator[](int i) const {
-      auto &c = ctx.template get_value<Index>();
-      return i < c.size() ? c[i] : Mod{0};
-    }
+    Mod operator[](int i) const { return ctx.template const_at<Index>(i); }
 
   private:
     Ctx &ctx;
@@ -106,15 +105,17 @@ template <typename P, typename Q> struct Mul {
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+template <int Index> using C = Const<Index>;
+
 TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
 
   // f(z) = f(z) * z + 1
-  using GF = ContextT<Mod, Add<Mul<Var<0>, C<0>>, C<1>>>;
+  using GF = ContextT<Mod, Add<Mul<Var<0>, Const<0>>, Const<1>>>;
 
   GF ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, std::vector<Mod>{Mod{1}}}};
 
-  auto &f = ctx.get<0>();
+  auto &f = ctx.var<0>();
   REQUIRE_FALSE(f.is_value);
   REQUIRE(f[0] == Mod{1});
   REQUIRE(f[1] == Mod{1});
