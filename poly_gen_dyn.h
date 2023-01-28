@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-template <typename Mod> struct PolyGenT {
+template <typename Mod> struct PolyGenDynT {
 private:
   static constexpr int SHORT_ZEALOUS_THRESHOLD = 16;
 
