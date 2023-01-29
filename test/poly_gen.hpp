@@ -169,7 +169,7 @@ template <typename P> struct Cache {
 
     auto operator[](int k) {
       while (cache.size() <= k) {
-        cache.push_back(p[k]);
+        cache.push_back(p[cache.size()]);
       }
       return cache[k];
     }
