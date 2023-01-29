@@ -139,7 +139,7 @@ template <typename P, typename Q> struct Add {
   };
 };
 
-template <typename P, typename Q> struct LazyMul {
+template <typename P, typename Q> struct LazyMulCompute {
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -159,6 +159,32 @@ template <typename P, typename Q> struct LazyMul {
     const int min_deg, max_deg;
   };
 };
+
+template <typename P> struct Cache {
+  template <typename Ctx> struct StoreT {
+    static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
+
+    explicit StoreT(Ctx &ctx)
+        : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+
+    auto operator[](int k) {
+      while (cache.size() <= k) {
+        cache.push_back(p[k]);
+      }
+      return cache[k];
+    }
+
+  protected:
+    typename P::template StoreT<Ctx> p;
+
+    typename Ctx::Vector cache;
+
+  public:
+    const int min_deg, max_deg;
+  };
+};
+
+template <typename P, typename Q> using LazyMul = Cache<LazyMulCompute<P, Q>>;
 
 } // namespace dsl
 
@@ -186,12 +212,13 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum") {
     // f(z) = f(z) * z + 1
-    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = PolyCtxT<Mod, 2, Cache<Add<LazyMul<Var<0>, C<0>>, C<1>>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE_FALSE(f.is_value);
     REQUIRE(f[0] == Mod{1});
     REQUIRE(f[1] == Mod{1});
+    REQUIRE(f[100000] == Mod{1});
   }
 
   SECTION("fib") {

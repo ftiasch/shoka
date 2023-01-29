@@ -1,4 +1,4 @@
-#if 0
+#if 1
 #include "binpow.hpp"
 #include "debug.hpp"
 #include "io.hpp"
