@@ -4,8 +4,30 @@
 
 namespace poly_gen {
 
-template <typename Mod> struct ValueT {
-  explicit ValueT(const std::vector<Mod> &c_)
+/*
+ ** NOTE: `Val` can be reffered for multiple times.
+ ** If we store the vector in the `Val` instance, it will be copified for many
+ *times.
+ ** Thus, we delegate it to `ValWrapperT` initialized once in the context
+ *object.
+ */
+template <typename Mod> struct ValWrapperT {
+  template <int N> struct Factory {
+    using Is = std::array<std::vector<Mod>, N>;
+    using T = std::array<ValWrapperT, N>;
+
+    static T create(const Is &cvalues) {
+      return create(cvalues, std::make_index_sequence<N>());
+    }
+
+  private:
+    template <std::size_t... Index>
+    static T create(const Is &cvalues, std::index_sequence<Index...>) {
+      return {ValWrapperT{cvalues[Index]}...};
+    }
+  };
+
+  explicit ValWrapperT(const std::vector<Mod> &c_)
       : c{c_}, min_deg{compute_min_deg(c)}, max_deg{static_cast<int>(c.size()) -
                                                     1} {}
 
@@ -28,21 +50,6 @@ public:
   const int min_deg, max_deg;
 };
 
-template <typename Mod, int N> struct ValuesT {
-  using Is = std::array<std::vector<Mod>, N>;
-  using T = std::array<ValueT<Mod>, N>;
-
-  static T create(const Is &cvalues) {
-    return create(cvalues, std::make_index_sequence<N>());
-  }
-
-private:
-  template <std::size_t... Index>
-  static T create(const Is &cvalues, std::index_sequence<Index...>) {
-    return {ValueT<Mod>{cvalues[Index]}...};
-  }
-};
-
 } // namespace poly_gen
 
 // TODO: Cache
@@ -50,18 +57,20 @@ template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct ContextT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
-  using Values = poly_gen::ValuesT<Mod, NUM_OF_VAL>;
+  using Vals =
+      typename poly_gen::ValWrapperT<Mod>::template Factory<NUM_OF_VAL>;
 
-  explicit ContextT(const typename Values::Is &cvalues_)
-      : cvalues{Values::create(cvalues_)},
-        store{typename Vars::template StoreT<ContextT>{*this}...} {}
+  explicit ContextT(const typename Vals::Is &vals_)
+      : vals{Vals::create(vals_)}, store{
+                                       typename Vars::template StoreT<ContextT>{
+                                           *this}...} {}
 
   template <int Index> auto &var() { return std::get<Index>(store); }
 
-  template <int Index> auto &val() const { return cvalues[Index]; }
+  template <int Index> auto &val() const { return vals[Index]; }
 
 private:
-  typename Values::T cvalues;
+  typename Vals::T vals;
 
   std::tuple<typename Vars::template StoreT<ContextT>...> store;
 };
