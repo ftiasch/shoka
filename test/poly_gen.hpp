@@ -4,7 +4,7 @@
 // TODO: min_deg
 // TODO: LazyMul
 // TODO: Cache
-template <typename Mod_, int ConstN, typename... Es> struct ContextT {
+template <typename Mod_, int ConstN, typename... Vs> struct ContextT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
@@ -13,7 +13,7 @@ template <typename Mod_, int ConstN, typename... Es> struct ContextT {
 
   explicit ContextT(CValues &&cvalues_)
       : cvalues{std::move(cvalues_)},
-        store{typename Es::template StoreT<ContextT>{*this}...} {}
+        store{typename Vs::template StoreT<ContextT>{*this}...} {}
 
   template <int Index> auto &var() { return std::get<Index>(store); }
 
@@ -23,7 +23,7 @@ template <typename Mod_, int ConstN, typename... Es> struct ContextT {
   }
 
 private:
-  using Store = std::tuple<typename Es::template StoreT<ContextT>...>;
+  using Store = std::tuple<typename Vs::template StoreT<ContextT>...>;
 
   CValues cvalues;
   Store store;
