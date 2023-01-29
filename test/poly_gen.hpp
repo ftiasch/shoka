@@ -5,11 +5,7 @@
 namespace poly_gen {
 
 /*
- ** NOTE: `Val` can be reffered for multiple times.
- ** If we store the vector in the `Val` instance, it will be copified for many
- *times.
- ** Thus, we delegate it to `ValWrapperT` initialized once in the context
- *object.
+ ** NOTE: Value can be referred for multiple times, like `Var`.
  */
 template <typename Mod> struct ValWrapperT {
   template <int N> struct Factory {
@@ -53,16 +49,16 @@ public:
 } // namespace poly_gen
 
 // TODO: Cache
-template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct ContextT {
+template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
   using Vals =
       typename poly_gen::ValWrapperT<Mod>::template Factory<NUM_OF_VAL>;
 
-  explicit ContextT(const typename Vals::Is &vals_)
+  explicit PolyCtxT(const typename Vals::Is &vals_)
       : vals{Vals::create(vals_)}, store{
-                                       typename Vars::template StoreT<ContextT>{
+                                       typename Vars::template StoreT<PolyCtxT>{
                                            *this}...} {}
 
   template <int Index> auto &var() { return std::get<Index>(store); }
@@ -72,10 +68,10 @@ template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct ContextT {
 private:
   typename Vals::T vals;
 
-  std::tuple<typename Vars::template StoreT<ContextT>...> store;
+  std::tuple<typename Vars::template StoreT<PolyCtxT>...> store;
 };
 
-// helper
+namespace dsl {
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
   static constexpr bool is_value = (P::template StoreT<Ctx>::is_value) &&
@@ -87,8 +83,6 @@ protected:
   typename P::template StoreT<Ctx> p;
   typename Q::template StoreT<Ctx> q;
 };
-
-// DSL
 
 template <int Index> struct Var {
   template <typename Ctx> struct StoreT {
@@ -166,7 +160,7 @@ template <typename P, typename Q> struct LazyMul {
   };
 };
 
-#include "singleton.h"
+} // namespace dsl
 
 #include "mod.h"
 
@@ -175,10 +169,12 @@ template <typename P, typename Q> struct LazyMul {
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-template <int Index> using C = Val<Index>;
+template <int Index> using C = dsl::Val<Index>;
 
 TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
+
+  using namespace dsl;
 
   auto take = [&](auto f, int n) {
     std::vector<Mod> p(n);
@@ -190,7 +186,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum") {
     // f(z) = f(z) * z + 1
-    using Ctx = ContextT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE_FALSE(f.is_value);
@@ -200,7 +196,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("fib") {
     // f(z) = f(z) * (z + z^2) + 1
-    using Ctx = ContextT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 5) ==
@@ -210,7 +206,7 @@ TEST_CASE("poly_gen") {
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
     using Ctx =
-        ContextT<Mod, 2, Add<LazyMul<LazyMul<Var<0>, Var<0>>, C<0>>, C<1>>>;
+        PolyCtxT<Mod, 2, Add<LazyMul<LazyMul<Var<0>, Var<0>>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
