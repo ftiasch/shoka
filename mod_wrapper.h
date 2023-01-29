@@ -10,7 +10,7 @@
 #include <limits>
 #include <utility>
 
-namespace mod_details {
+namespace mod {
 
 template <typename M> struct MultiplierT {};
 
@@ -173,12 +173,12 @@ private:
   M x;
 };
 
-} // namespace mod_details
+} // namespace mod
 
 namespace std {
 
 template <typename Mod>
-ostream &operator<<(ostream &out, const mod_details::ModWrapperT<Mod> &w) {
+ostream &operator<<(ostream &out, const mod::ModWrapperT<Mod> &w) {
   return out << w.get();
 }
 

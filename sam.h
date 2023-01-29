@@ -1,13 +1,13 @@
 #include <cstring>
 #include <vector>
 
-namespace sam_details {
+namespace sam {
 
 struct EmptyNode {};
 
-} // namespace sam_details
+} // namespace sam
 
-template <int C, typename BaseNode = sam_details::EmptyNode> struct SAM {
+template <int C, typename BaseNode = sam::EmptyNode> struct SAM {
   struct Node : BaseNode {
     Node(int length_ = 0) : length(length_), parent(nullptr) {
       memset(go, 0, sizeof(go));

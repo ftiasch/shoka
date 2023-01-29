@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace details {
+namespace sa {
 
 struct DefaultCharRank {
   using Char = char;
@@ -13,9 +13,9 @@ struct DefaultCharRank {
   const Char *s;
 };
 
-} // namespace details
+} // namespace sa
 
-template <int _N, typename CharRank = details::DefaultCharRank> struct SA {
+template <int _N, typename CharRank = sa::DefaultCharRank> struct SA {
   using Char = typename CharRank::Char;
 
   static const int N = _N;

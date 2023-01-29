@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace mod_details {
+namespace mod {
 
 template <typename M_, M_ MOD_> struct ModBaseT {
   using M = M_;
@@ -23,7 +23,7 @@ public:
 template <uint64_t M> using Mod64T = ModWrapperT<ModBaseT<uint64_t, M>>;
 template <uint32_t M> using ModT = ModWrapperT<ModBaseT<uint32_t, M>>;
 
-} // namespace mod_details
+} // namespace mod
 
-using mod_details::Mod64T;
-using mod_details::ModT;
+using mod::Mod64T;
+using mod::ModT;

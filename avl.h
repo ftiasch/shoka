@@ -3,17 +3,17 @@
 #include <cassert>
 #include <vector>
 
-namespace details {
+namespace avl {
 
 template <typename NodeBase> struct AVLNodeT : public NodeBase {
   int height, size;
   AVLNodeT *left, *right;
 };
 
-} // namespace details
+} // namespace avl
 
 template <typename NodeBase, typename Impl> struct AVLTreeBase {
-  using Node = details::AVLNodeT<NodeBase>;
+  using Node = avl::AVLNodeT<NodeBase>;
 
   explicit AVLTreeBase(int n_) : nodes(n_ << 1), free_queue(n_ << 1) {
     assert(free_queue.allocate() == 0);

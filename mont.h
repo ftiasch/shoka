@@ -2,7 +2,7 @@
 
 #include "mod_wrapper.h"
 
-namespace mod_details {
+namespace mod {
 
 template <typename M_, M_ MOD_> struct MontBaseT {
   using M = M_;
@@ -76,7 +76,7 @@ private:
 template <uint64_t M> using Mont64T = ModWrapperT<MontBaseT<uint64_t, M>>;
 template <uint32_t M> using MontT = ModWrapperT<MontBaseT<uint32_t, M>>;
 
-} // namespace mod_details
+} // namespace mod
 
-using mod_details::Mont64T;
-using mod_details::MontT;
+using mod::Mont64T;
+using mod::MontT;

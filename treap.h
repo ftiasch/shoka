@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-namespace details {
+namespace treap {
 
 template <typename NodeBase> struct AANodeT : public NodeBase {
   int size;
@@ -11,7 +11,7 @@ template <typename NodeBase> struct AANodeT : public NodeBase {
   uint32_t rank;
 };
 
-} // namespace details
+} // namespace treap
 
 template <typename NodeBase, typename Impl> struct AATreeBase {
   using Node = AANodeT::AANodeT<NodeBase>;

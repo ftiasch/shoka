@@ -2,7 +2,7 @@
 
 #include "mod_wrapper.h"
 
-namespace mod_details {
+namespace mod {
 
 template <typename M_, int PHANTOM> struct BarrettBaseT {
   using M = M_;
@@ -34,7 +34,7 @@ using Barrett64T = ModWrapperT<BarrettBaseT<uint64_t, PHANTOM>>;
 template <int PHANTOM = 0>
 using BarrettT = ModWrapperT<BarrettBaseT<uint32_t, PHANTOM>>;
 
-} // namespace mod_details
+} // namespace mod
 
-using mod_details::Barrett64T;
-using mod_details::BarrettT;
+using mod::Barrett64T;
+using mod::BarrettT;

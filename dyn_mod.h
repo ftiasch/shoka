@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace mod_details {
+namespace mod {
 
 template <typename M_, int PHANTOM> struct DynModBaseT {
   using M = M_;
@@ -29,7 +29,7 @@ using DynMod64T = ModWrapperT<DynModBaseT<uint64_t, PHANTOM>>;
 template <int PHANTOM = 0>
 using DynModT = ModWrapperT<DynModBaseT<uint32_t, PHANTOM>>;
 
-} // namespace mod_details
+} // namespace mod
 
-using mod_details::DynMod64T;
-using mod_details::DynModT;
+using mod::DynMod64T;
+using mod::DynModT;

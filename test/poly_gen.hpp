@@ -2,6 +2,8 @@
 #include <tuple>
 #include <vector>
 
+namespace avl {
+
 template <typename Mod> struct ValueT {
   explicit ValueT(const std::vector<Mod> &c_)
       : c{c_}, min_deg{compute_min_deg(c)}, max_deg{static_cast<int>(c.size()) -
@@ -40,6 +42,8 @@ private:
     return {ValueT<Mod>{cvalues[Index]}...};
   }
 };
+
+} // namespace avl
 
 // TODO: min_deg
 // TODO: LazyMul
