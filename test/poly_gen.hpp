@@ -1,3 +1,6 @@
+#include "ntt.h"
+#include "singleton.h"
+
 #include <climits>
 #include <stdexcept>
 #include <tuple>
@@ -161,14 +164,14 @@ template <typename P, typename Q> struct LazyMulNoCache {
   };
 };
 
-template <typename Ctx, typename Impl> struct CacheBaseT {
+template <typename Ctx, template <typename> typename StoreT> struct CacheBaseT {
   auto operator[](int k) {
     while (computed() <= k) {
       if (hwm <= k) {
         throw std::logic_error("loop detected");
       }
       hwm = computed();
-      reinterpret_cast<Impl *>(this)->compute_next();
+      reinterpret_cast<StoreT<Ctx> *>(this)->compute_next();
       hwm = INT_MAX;
     }
     return cache[k];
@@ -179,14 +182,14 @@ protected:
 
 private:
   int computed() const {
-    return reinterpret_cast<const Impl *>(this)->computed();
+    return reinterpret_cast<const StoreT<Ctx> *>(this)->computed();
   }
 
   int hwm = INT_MAX;
 };
 
 template <typename P> struct Cache {
-  template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT<Ctx>> {
+  template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
     static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
 
     explicit StoreT(Ctx &ctx)
@@ -207,6 +210,87 @@ template <typename P> struct Cache {
 };
 
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
+
+template <typename P, typename Q> struct MulSemi {
+  template <typename Ctx>
+  struct StoreT : public CacheBaseT<Ctx, StoreT>, BinaryOpStoreT<Ctx, P, Q> {
+    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
+
+    using CacheBaseT<Ctx, StoreT>::cache;
+    using BinaryOp = BinaryOpStoreT<Ctx, P, Q>;
+    using BinaryOp::p, BinaryOp::q;
+
+    explicit StoreT(Ctx &ctx)
+        : BinaryOp{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {
+      cache.resize(1);
+    }
+
+    void compute_next() {
+      int next = size;
+      if (next == cache.size()) {
+        auto new_size = cache.size() << 1;
+        ntt().reserve(new_size);
+        cache.resize(new_size);
+        buffer.resize(new_size);
+        buffer1.resize(new_size);
+      }
+      recur(0, cache.size(), next);
+      size++;
+    }
+
+    int computed() const { return size; }
+
+    const int min_deg, max_deg;
+
+  private:
+    using Mod = typename Ctx::Mod;
+    using Ntt = NttT<Mod, 0>;
+
+    static Ntt &ntt() { return singleton<Ntt>(); }
+
+    template <typename F>
+    static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
+      for (int i = 0; i < r - l; ++i) {
+        dst[i] = f[l + i];
+      }
+      std::fill(dst + (r - l), dst + n, Mod{0});
+    }
+
+    void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
+      copy_and_fill0(n, buffer.data(), p, pbegin, pend);
+      copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
+      ntt().dif(n, buffer.data());
+      ntt().dif(n, buffer1.data());
+      auto inv_n = ntt().power_of_two_inv(n);
+      for (int i = 0; i < n; ++i) {
+        buffer[i] = inv_n * buffer[i] * buffer1[i];
+      }
+      ntt().dit(n, buffer.data());
+    }
+
+    void recur(int l, int r, int k) {
+      if (l + 1 == r) {
+        cache[l] += q.min_deg ? Mod{0} : p[l] * q[0];
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            middle_product(r - l, l, m, 0, r - l);
+            for (int i = m; i < r; ++i) {
+              cache[i] += buffer[i - l];
+            }
+          }
+          recur(m, r, k);
+        }
+      }
+    }
+
+    int size = 0;
+    typename Ctx::Vector buffer, buffer1;
+  };
+};
 
 } // namespace dsl
 
@@ -234,7 +318,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum") {
     // f(z) = f(z) * z + 1
-    using Ctx = PolyCtxT<Mod, 2, Cache<Add<LazyMul<Var<0>, C<0>>, C<1>>>>;
+    using Ctx = PolyCtxT<Mod, 2, Cache<Add<MulSemi<Var<0>, C<0>>, C<1>>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE_FALSE(f.is_value);
@@ -245,11 +329,12 @@ TEST_CASE("poly_gen") {
 
   SECTION("fib") {
     // f(z) = f(z) * (z + z^2) + 1
-    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 5) ==
             std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}});
+    REQUIRE(f[100000] == Mod{56136314});
   }
 
   SECTION("catalan") {
