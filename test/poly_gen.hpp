@@ -305,6 +305,43 @@ template <typename P, typename Q> struct MulSemi {
   };
 };
 
+template <typename P, typename Q> struct MulFull {
+  template <typename Ctx>
+  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
+    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
+    using typename Base::NttMulBaseT;
+
+    using Mod = typename Ctx::Mod;
+    using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
+
+    void recur(int l, int r, int k) {
+      if (l + 1 == r) {
+        cache[l] += q.min_deg ? Mod{0} : p[l] * q[0];
+        cache[l] += !l || p.min_deg ? Mod{0} : p[0] * q[l];
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            middle_product(r - l, l, m, 0, l ? r - l : m - l);
+            for (int i = m; i < r; ++i) {
+              cache[i] += buffer[i - l];
+            }
+            if (l) {
+              middle_product(r - l, 0, r - l, l, m);
+              for (int i = m; i < r; ++i) {
+                cache[i] += buffer[i - l];
+              }
+            }
+          }
+          recur(m, r, k);
+        }
+      }
+    }
+  };
+};
+
 } // namespace dsl
 
 #include "mod.h"
@@ -353,7 +390,7 @@ TEST_CASE("poly_gen") {
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
     using Ctx =
-        PolyCtxT<Mod, 2, Add<LazyMul<LazyMul<Var<0>, Var<0>>, C<0>>, C<1>>>;
+        PolyCtxT<Mod, 2, Add<LazyMul<MulFull<Var<0>, Var<0>>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
