@@ -211,62 +211,78 @@ template <typename P> struct Cache {
 
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
+template <typename Ctx, typename P, typename Q,
+          template <typename> typename StoreT>
+struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>, BinaryOpStoreT<Ctx, P, Q> {
+  using CacheBaseT<Ctx, StoreT>::cache;
+  using BinaryOp = BinaryOpStoreT<Ctx, P, Q>;
+  using BinaryOp::p, BinaryOp::q;
+
+  explicit NttMulBaseT(Ctx &ctx)
+      : BinaryOp{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {
+    cache.resize(1);
+  }
+
+  void compute_next() {
+    int next = size;
+    if (next == cache.size()) {
+      auto new_size = cache.size() << 1;
+      ntt().reserve(new_size);
+      cache.resize(new_size);
+      buffer.resize(new_size);
+      buffer1.resize(new_size);
+    }
+    reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
+    size++;
+  }
+
+  int computed() const { return size; }
+
+  const int min_deg, max_deg;
+
+protected:
+  void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
+    copy_and_fill0(n, buffer.data(), p, pbegin, pend);
+    copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
+    ntt().dif(n, buffer.data());
+    ntt().dif(n, buffer1.data());
+    auto inv_n = ntt().power_of_two_inv(n);
+    for (int i = 0; i < n; ++i) {
+      buffer[i] = inv_n * buffer[i] * buffer1[i];
+    }
+    ntt().dit(n, buffer.data());
+  }
+
+  typename Ctx::Vector buffer;
+
+private:
+  using Mod = typename Ctx::Mod;
+  using Ntt = NttT<Mod, 0>;
+
+  static Ntt &ntt() { return singleton<Ntt>(); }
+
+  template <typename F>
+  static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
+    for (int i = 0; i < r - l; ++i) {
+      dst[i] = f[l + i];
+    }
+    std::fill(dst + (r - l), dst + n, Mod{0});
+  }
+
+  int size = 0;
+  typename Ctx::Vector buffer1;
+};
+
 template <typename P, typename Q> struct MulSemi {
   template <typename Ctx>
-  struct StoreT : public CacheBaseT<Ctx, StoreT>, BinaryOpStoreT<Ctx, P, Q> {
+  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
     static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
 
-    using CacheBaseT<Ctx, StoreT>::cache;
-    using BinaryOp = BinaryOpStoreT<Ctx, P, Q>;
-    using BinaryOp::p, BinaryOp::q;
+    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
+    using typename Base::NttMulBaseT;
 
-    explicit StoreT(Ctx &ctx)
-        : BinaryOp{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {
-      cache.resize(1);
-    }
-
-    void compute_next() {
-      int next = size;
-      if (next == cache.size()) {
-        auto new_size = cache.size() << 1;
-        ntt().reserve(new_size);
-        cache.resize(new_size);
-        buffer.resize(new_size);
-        buffer1.resize(new_size);
-      }
-      recur(0, cache.size(), next);
-      size++;
-    }
-
-    int computed() const { return size; }
-
-    const int min_deg, max_deg;
-
-  private:
     using Mod = typename Ctx::Mod;
-    using Ntt = NttT<Mod, 0>;
-
-    static Ntt &ntt() { return singleton<Ntt>(); }
-
-    template <typename F>
-    static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
-      for (int i = 0; i < r - l; ++i) {
-        dst[i] = f[l + i];
-      }
-      std::fill(dst + (r - l), dst + n, Mod{0});
-    }
-
-    void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
-      copy_and_fill0(n, buffer.data(), p, pbegin, pend);
-      copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
-      ntt().dif(n, buffer.data());
-      ntt().dif(n, buffer1.data());
-      auto inv_n = ntt().power_of_two_inv(n);
-      for (int i = 0; i < n; ++i) {
-        buffer[i] = inv_n * buffer[i] * buffer1[i];
-      }
-      ntt().dit(n, buffer.data());
-    }
+    using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
 
     void recur(int l, int r, int k) {
       if (l + 1 == r) {
@@ -286,9 +302,6 @@ template <typename P, typename Q> struct MulSemi {
         }
       }
     }
-
-    int size = 0;
-    typename Ctx::Vector buffer, buffer1;
   };
 };
 
