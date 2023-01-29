@@ -2,6 +2,7 @@
 #include "singleton.h"
 
 #include <climits>
+#include <experimental/type_traits>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
@@ -166,11 +167,11 @@ template <typename P, typename Q> struct LazyMulNoCache {
 
 template <typename Ctx, template <typename> typename StoreT> struct CacheBaseT {
   auto operator[](int k) {
-    while (computed() <= k) {
+    while (delegate_computed() <= k) {
       if (hwm <= k) {
         throw std::logic_error("loop detected");
       }
-      hwm = computed();
+      hwm = delegate_computed();
       reinterpret_cast<StoreT<Ctx> *>(this)->compute_next();
       hwm = INT_MAX;
     }
@@ -181,8 +182,16 @@ protected:
   typename Ctx::Vector cache;
 
 private:
-  int computed() const {
-    return reinterpret_cast<const StoreT<Ctx> *>(this)->computed();
+  template <typename T>
+  using has_computed_t = decltype(std::declval<T>().computed());
+
+  int delegate_computed() const {
+    if constexpr (std::experimental::is_detected_v<has_computed_t,
+                                                   StoreT<Ctx>>) {
+      return reinterpret_cast<const StoreT<Ctx> *>(this)->computed();
+    } else {
+      return cache.size();
+    }
   }
 
   int hwm = INT_MAX;
@@ -197,9 +206,7 @@ template <typename P> struct Cache {
 
     using CacheBaseT<Ctx, StoreT>::cache;
 
-    void compute_next() { cache.push_back(p[computed()]); }
-
-    int computed() const { return cache.size(); }
+    void compute_next() { cache.push_back(p[cache.size()]); }
 
   protected:
     typename P::template StoreT<Ctx> p;
@@ -213,7 +220,8 @@ template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 template <typename Ctx, typename P, typename Q,
           template <typename> typename StoreT>
-struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>, BinaryOpStoreT<Ctx, P, Q> {
+struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
+                     public BinaryOpStoreT<Ctx, P, Q> {
   using CacheBaseT<Ctx, StoreT>::cache;
   using BinaryOp = BinaryOpStoreT<Ctx, P, Q>;
   using BinaryOp::p, BinaryOp::q;
