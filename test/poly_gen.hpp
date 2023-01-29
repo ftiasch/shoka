@@ -1,4 +1,5 @@
 #include <climits>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 
@@ -139,7 +140,7 @@ template <typename P, typename Q> struct Add {
   };
 };
 
-template <typename P, typename Q> struct LazyMulCompute {
+template <typename P, typename Q> struct LazyMulNoCache {
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -160,31 +161,52 @@ template <typename P, typename Q> struct LazyMulCompute {
   };
 };
 
+template <typename Ctx, typename Impl> struct CacheBaseT {
+  auto operator[](int k) {
+    while (computed() <= k) {
+      if (hwm <= k) {
+        throw std::logic_error("loop detected");
+      }
+      hwm = computed();
+      reinterpret_cast<Impl *>(this)->compute_next();
+      hwm = INT_MAX;
+    }
+    return cache[k];
+  }
+
+protected:
+  typename Ctx::Vector cache;
+
+private:
+  int computed() const {
+    return reinterpret_cast<const Impl *>(this)->computed();
+  }
+
+  int hwm = INT_MAX;
+};
+
 template <typename P> struct Cache {
-  template <typename Ctx> struct StoreT {
+  template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT<Ctx>> {
     static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
 
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
-    auto operator[](int k) {
-      while (cache.size() <= k) {
-        cache.push_back(p[cache.size()]);
-      }
-      return cache[k];
-    }
+    using CacheBaseT<Ctx, StoreT>::cache;
+
+    void compute_next() { cache.push_back(p[computed()]); }
+
+    int computed() const { return cache.size(); }
 
   protected:
     typename P::template StoreT<Ctx> p;
-
-    typename Ctx::Vector cache;
 
   public:
     const int min_deg, max_deg;
   };
 };
 
-template <typename P, typename Q> using LazyMul = Cache<LazyMulCompute<P, Q>>;
+template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 } // namespace dsl
 
