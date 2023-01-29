@@ -3,17 +3,17 @@
 #include <cassert>
 #include <vector>
 
-namespace avl {
+namespace poly_gen {
 
 template <typename NodeBase> struct AVLNodeT : public NodeBase {
   int height, size;
   AVLNodeT *left, *right;
 };
 
-} // namespace avl
+} // namespace poly_gen
 
 template <typename NodeBase, typename Impl> struct AVLTreeBase {
-  using Node = avl::AVLNodeT<NodeBase>;
+  using Node = poly_gen::AVLNodeT<NodeBase>;
 
   explicit AVLTreeBase(int n_) : nodes(n_ << 1), free_queue(n_ << 1) {
     assert(free_queue.allocate() == 0);

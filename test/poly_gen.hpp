@@ -2,7 +2,7 @@
 #include <tuple>
 #include <vector>
 
-namespace avl {
+namespace poly_gen {
 
 template <typename Mod> struct ValueT {
   explicit ValueT(const std::vector<Mod> &c_)
@@ -43,16 +43,14 @@ private:
   }
 };
 
-} // namespace avl
+} // namespace poly_gen
 
-// TODO: min_deg
-// TODO: LazyMul
 // TODO: Cache
 template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct ContextT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
-  using Values = ValuesT<Mod, NUM_OF_VAL>;
+  using Values = poly_gen::ValuesT<Mod, NUM_OF_VAL>;
 
   explicit ContextT(const typename Values::Is &cvalues_)
       : cvalues{Values::create(cvalues_)},
@@ -138,7 +136,7 @@ template <typename P, typename Q> struct Add {
   };
 };
 
-template <typename P, typename Q> struct Mul {
+template <typename P, typename Q> struct LazyMul {
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -148,7 +146,8 @@ template <typename P, typename Q> struct Mul {
 
     auto operator[](int k) {
       typename Ctx::Mod result{0};
-      for (int i = p.min_deg; i <= k - q.min_deg; ++i) {
+      for (int i = std::max(p.min_deg, k - q.max_deg);
+           i <= std::min(p.max_deg, k - q.min_deg); ++i) {
         result += p[i] * q[k - i];
       }
       return result;
@@ -182,7 +181,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("geo_sum") {
     // f(z) = f(z) * z + 1
-    using Ctx = ContextT<Mod, 2, Add<Mul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = ContextT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE_FALSE(f.is_value);
@@ -192,7 +191,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("fib") {
     // f(z) = f(z) * (z + z^2) + 1
-    using Ctx = ContextT<Mod, 2, Add<Mul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = ContextT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 5) ==
@@ -201,10 +200,12 @@ TEST_CASE("poly_gen") {
 
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
-    using Ctx = ContextT<Mod, 2, Add<Mul<Mul<Var<0>, Var<0>>, C<0>>, C<1>>>;
+    using Ctx =
+        ContextT<Mod, 2, Add<LazyMul<LazyMul<Var<0>, Var<0>>, C<0>>, C<1>>>;
     Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
-    REQUIRE(take(f, 5) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5}, Mod{14}});
+    REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
+                                            Mod{14}, Mod{42}, Mod{132},
+                                            Mod{429}, Mod{1430}, Mod{4862}});
   }
 }
