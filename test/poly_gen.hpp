@@ -51,6 +51,15 @@ public:
   const int min_deg, max_deg;
 };
 
+template <typename Ctx, typename P> struct UnaryOpStoreT {
+  static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
+
+  explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
+
+protected:
+  typename P::template StoreT<Ctx> p;
+};
+
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
   static constexpr bool is_value = (P::template StoreT<Ctx>::is_value) &&
                                    (Q::template StoreT<Ctx>::is_value);
@@ -150,7 +159,7 @@ private:
     for (int i = 0; i < r - l; ++i) {
       dst[i] = f[l + i];
     }
-    std::fill(dst + (r - l), dst + n, Mod{0});
+    std::fill(dst + (r - l), dst + n, Ctx::ZERO);
   }
 
   int size = 0;
@@ -159,13 +168,14 @@ private:
 
 } // namespace poly_gen
 
-// TODO: Cache
 template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
 
   using Vals =
       typename poly_gen::ValWrapperT<Mod>::template Factory<NUM_OF_VAL>;
+
+  static constexpr Mod ZERO{0};
 
   explicit PolyCtxT(const typename Vals::Is &vals_)
       : vals{Vals::create(vals_)}, store{
@@ -209,9 +219,7 @@ template <int Index> struct Val {
     explicit StoreT(Ctx &ctx_)
         : ctx{ctx_}, min_deg{val().min_deg}, max_deg{val().max_deg} {}
 
-    using Mod = typename Ctx::Mod;
-
-    Mod operator[](int i) const { return val()[i]; }
+    typename Ctx::Mod operator[](int i) const { return val()[i]; }
 
   private:
     auto &val() const { return ctx.template val<Index>(); }
@@ -235,6 +243,23 @@ template <typename P, typename Q> struct Add {
                                                                   q.max_deg)} {}
 
     auto operator[](int i) { return p[i] + q[i]; }
+
+    const int min_deg, max_deg;
+  };
+};
+
+template <typename P, int S> struct Shift {
+  template <typename Ctx>
+  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
+    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
+    using Base::p;
+
+    explicit StoreT(Ctx &ctx)
+        : Base{ctx}, min_deg{p.min_deg + S}, max_deg{std::min(p.max_deg,
+                                                              INT_MAX - S) +
+                                                     S} {}
+
+    auto operator[](int i) { return i < S ? Ctx::ZERO : p[i - S]; }
 
     const int min_deg, max_deg;
   };
@@ -292,12 +317,11 @@ template <typename P, typename Q> struct MulSemi {
     using Base = poly_gen::NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Mod = typename Ctx::Mod;
     using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
 
     void recur(int l, int r, int k) {
       if (l + 1 == r) {
-        cache[l] += q.min_deg ? Mod{0} : p[l] * q[0];
+        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
@@ -322,13 +346,12 @@ template <typename P, typename Q> struct MulFull {
     using Base = poly_gen::NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Mod = typename Ctx::Mod;
     using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
 
     void recur(int l, int r, int k) {
       if (l + 1 == r) {
-        cache[l] += q.min_deg ? Mod{0} : p[l] * q[0];
-        cache[l] += !l || p.min_deg ? Mod{0} : p[0] * q[l];
+        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
+        cache[l] += !l || p.min_deg ? Ctx::ZERO : p[0] * q[l];
       } else {
         auto m = (l + r) >> 1;
         if (k < m) {
