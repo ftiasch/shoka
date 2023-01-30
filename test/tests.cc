@@ -1,4 +1,4 @@
-#if 0
+#if 1
 #include "binpow.hpp"
 #include "debug.hpp"
 #include "io.hpp"
@@ -14,6 +14,6 @@
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
-#else
 #include "poly_gen.hpp"
+#else
 #endif

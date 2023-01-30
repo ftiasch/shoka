@@ -6,7 +6,7 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-TEST_CASE("poly_gen") {
+TEST_CASE("poly_gen_dyn") {
   using Mod = ModT<998'244'353>;
   using PolyGen = PolyGenDynT<Mod>;
   using Vector = std::vector<Mod>;
