@@ -51,6 +51,21 @@ public:
   const int min_deg, max_deg;
 };
 
+// NOTE: Not extend `CacheBaseT` because otherwise it depends on `Ctx`
+template <typename Mod> struct DynInvTable {
+  explicit DynInvTable() : invs{Mod{0}, Mod{1}} {}
+
+  Mod operator[](int k) {
+    while (invs.size() <= k) {
+      int i = invs.size();
+      invs.push_back(-Mod{Mod::mod() / i} * invs[Mod::mod() % i]);
+    }
+    return invs[k];
+  }
+
+  std::vector<Mod> invs;
+};
+
 template <typename Ctx, typename P> struct UnaryOpStoreT {
   static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
 
@@ -177,6 +192,8 @@ template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
 
   static constexpr Mod ZERO{0};
 
+  static auto inv(int i) { return singleton<poly_gen::DynInvTable<Mod>>()[i]; }
+
   explicit PolyCtxT(const typename Vals::Is &vals_)
       : vals{Vals::create(vals_)}, store{
                                        typename Vars::template StoreT<PolyCtxT>{
@@ -258,6 +275,20 @@ template <typename P> struct Neg {
         : Base{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
     auto operator[](int i) { return -p[i]; }
+
+    const int min_deg, max_deg;
+  };
+};
+
+template <typename P> struct Integral {
+  template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
+    using Base = UnaryOpStoreT<Ctx, P>;
+    using Base::p;
+
+    explicit StoreT(Ctx &ctx_)
+        : Base{ctx_}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+
+    auto operator[](int i) { return i ? p[i - 1] * Ctx::inv(i) : Ctx::ZERO; }
 
     const int min_deg, max_deg;
   };
@@ -470,6 +501,14 @@ TEST_CASE("poly_gen") {
     Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 2) == Vector{-Mod{1}, Mod{0}});
+  }
+
+  SECTION("integral") {
+    // \int (1 + z) = z + 1/2 z^2
+    using Ctx = PolyCtxT<Mod, 1, Integral<C<0>>>;
+    Ctx ctx{{Vector{Mod{1}, Mod{1}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{0}, Mod{1}, Mod{2}.inv()});
   }
 
   SECTION("add") {
