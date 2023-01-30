@@ -533,35 +533,49 @@ TEST_CASE("poly_gen") {
     REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{3}, Mod{3}});
   }
 
-  SECTION("geo_sum") {
-    // f(z) = f(z) * z + 1
-    using Ctx = PolyCtxT<Mod, 2, Cache<Add<MulSemi<Var<0>, C<0>>, C<1>>>>;
-    Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
+  // f(z) = f(z) * (z + z^2) + 1
+  const Vector FIBS_5{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}};
+  Mod FIB_100000{56136314};
+
+  SECTION("fib_lazy") {
+    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
-    REQUIRE_FALSE(f.is_value);
-    REQUIRE(f[0] == Mod{1});
-    REQUIRE(f[1] == Mod{1});
-    REQUIRE(f[100000] == Mod{1});
+    REQUIRE(take(f, 5) == FIBS_5);
+    REQUIRE(f[100000] == FIB_100000);
   }
 
-  SECTION("fib") {
-    // f(z) = f(z) * (z + z^2) + 1
+  SECTION("fib_semi") {
     using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
-    Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
+    Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var<0>();
-    REQUIRE(take(f, 5) ==
-            std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}});
-    REQUIRE(f[100000] == Mod{56136314});
+    REQUIRE(take(f, 5) == FIBS_5);
+    REQUIRE(f[100000] == FIB_100000);
+  }
+
+  SECTION("fib_three_vars") {
+    // g(z) = f(z) * z
+    // h(z) = f(z) * z^2
+    // f(z) = g(z) + h(z) + 1
+    using Ctx = PolyCtxT<Mod, 1, Cache<Add<Add<Var<1>, Var<2>>, C<0>>>,
+                         Shift<Var<0>, 1>, Shift<Var<0>, 2>>;
+    Ctx ctx{{Vector{Mod{1}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 5) == FIBS_5);
+    REQUIRE(f[100000] == FIB_100000);
   }
 
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
-    using Ctx =
-        PolyCtxT<Mod, 2, Add<LazyMul<MulFull<Var<0>, Var<0>>, C<0>>, C<1>>>;
-    Ctx ctx{{std::vector<Mod>{Mod{0}, Mod{1}}, {Mod{1}}}};
+    using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
+    Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
                                             Mod{14}, Mod{42}, Mod{132},
                                             Mod{429}, Mod{1430}, Mod{4862}});
+    REQUIRE(f[100000] == Mod{944488806});
+    // NOTE: verified
+    // sage: catalan_number(100000).mod(998244353)
+    // 944488806
   }
 }
