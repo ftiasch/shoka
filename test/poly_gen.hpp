@@ -194,6 +194,8 @@ private:
 
 namespace dsl {
 
+using namespace poly_gen;
+
 template <int Index> struct Var {
   template <typename Ctx> struct StoreT {
     static constexpr bool is_value = false;
@@ -232,9 +234,8 @@ template <int Index> struct Val {
 };
 
 template <typename P, int S> struct Shift {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
-    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
+  template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
+    using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
 
     explicit StoreT(Ctx &ctx)
@@ -249,9 +250,8 @@ template <typename P, int S> struct Shift {
 };
 
 template <typename P> struct Neg {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
-    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
+  template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
+    using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
 
     explicit StoreT(Ctx &ctx)
@@ -264,9 +264,8 @@ template <typename P> struct Neg {
 };
 
 template <typename P, typename Q> struct Add {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::BinaryOpStoreT<Ctx, P, Q> {
-    using Base = poly_gen::BinaryOpStoreT<Ctx, P, Q>;
+  template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
+    using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
     explicit StoreT(Ctx &ctx)
@@ -281,9 +280,8 @@ template <typename P, typename Q> struct Add {
 };
 
 template <typename P, typename Q> struct Sub {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::BinaryOpStoreT<Ctx, P, Q> {
-    using Base = poly_gen::BinaryOpStoreT<Ctx, P, Q>;
+  template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
+    using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
     explicit StoreT(Ctx &ctx)
@@ -298,9 +296,8 @@ template <typename P, typename Q> struct Sub {
 };
 
 template <typename P, typename Q> struct LazyMulNoCache {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::BinaryOpStoreT<Ctx, P, Q> {
-    using Base = poly_gen::BinaryOpStoreT<Ctx, P, Q>;
+  template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
+    using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
     explicit StoreT(Ctx &ctx)
@@ -320,14 +317,13 @@ template <typename P, typename Q> struct LazyMulNoCache {
 };
 
 template <typename P> struct Cache {
-  template <typename Ctx>
-  struct StoreT : public poly_gen::CacheBaseT<Ctx, StoreT> {
+  template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
     static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
 
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
-    using poly_gen::CacheBaseT<Ctx, StoreT>::cache;
+    using CacheBaseT<Ctx, StoreT>::cache;
 
     void compute_next() { cache.push_back(p[cache.size()]); }
 
@@ -343,10 +339,10 @@ template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 template <typename P, typename Q> struct MulSemi {
   template <typename Ctx>
-  struct StoreT : public poly_gen::NttMulBaseT<Ctx, P, Q, StoreT> {
+  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
     static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
 
-    using Base = poly_gen::NttMulBaseT<Ctx, P, Q, StoreT>;
+    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
     using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
@@ -374,8 +370,8 @@ template <typename P, typename Q> struct MulSemi {
 
 template <typename P, typename Q> struct MulFull {
   template <typename Ctx>
-  struct StoreT : public poly_gen::NttMulBaseT<Ctx, P, Q, StoreT> {
-    using Base = poly_gen::NttMulBaseT<Ctx, P, Q, StoreT>;
+  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
+    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
     using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
@@ -419,12 +415,12 @@ template <typename P, typename Q> struct MulFull {
 
 template <int Index> using C = dsl::Val<Index>;
 
+namespace dsl {
 template <typename P> struct CustomOp {
   template <typename Ctx>
-  struct StoreT : public poly_gen::CacheBaseT<Ctx, StoreT>,
-                  public poly_gen::UnaryOpStoreT<Ctx, P> {
-    using poly_gen::CacheBaseT<Ctx, StoreT>::cache;
-    using UnaryOp = poly_gen::UnaryOpStoreT<Ctx, P>;
+  struct StoreT : public CacheBaseT<Ctx, StoreT>, public UnaryOpStoreT<Ctx, P> {
+    using CacheBaseT<Ctx, StoreT>::cache;
+    using UnaryOp = UnaryOpStoreT<Ctx, P>;
     using UnaryOp::p;
 
     explicit StoreT(Ctx &ctx)
@@ -438,6 +434,7 @@ template <typename P> struct CustomOp {
     const int min_deg, max_deg;
   };
 };
+} // namespace dsl
 
 TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
