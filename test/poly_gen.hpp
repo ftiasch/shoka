@@ -419,18 +419,83 @@ template <typename P, typename Q> struct MulFull {
 
 template <int Index> using C = dsl::Val<Index>;
 
+template <typename P> struct CustomOp {
+  template <typename Ctx>
+  struct StoreT : public poly_gen::CacheBaseT<Ctx, StoreT>,
+                  public poly_gen::UnaryOpStoreT<Ctx, P> {
+    using poly_gen::CacheBaseT<Ctx, StoreT>::cache;
+    using UnaryOp = poly_gen::UnaryOpStoreT<Ctx, P>;
+    using UnaryOp::p;
+
+    explicit StoreT(Ctx &ctx)
+        : UnaryOp{ctx}, min_deg{p.min_deg}, max_deg{INT_MAX} {}
+
+    void compute_next() {
+      int k = cache.size();
+      cache.push_back((k ? (*this)[k - 1] : Ctx::ZERO) + p[k]);
+    }
+
+    const int min_deg, max_deg;
+  };
+};
+
 TEST_CASE("poly_gen") {
   using Mod = ModT<998'244'353>;
+  using Vector = std::vector<Mod>;
 
   using namespace dsl;
 
   auto take = [&](auto &f, int n) {
-    std::vector<Mod> p(n);
+    Vector p(n);
     for (int i = 0; i < n; ++i) {
       p[i] = f[i];
     }
     return p;
   };
+
+  SECTION("c") {
+    using Ctx = PolyCtxT<Mod, 1, C<0>>;
+    Ctx ctx{{Vector{Mod{1}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(f.is_value);
+    REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{0}});
+  }
+
+  SECTION("shift") {
+    using Ctx = PolyCtxT<Mod, 1, Shift<C<0>, 1>>;
+    Ctx ctx{{Vector{Mod{1}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{0}, Mod{1}, Mod{0}});
+  }
+
+  SECTION("neg") {
+    using Ctx = PolyCtxT<Mod, 1, Neg<C<0>>>;
+    Ctx ctx{{Vector{Mod{1}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 2) == Vector{-Mod{1}, Mod{0}});
+  }
+
+  SECTION("add") {
+    using Ctx = PolyCtxT<Mod, 2, Add<C<0>, C<1>>>;
+    Ctx ctx{{Vector{Mod{1}}, Vector{Mod{0}, Mod{2}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{2}, Mod{0}});
+  }
+
+  SECTION("sub") {
+    using Ctx = PolyCtxT<Mod, 2, Sub<C<0>, C<1>>>;
+    Ctx ctx{{Vector{Mod{1}}, Vector{Mod{0}, Mod{2}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{1}, -Mod{2}, Mod{0}});
+  }
+
+  SECTION("custom_op") {
+    // partial sum
+    using Ctx = PolyCtxT<Mod, 1, CustomOp<C<0>>>;
+    Ctx ctx{{Vector{Mod{1}, Mod{2}}}};
+    auto &f = ctx.var<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{3}, Mod{3}});
+  }
 
   SECTION("geo_sum") {
     // f(z) = f(z) * z + 1
