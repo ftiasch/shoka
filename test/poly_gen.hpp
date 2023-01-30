@@ -231,6 +231,38 @@ template <int Index> struct Val {
   };
 };
 
+template <typename P, int S> struct Shift {
+  template <typename Ctx>
+  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
+    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
+    using Base::p;
+
+    explicit StoreT(Ctx &ctx)
+        : Base{ctx}, min_deg{p.min_deg + S}, max_deg{std::min(p.max_deg,
+                                                              INT_MAX - S) +
+                                                     S} {}
+
+    auto operator[](int i) { return i < S ? Ctx::ZERO : p[i - S]; }
+
+    const int min_deg, max_deg;
+  };
+};
+
+template <typename P> struct Neg {
+  template <typename Ctx>
+  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
+    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
+    using Base::p;
+
+    explicit StoreT(Ctx &ctx)
+        : Base{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+
+    auto operator[](int i) { return -p[i]; }
+
+    const int min_deg, max_deg;
+  };
+};
+
 template <typename P, typename Q> struct Add {
   template <typename Ctx>
   struct StoreT : public poly_gen::BinaryOpStoreT<Ctx, P, Q> {
@@ -248,18 +280,18 @@ template <typename P, typename Q> struct Add {
   };
 };
 
-template <typename P, int S> struct Shift {
+template <typename P, typename Q> struct Sub {
   template <typename Ctx>
-  struct StoreT : public poly_gen::UnaryOpStoreT<Ctx, P> {
-    using Base = poly_gen::UnaryOpStoreT<Ctx, P>;
-    using Base::p;
+  struct StoreT : public poly_gen::BinaryOpStoreT<Ctx, P, Q> {
+    using Base = poly_gen::BinaryOpStoreT<Ctx, P, Q>;
+    using Base::p, Base::q;
 
     explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{p.min_deg + S}, max_deg{std::min(p.max_deg,
-                                                              INT_MAX - S) +
-                                                     S} {}
+        : Base{ctx}, min_deg{std::min(p.min_deg, q.min_deg)}, max_deg{std::max(
+                                                                  p.max_deg,
+                                                                  q.max_deg)} {}
 
-    auto operator[](int i) { return i < S ? Ctx::ZERO : p[i - S]; }
+    auto operator[](int i) { return p[i] - q[i]; }
 
     const int min_deg, max_deg;
   };
