@@ -139,6 +139,9 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
       cache.resize(new_size);
       buffer.resize(new_size);
       buffer1.resize(new_size);
+      if constexpr (std::experimental::is_detected_v<has_resize, StoreT<Ctx>>) {
+        reinterpret_cast<StoreT<Ctx> *>(this)->resize(new_size);
+      }
     }
     reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
     size++;
@@ -149,6 +152,21 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
   const int min_deg, max_deg;
 
 protected:
+  template <typename T>
+  using has_resize = decltype(std::declval<T>().resize(std::declval<int>()));
+
+  using Mod = typename Ctx::Mod;
+  using Ntt = NttT<Mod, 0>;
+  static Ntt &ntt() { return singleton<Ntt>(); }
+
+  template <typename F>
+  static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
+    for (int i = 0; i < r - l; ++i) {
+      dst[i] = f[l + i];
+    }
+    std::fill(dst + (r - l), dst + n, Ctx::ZERO);
+  }
+
   void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
     copy_and_fill0(n, buffer.data(), p, pbegin, pend);
     copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
@@ -161,24 +179,10 @@ protected:
     ntt().dit(n, buffer.data());
   }
 
-  typename Ctx::Vector buffer;
+  typename Ctx::Vector buffer, buffer1;
 
 private:
-  using Mod = typename Ctx::Mod;
-  using Ntt = NttT<Mod, 0>;
-
-  static Ntt &ntt() { return singleton<Ntt>(); }
-
-  template <typename F>
-  static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
-    for (int i = 0; i < r - l; ++i) {
-      dst[i] = f[l + i];
-    }
-    std::fill(dst + (r - l), dst + n, Ctx::ZERO);
-  }
-
   int size = 0;
-  typename Ctx::Vector buffer1;
 };
 
 } // namespace poly_gen
@@ -399,6 +403,55 @@ template <typename P, typename Q> struct MulSemi {
   };
 };
 
+template <typename P, typename Q> struct MulSemiOpt1 {
+  template <typename Ctx>
+  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
+    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
+
+    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
+    using typename Base::NttMulBaseT;
+
+    using Base::cache, Base::p, Base::q, Base::ntt, Base::copy_and_fill0,
+        Base::buffer, Base::buffer1;
+
+    void resize(int new_size) { q_prefix_dif.resize(new_size << 1); }
+
+    void recur(int l, int r, int k) {
+      if (l + 1 == r) {
+        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
+      } else {
+        auto m = (l + r) >> 1;
+        if (k < m) {
+          recur(l, m, k);
+        } else {
+          if (k == m) {
+            if (l == 0) {
+              auto b = q_prefix_dif.data() + r;
+              copy_and_fill0(r, b, q, 0, r);
+              ntt().dif(r, b);
+            }
+            auto n = r - l;
+            copy_and_fill0(n, buffer.data(), p, l, m);
+            ntt().dif(n, buffer.data());
+            auto inv_n = ntt().power_of_two_inv(n);
+            for (int i = 0; i < n; ++i) {
+              buffer[i] = inv_n * buffer[i] * q_prefix_dif[n + i];
+            }
+            ntt().dit(n, buffer.data());
+            for (int i = m; i < r; ++i) {
+              cache[i] += buffer[i - l];
+            }
+          }
+          recur(m, r, k);
+        }
+      }
+    }
+
+  private:
+    typename Ctx::Vector q_prefix_dif;
+  };
+};
+
 template <typename P, typename Q> struct MulFull {
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -551,6 +604,30 @@ TEST_CASE("poly_gen") {
     auto &f = ctx.var<0>();
     REQUIRE(take(f, 5) == FIBS_5);
     REQUIRE(f[100000] == FIB_100000);
+  }
+
+  SECTION("semi_bench") {
+    constexpr int n = 100'000;
+    Vector c0(n + 1);
+    for (int i = 0; i <= n; ++i) {
+      c0[i] = Mod{i};
+    }
+
+    BENCHMARK("opt0") {
+      using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
+      Ctx ctx{{c0, {Mod{1}}}};
+      auto &f = ctx.var<0>();
+      REQUIRE(f[n] == Mod{189040980});
+      return f[n];
+    };
+
+    BENCHMARK("opt1") {
+      using Ctx = PolyCtxT<Mod, 2, Add<MulSemiOpt1<Var<0>, C<0>>, C<1>>>;
+      Ctx ctx{{c0, {Mod{1}}}};
+      auto &f = ctx.var<0>();
+      REQUIRE(f[n] == Mod{189040980});
+      return f[n];
+    };
   }
 
   SECTION("fib_three_vars") {
