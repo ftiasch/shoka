@@ -6,6 +6,7 @@
 #include "mod.hpp"
 #include "nd_vector.hpp"
 #include "poly.hpp"
+#include "poly_gen.hpp"
 #include "poly_gen_dyn.hpp"
 #include "polynomial_interpolation.hpp"
 #include "rmq.hpp"
@@ -14,6 +15,5 @@
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
-#include "poly_gen.hpp"
 #else
 #endif

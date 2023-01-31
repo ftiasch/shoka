@@ -69,7 +69,7 @@ template <typename Mod> struct DynInvTable {
 };
 
 template <typename Ctx, typename P> struct UnaryOpStoreT {
-  static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
+  static constexpr bool is_value = false;
 
   explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
 
@@ -78,8 +78,7 @@ protected:
 };
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
-  static constexpr bool is_value = (P::template StoreT<Ctx>::is_value) &&
-                                   (Q::template StoreT<Ctx>::is_value);
+  static constexpr bool is_value = false;
 
   explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
@@ -355,7 +354,7 @@ template <typename P, typename Q> struct LazyMulNoCache {
 
 template <typename P> struct Cache {
   template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
-    static constexpr bool is_value = P::template StoreT<Ctx>::is_value;
+    static constexpr bool is_value = false;
 
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
@@ -410,7 +409,7 @@ template <typename P, typename Q> struct MulSemiOpt0 {
 template <typename P, typename Q> struct MulSemi {
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
+    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not Val");
 
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
