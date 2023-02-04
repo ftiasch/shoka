@@ -9,6 +9,8 @@
 #include <tuple>
 #include <vector>
 
+#include "debug.h"
+
 namespace poly_gen {
 
 enum class Type {
@@ -21,16 +23,21 @@ template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
 template <typename Impl, typename Mod> struct PrefixDifT {
   explicit PrefixDifT() : cache(1) {}
 
-  void resize(int n) {
-    cache.resize(n << 1);
-    ntt<Mod>().reserve(n);
-    for (int i = 0; i < n; ++i) {
-      cache[n + i] = (*static_cast<Impl *>(this))[i];
+  auto prefix_dif(int l) {
+    if (static_cast<int>(cache.size()) <= l) {
+      ntt<Mod>().reserve(l);
+      int old_size = cache.size();
+      cache.resize(l << 1);
+      for (int n = old_size; n <= l; n <<= 1) {
+        auto c = cache.data() + n;
+        for (int i = 0; i < n; ++i) {
+          c[i] = (*static_cast<Impl *>(this))[i];
+        }
+        ntt<Mod>().dif(n, c);
+      }
     }
-    ntt<Mod>().dif(n, cache.data() + n);
+    return cache.data() + l;
   }
-
-  auto prefix_dif(int l) const { return cache.data() + l; }
 
 private:
   std::vector<Mod> cache;
@@ -406,7 +413,7 @@ template <typename P, typename Q> struct MulSemi {
     using Base::cache, Base::p, Base::q, Base::copy_and_fill0, Base::buffer,
         Base::buffer1;
 
-    void resize(int new_size) { q.store().resize(new_size); }
+    void resize(int new_size) {}
 
     void self(int i) { cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0]; }
 
