@@ -165,5 +165,13 @@ TEST_CASE("poly_gen") {
       auto &f = ctx.var_root<0>();
       return f[100000];
     };
+
+    BENCHMARK("duplicated") {
+      using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<1>>, 1>, C<0>>,
+                           Var<0>>;
+      Ctx ctx{{Vector{Mod{1}}}};
+      auto &f = ctx.var_root<0>();
+      return f[100000];
+    };
   }
 }
