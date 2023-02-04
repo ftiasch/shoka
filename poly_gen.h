@@ -30,7 +30,7 @@ template <typename Impl, typename Mod> struct PrefixDifT {
     ntt<Mod>().dif(n, cache.data() + n);
   }
 
-  const Mod *prefix_dif(int l) const { return cache.data() + l; }
+  auto prefix_dif(int l) const { return cache.data() + l; }
 
 private:
   std::vector<Mod> cache;
@@ -45,14 +45,14 @@ struct ValStoreT : public PrefixDifT<ValStoreT<Mod>, Mod> {
     using Is = std::array<std::vector<Mod>, N>;
     using T = std::array<ValStoreT, N>;
 
-    static T create(const Is &cvalues) {
+    static auto create(const Is &cvalues) {
       return create(cvalues, std::make_index_sequence<N>());
     }
 
   private:
     template <std::size_t... Index>
-    static T create(const Is &cvalues, std::index_sequence<Index...>) {
-      return {ValStoreT{cvalues[Index]}...};
+    static auto create(const Is &cvalues, std::index_sequence<Index...>) {
+      return T{ValStoreT{cvalues[Index]}...};
     }
   };
 
@@ -65,7 +65,7 @@ struct ValStoreT : public PrefixDifT<ValStoreT<Mod>, Mod> {
   }
 
 private:
-  static int compute_min_deg(const std::vector<Mod> &c) {
+  static auto compute_min_deg(const std::vector<Mod> &c) {
     int deg = 0;
     while (deg < static_cast<int>(c.size()) && c[deg] == Mod{0}) {
       deg++;
@@ -83,7 +83,7 @@ public:
 template <typename Mod> struct DynInvTable {
   explicit DynInvTable() : invs{Mod{0}, Mod{1}} {}
 
-  Mod operator[](int k) {
+  auto operator[](int k) {
     while (invs.size() <= k) {
       int i = invs.size();
       invs.push_back(-Mod{Mod::mod() / i} * invs[Mod::mod() % i]);
@@ -129,7 +129,7 @@ private:
   template <typename T>
   using has_computed_t = decltype(std::declval<T>().computed());
 
-  int delegate_computed() const {
+  auto delegate_computed() const {
     if constexpr (std::experimental::is_detected_v<has_computed_t,
                                                    StoreT<Ctx>>) {
       return reinterpret_cast<const StoreT<Ctx> *>(this)->computed();
@@ -178,7 +178,7 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
     size++;
   }
 
-  int computed() const { return size; }
+  auto computed() const { return size; }
 
   const int min_deg, max_deg;
 
@@ -246,11 +246,9 @@ template <int Index> struct Var {
   template <typename Ctx> struct StoreT {
     static constexpr Type type = Type::VAR;
 
-    using Mod = typename Ctx::Mod;
-
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    Mod operator[](int i) { return ctx.template var_store<Index>()[i]; }
+    auto operator[](int i) { return ctx.template var_store<Index>()[i]; }
 
   private:
     Ctx &ctx;
