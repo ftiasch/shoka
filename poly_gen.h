@@ -211,7 +211,7 @@ protected:
   }
 
   template <typename F>
-  void middle_product_2(F &f, int l, int m, int r, const Mod *prefix_dif) {
+  void middle_product(F &f, int l, int m, int r, const Mod *prefix_dif) {
     auto n = r - l;
     copy_and_fill0(n, buffer.data(), f, l, m);
     ntt<Mod>().dif(n, buffer.data());
@@ -223,18 +223,6 @@ protected:
     for (int i = m; i < r; ++i) {
       cache[i] += buffer[i - l];
     }
-  }
-
-  void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
-    copy_and_fill0(n, buffer.data(), p, pbegin, pend);
-    copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
-    ntt<Mod>().dif(n, buffer.data());
-    ntt<Mod>().dif(n, buffer1.data());
-    auto inv_n = ntt<Mod>().power_of_two_inv(n);
-    for (int i = 0; i < n; ++i) {
-      buffer[i] = inv_n * buffer[i] * buffer1[i];
-    }
-    ntt<Mod>().dit(n, buffer.data());
   }
 
   typename Ctx::Vector buffer, buffer1;
@@ -438,12 +426,12 @@ template <typename P, typename Q> struct MulSemi {
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Base::cache, Base::p, Base::q, Base::buffer, Base::middle_product_2;
+    using Base::cache, Base::p, Base::q;
 
     void self(int i) { cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0]; }
 
     void cross(int l, int m, int r) {
-      middle_product_2(p, l, m, r, q.store().prefix_dif(r - l));
+      Base::middle_product(p, l, m, r, q.store().prefix_dif(r - l));
     }
   };
 };
@@ -457,8 +445,7 @@ template <typename P, typename Q> struct MulFull {
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Base::cache, Base::p, Base::q, Base::middle_product,
-        Base::middle_product_2, Base::buffer;
+    using Base::cache, Base::p, Base::q, Base::middle_product;
 
     void self(int i) {
       cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
@@ -466,14 +453,15 @@ template <typename P, typename Q> struct MulFull {
     }
 
     void cross(int l, int m, int r) {
+      auto n = r - l;
       if (l) {
-        middle_product_2(p, l, m, r, q.store().prefix_dif(r - l));
-        middle_product_2(q, l, m, r, p.store().prefix_dif(r - l));
+        middle_product(p, l, m, r, q.store().prefix_dif(n));
+        middle_product(q, l, m, r, p.store().prefix_dif(n));
       } else {
-        middle_product(r - l, l, m, 0, m - l);
-        for (int i = m; i < r; ++i) {
-          cache[i] += buffer[i - l];
-        }
+        auto *prefix_dif = Base::buffer1.data();
+        Base::copy_and_fill0(n, prefix_dif, q, 0, m - l);
+        ntt<typename Ctx::Mod>().dif(n, prefix_dif);
+        middle_product(p, l, m, r, prefix_dif);
       }
     }
   };
