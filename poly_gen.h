@@ -159,6 +159,7 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
     if (next == cache.size()) {
       auto new_size = cache.size() << 1;
       ntt<Mod>().reserve(new_size);
+      log_cache_size++;
       cache.resize(new_size);
       buffer.resize(new_size);
       buffer1.resize(new_size);
@@ -166,7 +167,13 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
         return reinterpret_cast<StoreT<Ctx> *>(this)->resize(new_size);
       }
     }
-    reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
+    if (next) {
+      int z = __builtin_ctz(next);
+      reinterpret_cast<StoreT<Ctx> *>(this)->cross(next - (1 << z), next,
+                                                   next + (1 << z));
+    }
+    reinterpret_cast<StoreT<Ctx> *>(this)->self(next);
+    // reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
     size++;
   }
 
@@ -201,7 +208,7 @@ private:
   template <typename T>
   using has_resize = decltype(std::declval<T>().resize(std::declval<int>()));
 
-  int size = 0;
+  int size = 0, log_cache_size = 0;
 };
 
 } // namespace poly_gen
@@ -402,31 +409,21 @@ template <typename P, typename Q> struct MulSemi {
 
     void resize(int new_size) { q.store().resize(new_size); }
 
-    void recur(int l, int r, int k) {
+    void self(int i) { cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0]; }
+
+    void cross(int l, int m, int r) {
       using Mod = typename Ctx::Mod;
-      if (l + 1 == r) {
-        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
-      } else {
-        auto m = (l + r) >> 1;
-        if (k < m) {
-          recur(l, m, k);
-        } else {
-          if (k == m) {
-            auto n = r - l;
-            copy_and_fill0(n, buffer.data(), p, l, m);
-            ntt<Mod>().dif(n, buffer.data());
-            auto q_prefix_dif = q.store().prefix_dif(n);
-            auto inv_n = ntt<Mod>().power_of_two_inv(n);
-            for (int i = 0; i < n; ++i) {
-              buffer[i] = inv_n * buffer[i] * q_prefix_dif[i];
-            }
-            ntt<Mod>().dit(n, buffer.data());
-            for (int i = m; i < r; ++i) {
-              cache[i] += buffer[i - l];
-            }
-          }
-          recur(m, r, k);
-        }
+      auto n = r - l;
+      copy_and_fill0(n, buffer.data(), p, l, m);
+      ntt<Mod>().dif(n, buffer.data());
+      auto q_prefix_dif = q.store().prefix_dif(n);
+      auto inv_n = ntt<Mod>().power_of_two_inv(n);
+      for (int i = 0; i < n; ++i) {
+        buffer[i] = inv_n * buffer[i] * q_prefix_dif[i];
+      }
+      ntt<Mod>().dit(n, buffer.data());
+      for (int i = m; i < r; ++i) {
+        cache[i] += buffer[i - l];
       }
     }
   };
@@ -440,28 +437,20 @@ template <typename P, typename Q> struct MulFull {
 
     using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
 
-    void recur(int l, int r, int k) {
-      if (l + 1 == r) {
-        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
-        cache[l] += !l || p.min_deg ? Ctx::ZERO : p[0] * q[l];
-      } else {
-        auto m = (l + r) >> 1;
-        if (k < m) {
-          recur(l, m, k);
-        } else {
-          if (k == m) {
-            middle_product(r - l, l, m, 0, l ? r - l : m - l);
-            for (int i = m; i < r; ++i) {
-              cache[i] += buffer[i - l];
-            }
-            if (l) {
-              middle_product(r - l, 0, r - l, l, m);
-              for (int i = m; i < r; ++i) {
-                cache[i] += buffer[i - l];
-              }
-            }
-          }
-          recur(m, r, k);
+    void self(int i) {
+      cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
+      cache[i] += !i || p.min_deg ? Ctx::ZERO : p[0] * q[i];
+    }
+
+    void cross(int l, int m, int r) {
+      middle_product(r - l, l, m, 0, l ? r - l : m - l);
+      for (int i = m; i < r; ++i) {
+        cache[i] += buffer[i - l];
+      }
+      if (l) {
+        middle_product(r - l, 0, r - l, l, m);
+        for (int i = m; i < r; ++i) {
+          cache[i] += buffer[i - l];
         }
       }
     }
