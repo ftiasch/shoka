@@ -156,4 +156,14 @@ TEST_CASE("poly_gen") {
     // sage: catalan_number(100000).mod(998244353)
     // 944488806
   }
+
+  SECTION("full_bench") {
+    BENCHMARK("opt0") {
+      using Ctx =
+          PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
+      Ctx ctx{{Vector{Mod{1}}}};
+      auto &f = ctx.var_store<0>();
+      return f[100000];
+    };
+  }
 }
