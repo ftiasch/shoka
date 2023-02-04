@@ -51,22 +51,6 @@ private:
   std::vector<Mod> cache;
 };
 
-template <typename Impl, typename Mod>
-struct RangeDifT : public PrefixDifT<Impl, Mod> {
-  auto range_dif(int l, int m, int r) {
-    auto n = r - l;
-    if (cache.size() < n) {
-      cache.resize(n);
-    }
-    copy_and_fill0(n, cache.data(), (*static_cast<Impl *>(this)), l, m);
-    ntt<Mod>().dif(n, cache.data());
-    return cache.data();
-  }
-
-private:
-  std::vector<Mod> cache;
-};
-
 /*
  ** NOTE: Value can be referred for multiple times, like `Var`.
  */
@@ -112,7 +96,7 @@ public:
 
 template <typename P> struct VarRootT {
   template <typename Ctx>
-  struct StoreT : public RangeDifT<StoreT<Ctx>, typename Ctx::Mod> {
+  struct StoreT : public PrefixDifT<StoreT<Ctx>, typename Ctx::Mod> {
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
@@ -209,7 +193,8 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
       ntt<Mod>().reserve(new_size);
       log_cache_size++;
       cache.resize(new_size);
-      buffer.resize(new_size);
+      prefix_dif.resize(new_size);
+      range_dif.resize(new_size);
     }
     if (next) {
       int z = __builtin_ctz(next);
@@ -228,21 +213,24 @@ protected:
   template <typename F>
   void middle_product(F &f, int l, int m, int r, const Mod *prefix_dif) {
     auto n = r - l;
-    auto range_dif = f.store().range_dif(l, m, r);
+    copy_and_fill0(n, range_dif.data(), f, l, m);
+    ntt<Mod>().dif(n, range_dif.data());
     auto inv_n = ntt<Mod>().power_of_two_inv(n);
     for (int i = 0; i < n; ++i) {
-      buffer[i] = inv_n * range_dif[i] * prefix_dif[i];
+      range_dif[i] = inv_n * range_dif[i] * prefix_dif[i];
     }
-    ntt<Mod>().dit(n, buffer.data());
+    ntt<Mod>().dit(n, range_dif.data());
     for (int i = m; i < r; ++i) {
-      cache[i] += buffer[i - l];
+      cache[i] += range_dif[i - l];
     }
   }
 
-  typename Ctx::Vector buffer;
+  typename Ctx::Vector prefix_dif;
 
 private:
   int size = 0, log_cache_size = 0;
+
+  typename Ctx::Vector range_dif;
 };
 
 } // namespace poly_gen
@@ -472,7 +460,7 @@ template <typename P, typename Q> struct MulFull {
         middle_product(p, l, m, r, q.store().prefix_dif(n));
         middle_product(q, l, m, r, p.store().prefix_dif(n));
       } else {
-        auto *prefix_dif = Base::buffer.data();
+        auto *prefix_dif = Base::prefix_dif.data();
         copy_and_fill0(n, prefix_dif, q, 0, m - l);
         ntt<typename Ctx::Mod>().dif(n, prefix_dif);
         middle_product(p, l, m, r, prefix_dif);
