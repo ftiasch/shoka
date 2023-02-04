@@ -47,21 +47,21 @@ TEST_CASE("poly_gen") {
   SECTION("c") {
     using Ctx = PolyCtxT<Mod, 1, C<0>>;
     Ctx ctx{{Vector{Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{0}});
   }
 
   SECTION("shift") {
     using Ctx = PolyCtxT<Mod, 1, Shift<C<0>, 1>>;
     Ctx ctx{{Vector{Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 3) == Vector{Mod{0}, Mod{1}, Mod{0}});
   }
 
   SECTION("neg") {
     using Ctx = PolyCtxT<Mod, 1, Neg<C<0>>>;
     Ctx ctx{{Vector{Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 2) == Vector{-Mod{1}, Mod{0}});
   }
 
@@ -69,21 +69,21 @@ TEST_CASE("poly_gen") {
     // \int (1 + z) = z + 1/2 z^2
     using Ctx = PolyCtxT<Mod, 1, Integral<C<0>>>;
     Ctx ctx{{Vector{Mod{1}, Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 3) == Vector{Mod{0}, Mod{1}, Mod{2}.inv()});
   }
 
   SECTION("add") {
     using Ctx = PolyCtxT<Mod, 2, Add<C<0>, C<1>>>;
     Ctx ctx{{Vector{Mod{1}}, Vector{Mod{0}, Mod{2}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{2}, Mod{0}});
   }
 
   SECTION("sub") {
     using Ctx = PolyCtxT<Mod, 2, Sub<C<0>, C<1>>>;
     Ctx ctx{{Vector{Mod{1}}, Vector{Mod{0}, Mod{2}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 3) == Vector{Mod{1}, -Mod{2}, Mod{0}});
   }
 
@@ -91,7 +91,7 @@ TEST_CASE("poly_gen") {
     // partial sum
     using Ctx = PolyCtxT<Mod, 1, CustomOp<C<0>>>;
     Ctx ctx{{Vector{Mod{1}, Mod{2}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{3}, Mod{3}});
   }
 
@@ -102,7 +102,7 @@ TEST_CASE("poly_gen") {
   SECTION("fib_lazy") {
     using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 5) == FIBS_5);
     REQUIRE(f[100000] == FIB_100000);
   }
@@ -110,7 +110,7 @@ TEST_CASE("poly_gen") {
   SECTION("fib_semi") {
     using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
     Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 5) == FIBS_5);
     REQUIRE(f[100000] == FIB_100000);
   }
@@ -125,7 +125,7 @@ TEST_CASE("poly_gen") {
     BENCHMARK("opt1") {
       using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
       Ctx ctx{{c0, {Mod{1}}}};
-      auto &f = ctx.var_store<0>();
+      auto &f = ctx.var_root<0>();
       REQUIRE(f[n] == Mod{189040980});
       return f[n];
     };
@@ -138,7 +138,7 @@ TEST_CASE("poly_gen") {
     using Ctx = PolyCtxT<Mod, 1, Cache<Add<Add<Var<1>, Var<2>>, C<0>>>,
                          Shift<Var<0>, 1>, Shift<Var<0>, 2>>;
     Ctx ctx{{Vector{Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 5) == FIBS_5);
     REQUIRE(f[100000] == FIB_100000);
   }
@@ -147,7 +147,7 @@ TEST_CASE("poly_gen") {
     // f(z) = f(z) * f(z) * z + 1
     using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
     Ctx ctx{{Vector{Mod{1}}}};
-    auto &f = ctx.var_store<0>();
+    auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
                                             Mod{14}, Mod{42}, Mod{132},
                                             Mod{429}, Mod{1430}, Mod{4862}});
@@ -162,7 +162,7 @@ TEST_CASE("poly_gen") {
       using Ctx =
           PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
       Ctx ctx{{Vector{Mod{1}}}};
-      auto &f = ctx.var_store<0>();
+      auto &f = ctx.var_root<0>();
       return f[100000];
     };
   }

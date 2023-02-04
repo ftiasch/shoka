@@ -47,10 +47,10 @@ private:
  ** NOTE: Value can be referred for multiple times, like `Var`.
  */
 template <typename Mod>
-struct ValStoreT : public PrefixDifT<ValStoreT<Mod>, Mod> {
+struct ValRootT : public PrefixDifT<ValRootT<Mod>, Mod> {
   template <int N> struct Factory {
     using Is = std::array<std::vector<Mod>, N>;
-    using T = std::array<ValStoreT, N>;
+    using T = std::array<ValRootT, N>;
 
     static auto create(const Is &cvalues) {
       return create(cvalues, std::make_index_sequence<N>());
@@ -59,11 +59,11 @@ struct ValStoreT : public PrefixDifT<ValStoreT<Mod>, Mod> {
   private:
     template <std::size_t... Index>
     static auto create(const Is &cvalues, std::index_sequence<Index...>) {
-      return T{ValStoreT{cvalues[Index]}...};
+      return T{ValRootT{cvalues[Index]}...};
     }
   };
 
-  explicit ValStoreT(const std::vector<Mod> &c_)
+  explicit ValRootT(const std::vector<Mod> &c_)
       : c{c_}, min_deg{compute_min_deg(c)}, max_deg{static_cast<int>(c.size()) -
                                                     1} {}
 
@@ -84,6 +84,22 @@ private:
 
 public:
   const int min_deg, max_deg;
+};
+
+template <typename P> struct VarRootT {
+  template <typename Ctx>
+  struct StoreT : public PrefixDifT<StoreT<Ctx>, typename Ctx::Mod> {
+    explicit StoreT(Ctx &ctx)
+        : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+
+    auto operator[](int i) { return p[i]; }
+
+  private:
+    typename P::template StoreT<Ctx> p;
+
+  public:
+    const int min_deg, max_deg;
+  };
 };
 
 // NOTE: Not extend `CacheBaseT` because otherwise it depends on `Ctx`
@@ -171,9 +187,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
       cache.resize(new_size);
       buffer.resize(new_size);
       buffer1.resize(new_size);
-      if constexpr (std::experimental::is_detected_v<has_resize, StoreT<Ctx>>) {
-        return reinterpret_cast<StoreT<Ctx> *>(this)->resize(new_size);
-      }
     }
     if (next) {
       int z = __builtin_ctz(next);
@@ -181,7 +194,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
                                                    next + (1 << z));
     }
     reinterpret_cast<StoreT<Ctx> *>(this)->self(next);
-    // reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
     size++;
   }
 
@@ -196,6 +208,21 @@ protected:
       dst[i] = f[l + i];
     }
     std::fill(dst + (r - l), dst + n, Ctx::ZERO);
+  }
+
+  template <typename F>
+  void middle_product_2(F &f, int l, int m, int r, const Mod *prefix_dif) {
+    auto n = r - l;
+    copy_and_fill0(n, buffer.data(), f, l, m);
+    ntt<Mod>().dif(n, buffer.data());
+    auto inv_n = ntt<Mod>().power_of_two_inv(n);
+    for (int i = 0; i < n; ++i) {
+      buffer[i] = inv_n * buffer[i] * prefix_dif[i];
+    }
+    ntt<Mod>().dit(n, buffer.data());
+    for (int i = m; i < r; ++i) {
+      cache[i] += buffer[i - l];
+    }
   }
 
   void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
@@ -213,36 +240,35 @@ protected:
   typename Ctx::Vector buffer, buffer1;
 
 private:
-  template <typename T>
-  using has_resize = decltype(std::declval<T>().resize(std::declval<int>()));
-
   int size = 0, log_cache_size = 0;
 };
 
 } // namespace poly_gen
 
-template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
+template <typename Mod_, int NUM_OF_VAL, typename... Var> struct PolyCtxT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
-  using ValStores =
-      typename poly_gen::ValStoreT<Mod>::template Factory<NUM_OF_VAL>;
+  using ValRoots =
+      typename poly_gen::ValRootT<Mod>::template Factory<NUM_OF_VAL>;
 
   static constexpr Mod ZERO{0};
 
   static auto inv(int i) { return singleton<poly_gen::DynInvTable<Mod>>()[i]; }
 
-  explicit PolyCtxT(const typename ValStores::Is &vals_)
-      : val_stores{ValStores::create(vals_)},
-        var_stores{typename Vars::template StoreT<PolyCtxT>{*this}...} {}
+  explicit PolyCtxT(const typename ValRoots::Is &vals_)
+      : val_roots{ValRoots::create(vals_)},
+        var_roots{typename poly_gen::VarRootT<Var>::template StoreT<PolyCtxT>{
+            *this}...} {}
 
-  template <int Index> auto &var_store() { return std::get<Index>(var_stores); }
+  template <int Index> auto &var_root() { return std::get<Index>(var_roots); }
 
-  template <int Index> auto &val_store() { return val_stores[Index]; }
+  template <int Index> auto &val_root() { return val_roots[Index]; }
 
 private:
-  typename ValStores::T val_stores;
+  typename ValRoots::T val_roots;
 
-  std::tuple<typename Vars::template StoreT<PolyCtxT>...> var_stores;
+  std::tuple<typename poly_gen::VarRootT<Var>::template StoreT<PolyCtxT>...>
+      var_roots;
 };
 
 namespace dsl {
@@ -255,7 +281,9 @@ template <int Index> struct Var {
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    auto operator[](int i) { return ctx.template var_store<Index>()[i]; }
+    auto &store() { return ctx.template var_root<Index>(); }
+
+    auto operator[](int i) { return store()[i]; }
 
   private:
     Ctx &ctx;
@@ -274,7 +302,7 @@ template <int Index> struct Val {
     explicit StoreT(Ctx &ctx_)
         : ctx{ctx_}, min_deg{store().min_deg}, max_deg{store().max_deg} {}
 
-    auto &store() { return ctx.template val_store<Index>(); }
+    auto &store() { return ctx.template val_root<Index>(); }
 
     auto operator[](int i) { return store()[i]; }
 
@@ -410,27 +438,12 @@ template <typename P, typename Q> struct MulSemi {
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Base::cache, Base::p, Base::q, Base::copy_and_fill0, Base::buffer,
-        Base::buffer1;
-
-    void resize(int new_size) {}
+    using Base::cache, Base::p, Base::q, Base::buffer, Base::middle_product_2;
 
     void self(int i) { cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0]; }
 
     void cross(int l, int m, int r) {
-      using Mod = typename Ctx::Mod;
-      auto n = r - l;
-      copy_and_fill0(n, buffer.data(), p, l, m);
-      ntt<Mod>().dif(n, buffer.data());
-      auto q_prefix_dif = q.store().prefix_dif(n);
-      auto inv_n = ntt<Mod>().power_of_two_inv(n);
-      for (int i = 0; i < n; ++i) {
-        buffer[i] = inv_n * buffer[i] * q_prefix_dif[i];
-      }
-      ntt<Mod>().dit(n, buffer.data());
-      for (int i = m; i < r; ++i) {
-        cache[i] += buffer[i - l];
-      }
+      middle_product_2(p, l, m, r, q.store().prefix_dif(r - l));
     }
   };
 };
@@ -444,7 +457,8 @@ template <typename P, typename Q> struct MulFull {
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
+    using Base::cache, Base::p, Base::q, Base::middle_product,
+        Base::middle_product_2, Base::buffer;
 
     void self(int i) {
       cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
@@ -452,12 +466,11 @@ template <typename P, typename Q> struct MulFull {
     }
 
     void cross(int l, int m, int r) {
-      middle_product(r - l, l, m, 0, l ? r - l : m - l);
-      for (int i = m; i < r; ++i) {
-        cache[i] += buffer[i - l];
-      }
       if (l) {
-        middle_product(r - l, 0, r - l, l, m);
+        middle_product_2(p, l, m, r, q.store().prefix_dif(r - l));
+        middle_product_2(q, l, m, r, p.store().prefix_dif(r - l));
+      } else {
+        middle_product(r - l, l, m, 0, m - l);
         for (int i = m; i < r; ++i) {
           cache[i] += buffer[i - l];
         }
