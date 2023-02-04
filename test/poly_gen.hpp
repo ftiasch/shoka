@@ -122,7 +122,7 @@ TEST_CASE("poly_gen") {
       c0[i] = Mod{i};
     }
 
-    BENCHMARK("opt1") {
+    BENCHMARK("baseline") {
       using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;
       Ctx ctx{{c0, {Mod{1}}}};
       auto &f = ctx.var_root<0>();
@@ -143,22 +143,33 @@ TEST_CASE("poly_gen") {
     REQUIRE(f[100000] == FIB_100000);
   }
 
+  const Vector CATALAN_10{Mod{1},  Mod{1},   Mod{2},   Mod{5},    Mod{14},
+                          Mod{42}, Mod{132}, Mod{429}, Mod{1430}, Mod{4862}};
+  Mod CATALAN_100000{944488806};
+  // NOTE: verified
+  // sage: catalan_number(100000).mod(998244353)
+  // 944488806
+
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
     using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
     Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var_root<0>();
-    REQUIRE(take(f, 10) == std::vector<Mod>{Mod{1}, Mod{1}, Mod{2}, Mod{5},
-                                            Mod{14}, Mod{42}, Mod{132},
-                                            Mod{429}, Mod{1430}, Mod{4862}});
-    REQUIRE(f[100000] == Mod{944488806});
-    // NOTE: verified
-    // sage: catalan_number(100000).mod(998244353)
-    // 944488806
+    REQUIRE(take(f, 10) == CATALAN_10);
+    REQUIRE(f[100000] == CATALAN_100000);
+  }
+
+  SECTION("catalan_sqr") {
+    // f(z) = f(z) * f(z) * z + 1
+    using Ctx = PolyCtxT<Mod, 1, Add<Shift<SqrFull<Var<0>>, 1>, C<0>>>;
+    Ctx ctx{{Vector{Mod{1}}}};
+    auto &f = ctx.var_root<0>();
+    REQUIRE(take(f, 10) == CATALAN_10);
+    REQUIRE(f[100000] == CATALAN_100000);
   }
 
   SECTION("full_bench") {
-    BENCHMARK("opt0") {
+    BENCHMARK("baseline") {
       using Ctx =
           PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
       Ctx ctx{{Vector{Mod{1}}}};
@@ -166,7 +177,15 @@ TEST_CASE("poly_gen") {
       return f[100000];
     };
 
-    BENCHMARK("duplicated") {
+    BENCHMARK("sqr") {
+      using Ctx = PolyCtxT<Mod, 1, Add<Shift<SqrFull<Var<0>>, 1>, C<0>>>;
+      Ctx ctx{{Vector{Mod{1}}}};
+      auto &f = ctx.var_root<0>();
+      return f[100000];
+    };
+
+    // NOTE: slower, because `prefix_dif` is not shared
+    BENCHMARK("alias") {
       using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<1>>, 1>, C<0>>,
                            Var<0>>;
       Ctx ctx{{Vector{Mod{1}}}};

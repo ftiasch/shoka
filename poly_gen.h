@@ -225,12 +225,10 @@ protected:
     }
   }
 
-  typename Ctx::Vector prefix_dif;
+  typename Ctx::Vector prefix_dif, range_dif;
 
 private:
   int size = 0, log_cache_size = 0;
-
-  typename Ctx::Vector range_dif;
 };
 
 } // namespace poly_gen
@@ -464,6 +462,46 @@ template <typename P, typename Q> struct MulFull {
         copy_and_fill0(n, prefix_dif, q, 0, m - l);
         ntt<typename Ctx::Mod>().dif(n, prefix_dif);
         middle_product(p, l, m, r, prefix_dif);
+      }
+    }
+  };
+};
+
+template <typename P> struct SqrFull {
+  template <typename Ctx>
+  struct StoreT : public NttMulBaseT<Ctx, P, P, StoreT> {
+    static_assert(P::template StoreT<Ctx>::type == Type::VAR, "P is not Var");
+
+    using Base = NttMulBaseT<Ctx, P, P, StoreT>;
+    using typename Base::NttMulBaseT;
+
+    using Base::cache, Base::p, Base::q, Base::middle_product;
+
+    void self(int i) {
+      cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
+      cache[i] += !i || p.min_deg ? Ctx::ZERO : p[0] * q[i];
+    }
+
+    void cross(int l, int m, int r) {
+      auto n = r - l;
+      if (l) {
+        middle_product(p, l, m, r, q.store().prefix_dif(n));
+        for (int i = m; i < r; ++i) {
+          cache[i] += Base::range_dif[i - l];
+        }
+      } else {
+        using Mod = typename Ctx::Mod;
+        auto *prefix_dif = Base::prefix_dif.data();
+        copy_and_fill0(n, prefix_dif, q, 0, m - l);
+        ntt<Mod>().dif(n, prefix_dif);
+        auto inv_n = ntt<Mod>().power_of_two_inv(n);
+        for (int i = 0; i < n; ++i) {
+          prefix_dif[i] *= inv_n * prefix_dif[i];
+        }
+        ntt<Mod>().dit(n, prefix_dif);
+        for (int i = m; i < r; ++i) {
+          cache[i] += prefix_dif[i];
+        }
       }
     }
   };
