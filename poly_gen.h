@@ -11,13 +11,34 @@
 
 namespace poly_gen {
 
+template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
+
+template <typename Mod, typename Impl> struct PrefixDifT {
+  explicit PrefixDifT() : cache(1) {}
+
+  void resize(int n) {
+    cache.resize(n << 1);
+    ntt<Mod>().reserve(n);
+    for (int i = 0; i < n; ++i) {
+      cache[n + i] = (*static_cast<Impl *>(this))[i];
+    }
+    ntt<Mod>().dif(n, cache.data() + n);
+  }
+
+  const Mod *prefix_dif(int l) const { return cache.data() + l; }
+
+private:
+  std::vector<Mod> cache;
+};
+
 /*
  ** NOTE: Value can be referred for multiple times, like `Var`.
  */
-template <typename Mod> struct ValWrapperT {
+template <typename Mod>
+struct ValStoreT : public PrefixDifT<Mod, ValStoreT<Mod>> {
   template <int N> struct Factory {
     using Is = std::array<std::vector<Mod>, N>;
-    using T = std::array<ValWrapperT, N>;
+    using T = std::array<ValStoreT, N>;
 
     static T create(const Is &cvalues) {
       return create(cvalues, std::make_index_sequence<N>());
@@ -26,11 +47,11 @@ template <typename Mod> struct ValWrapperT {
   private:
     template <std::size_t... Index>
     static T create(const Is &cvalues, std::index_sequence<Index...>) {
-      return {ValWrapperT{cvalues[Index]}...};
+      return {ValStoreT{cvalues[Index]}...};
     }
   };
 
-  explicit ValWrapperT(const std::vector<Mod> &c_)
+  explicit ValStoreT(const std::vector<Mod> &c_)
       : c{c_}, min_deg{compute_min_deg(c)}, max_deg{static_cast<int>(c.size()) -
                                                     1} {}
 
@@ -126,6 +147,7 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
   using CacheBaseT<Ctx, StoreT>::cache;
   using BinaryOp = BinaryOpStoreT<Ctx, P, Q>;
   using BinaryOp::p, BinaryOp::q;
+  using Mod = typename Ctx::Mod;
 
   explicit NttMulBaseT(Ctx &ctx)
       : BinaryOp{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {
@@ -136,12 +158,12 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
     int next = size;
     if (next == cache.size()) {
       auto new_size = cache.size() << 1;
-      ntt().reserve(new_size);
+      ntt<Mod>().reserve(new_size);
       cache.resize(new_size);
       buffer.resize(new_size);
       buffer1.resize(new_size);
       if constexpr (std::experimental::is_detected_v<has_resize, StoreT<Ctx>>) {
-        reinterpret_cast<StoreT<Ctx> *>(this)->resize(new_size);
+        return reinterpret_cast<StoreT<Ctx> *>(this)->resize(new_size);
       }
     }
     reinterpret_cast<StoreT<Ctx> *>(this)->recur(0, cache.size(), next);
@@ -153,13 +175,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
   const int min_deg, max_deg;
 
 protected:
-  template <typename T>
-  using has_resize = decltype(std::declval<T>().resize(std::declval<int>()));
-
-  using Mod = typename Ctx::Mod;
-  using Ntt = NttT<Mod, 0>;
-  static Ntt &ntt() { return singleton<Ntt>(); }
-
   template <typename F>
   static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
     for (int i = 0; i < r - l; ++i) {
@@ -171,18 +186,21 @@ protected:
   void middle_product(int n, int pbegin, int pend, int qbegin, int qend) {
     copy_and_fill0(n, buffer.data(), p, pbegin, pend);
     copy_and_fill0(n, buffer1.data(), q, qbegin, qend);
-    ntt().dif(n, buffer.data());
-    ntt().dif(n, buffer1.data());
-    auto inv_n = ntt().power_of_two_inv(n);
+    ntt<Mod>().dif(n, buffer.data());
+    ntt<Mod>().dif(n, buffer1.data());
+    auto inv_n = ntt<Mod>().power_of_two_inv(n);
     for (int i = 0; i < n; ++i) {
       buffer[i] = inv_n * buffer[i] * buffer1[i];
     }
-    ntt().dit(n, buffer.data());
+    ntt<Mod>().dit(n, buffer.data());
   }
 
   typename Ctx::Vector buffer, buffer1;
 
 private:
+  template <typename T>
+  using has_resize = decltype(std::declval<T>().resize(std::declval<int>()));
+
   int size = 0;
 };
 
@@ -191,9 +209,7 @@ private:
 template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
-
-  using Vals =
-      typename poly_gen::ValWrapperT<Mod>::template Factory<NUM_OF_VAL>;
+  using Vals = typename poly_gen::ValStoreT<Mod>::template Factory<NUM_OF_VAL>;
 
   static constexpr Mod ZERO{0};
 
@@ -206,7 +222,7 @@ template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
 
   template <int Index> auto &var() { return std::get<Index>(store); }
 
-  template <int Index> auto &val() const { return vals[Index]; }
+  template <int Index> auto &val_store() { return vals[Index]; }
 
 private:
   typename Vals::T vals;
@@ -241,13 +257,13 @@ template <int Index> struct Val {
     using Vector = typename Ctx::Vector;
 
     explicit StoreT(Ctx &ctx_)
-        : ctx{ctx_}, min_deg{val().min_deg}, max_deg{val().max_deg} {}
+        : ctx{ctx_}, min_deg{store().min_deg}, max_deg{store().max_deg} {}
 
-    typename Ctx::Mod operator[](int i) const { return val()[i]; }
+    auto &store() { return ctx.template val_store<Index>(); }
+
+    auto operator[](int i) { return store()[i]; }
 
   private:
-    auto &val() const { return ctx.template val<Index>(); }
-
     Ctx &ctx;
 
   public:
@@ -373,39 +389,6 @@ template <typename P> struct Cache {
 
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
-/*
-template <typename P, typename Q> struct MulSemiOpt0 {
-  template <typename Ctx>
-  struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not a value");
-
-    using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
-    using typename Base::NttMulBaseT;
-
-    using Base::cache, Base::p, Base::q, Base::middle_product, Base::buffer;
-
-    void recur(int l, int r, int k) {
-      if (l + 1 == r) {
-        cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
-      } else {
-        auto m = (l + r) >> 1;
-        if (k < m) {
-          recur(l, m, k);
-        } else {
-          if (k == m) {
-            middle_product(r - l, l, m, 0, r - l);
-            for (int i = m; i < r; ++i) {
-              cache[i] += buffer[i - l];
-            }
-          }
-          recur(m, r, k);
-        }
-      }
-    }
-  };
-};
-*/
-
 template <typename P, typename Q> struct MulSemi {
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -414,12 +397,13 @@ template <typename P, typename Q> struct MulSemi {
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
-    using Base::cache, Base::p, Base::q, Base::ntt, Base::copy_and_fill0,
-        Base::buffer, Base::buffer1;
+    using Base::cache, Base::p, Base::q, Base::copy_and_fill0, Base::buffer,
+        Base::buffer1;
 
-    void resize(int new_size) { q_prefix_dif.resize(new_size << 1); }
+    void resize(int new_size) { q.store().resize(new_size); }
 
     void recur(int l, int r, int k) {
+      using Mod = typename Ctx::Mod;
       if (l + 1 == r) {
         cache[l] += q.min_deg ? Ctx::ZERO : p[l] * q[0];
       } else {
@@ -428,19 +412,15 @@ template <typename P, typename Q> struct MulSemi {
           recur(l, m, k);
         } else {
           if (k == m) {
-            if (l == 0) {
-              auto b = q_prefix_dif.data() + r;
-              copy_and_fill0(r, b, q, 0, r);
-              ntt().dif(r, b);
-            }
             auto n = r - l;
             copy_and_fill0(n, buffer.data(), p, l, m);
-            ntt().dif(n, buffer.data());
-            auto inv_n = ntt().power_of_two_inv(n);
+            ntt<Mod>().dif(n, buffer.data());
+            auto q_prefix_dif = q.store().prefix_dif(n);
+            auto inv_n = ntt<Mod>().power_of_two_inv(n);
             for (int i = 0; i < n; ++i) {
-              buffer[i] = inv_n * buffer[i] * q_prefix_dif[n + i];
+              buffer[i] = inv_n * buffer[i] * q_prefix_dif[i];
             }
-            ntt().dit(n, buffer.data());
+            ntt<Mod>().dit(n, buffer.data());
             for (int i = m; i < r; ++i) {
               cache[i] += buffer[i - l];
             }
@@ -449,9 +429,6 @@ template <typename P, typename Q> struct MulSemi {
         }
       }
     }
-
-  private:
-    typename Ctx::Vector q_prefix_dif;
   };
 };
 
