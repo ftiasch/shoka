@@ -216,25 +216,25 @@ private:
 template <typename Mod_, int NUM_OF_VAL, typename... Vars> struct PolyCtxT {
   using Mod = Mod_;
   using Vector = std::vector<Mod>;
-  using Vals = typename poly_gen::ValStoreT<Mod>::template Factory<NUM_OF_VAL>;
+  using ValStores =
+      typename poly_gen::ValStoreT<Mod>::template Factory<NUM_OF_VAL>;
 
   static constexpr Mod ZERO{0};
 
   static auto inv(int i) { return singleton<poly_gen::DynInvTable<Mod>>()[i]; }
 
-  explicit PolyCtxT(const typename Vals::Is &vals_)
-      : vals{Vals::create(vals_)}, store{
-                                       typename Vars::template StoreT<PolyCtxT>{
-                                           *this}...} {}
+  explicit PolyCtxT(const typename ValStores::Is &vals_)
+      : val_stores{ValStores::create(vals_)},
+        var_stores{typename Vars::template StoreT<PolyCtxT>{*this}...} {}
 
-  template <int Index> auto &var() { return std::get<Index>(store); }
+  template <int Index> auto &var_store() { return std::get<Index>(var_stores); }
 
-  template <int Index> auto &val_store() { return vals[Index]; }
+  template <int Index> auto &val_store() { return val_stores[Index]; }
 
 private:
-  typename Vals::T vals;
+  typename ValStores::T val_stores;
 
-  std::tuple<typename Vars::template StoreT<PolyCtxT>...> store;
+  std::tuple<typename Vars::template StoreT<PolyCtxT>...> var_stores;
 };
 
 namespace dsl {
@@ -247,7 +247,9 @@ template <int Index> struct Var {
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    typename Ctx::Mod operator[](int i) { return ctx.template var<Index>()[i]; }
+    typename Ctx::Mod operator[](int i) {
+      return ctx.template var_store<Index>()[i];
+    }
 
   private:
     Ctx &ctx;
