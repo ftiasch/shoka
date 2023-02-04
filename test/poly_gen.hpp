@@ -48,7 +48,6 @@ TEST_CASE("poly_gen") {
     using Ctx = PolyCtxT<Mod, 1, C<0>>;
     Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var_store<0>();
-    REQUIRE(f.is_value);
     REQUIRE(take(f, 2) == Vector{Mod{1}, Mod{0}});
   }
 
@@ -122,16 +121,6 @@ TEST_CASE("poly_gen") {
     for (int i = 0; i <= n; ++i) {
       c0[i] = Mod{i};
     }
-
-    /*
-    BENCHMARK("opt0") {
-      using Ctx = PolyCtxT<Mod, 2, Add<MulSemiOpt0<Var<0>, C<0>>, C<1>>>;
-      Ctx ctx{{c0, {Mod{1}}}};
-      auto &f = ctx.var<0>();
-      REQUIRE(f[n] == Mod{189040980});
-      return f[n];
-    };
-    */
 
     BENCHMARK("opt1") {
       using Ctx = PolyCtxT<Mod, 2, Add<MulSemi<Var<0>, C<0>>, C<1>>>;

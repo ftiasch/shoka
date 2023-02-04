@@ -11,9 +11,14 @@
 
 namespace poly_gen {
 
+enum class Type {
+  VAR = 0,
+  VAL = 1,
+};
+
 template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
 
-template <typename Mod, typename Impl> struct PrefixDifT {
+template <typename Impl, typename Mod> struct PrefixDifT {
   explicit PrefixDifT() : cache(1) {}
 
   void resize(int n) {
@@ -35,7 +40,7 @@ private:
  ** NOTE: Value can be referred for multiple times, like `Var`.
  */
 template <typename Mod>
-struct ValStoreT : public PrefixDifT<Mod, ValStoreT<Mod>> {
+struct ValStoreT : public PrefixDifT<ValStoreT<Mod>, Mod> {
   template <int N> struct Factory {
     using Is = std::array<std::vector<Mod>, N>;
     using T = std::array<ValStoreT, N>;
@@ -90,8 +95,6 @@ template <typename Mod> struct DynInvTable {
 };
 
 template <typename Ctx, typename P> struct UnaryOpStoreT {
-  static constexpr bool is_value = false;
-
   explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
 
 protected:
@@ -99,8 +102,6 @@ protected:
 };
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
-  static constexpr bool is_value = false;
-
   explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
 protected:
@@ -243,13 +244,13 @@ using namespace poly_gen;
 
 template <int Index> struct Var {
   template <typename Ctx> struct StoreT {
-    static constexpr bool is_value = false;
+    static constexpr Type type = Type::VAR;
+
+    using Mod = typename Ctx::Mod;
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    typename Ctx::Mod operator[](int i) {
-      return ctx.template var_store<Index>()[i];
-    }
+    Mod operator[](int i) { return ctx.template var_store<Index>()[i]; }
 
   private:
     Ctx &ctx;
@@ -261,7 +262,7 @@ template <int Index> struct Var {
 
 template <int Index> struct Val {
   template <typename Ctx> struct StoreT {
-    static constexpr bool is_value = true;
+    static constexpr Type type = Type::VAL;
 
     using Vector = typename Ctx::Vector;
 
@@ -379,8 +380,6 @@ template <typename P, typename Q> struct LazyMulNoCache {
 
 template <typename P> struct Cache {
   template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
-    static constexpr bool is_value = false;
-
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
@@ -401,7 +400,7 @@ template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 template <typename P, typename Q> struct MulSemi {
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-    static_assert(Q::template StoreT<Ctx>::is_value, "Q is not Val");
+    static_assert(Q::template StoreT<Ctx>::type == Type::VAL, "Q is not Val");
 
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
@@ -434,6 +433,9 @@ template <typename P, typename Q> struct MulSemi {
 template <typename P, typename Q> struct MulFull {
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
+    static_assert(P::template StoreT<Ctx>::type == Type::VAR, "P is not Var");
+    static_assert(Q::template StoreT<Ctx>::type == Type::VAR, "Q is not Var");
+
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
