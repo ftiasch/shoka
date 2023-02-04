@@ -20,6 +20,14 @@ enum class Type {
 
 template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
 
+template <typename Mod, typename F>
+static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
+  for (int i = 0; i < r - l; ++i) {
+    dst[i] = f[l + i];
+  }
+  std::fill(dst + (r - l), dst + n, Mod{0});
+}
+
 template <typename Impl, typename Mod> struct PrefixDifT {
   explicit PrefixDifT() : cache(1) {}
 
@@ -37,6 +45,22 @@ template <typename Impl, typename Mod> struct PrefixDifT {
       }
     }
     return cache.data() + l;
+  }
+
+private:
+  std::vector<Mod> cache;
+};
+
+template <typename Impl, typename Mod>
+struct RangeDifT : public PrefixDifT<Impl, Mod> {
+  auto range_dif(int l, int m, int r) {
+    auto n = r - l;
+    if (cache.size() < n) {
+      cache.resize(n);
+    }
+    copy_and_fill0(n, cache.data(), (*static_cast<Impl *>(this)), l, m);
+    ntt<Mod>().dif(n, cache.data());
+    return cache.data();
   }
 
 private:
@@ -88,7 +112,7 @@ public:
 
 template <typename P> struct VarRootT {
   template <typename Ctx>
-  struct StoreT : public PrefixDifT<StoreT<Ctx>, typename Ctx::Mod> {
+  struct StoreT : public RangeDifT<StoreT<Ctx>, typename Ctx::Mod> {
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
@@ -186,7 +210,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
       log_cache_size++;
       cache.resize(new_size);
       buffer.resize(new_size);
-      buffer1.resize(new_size);
     }
     if (next) {
       int z = __builtin_ctz(next);
@@ -203,21 +226,12 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
 
 protected:
   template <typename F>
-  static void copy_and_fill0(int n, Mod *dst, F &f, int l, int r) {
-    for (int i = 0; i < r - l; ++i) {
-      dst[i] = f[l + i];
-    }
-    std::fill(dst + (r - l), dst + n, Ctx::ZERO);
-  }
-
-  template <typename F>
   void middle_product(F &f, int l, int m, int r, const Mod *prefix_dif) {
     auto n = r - l;
-    copy_and_fill0(n, buffer.data(), f, l, m);
-    ntt<Mod>().dif(n, buffer.data());
+    auto range_dif = f.store().range_dif(l, m, r);
     auto inv_n = ntt<Mod>().power_of_two_inv(n);
     for (int i = 0; i < n; ++i) {
-      buffer[i] = inv_n * buffer[i] * prefix_dif[i];
+      buffer[i] = inv_n * range_dif[i] * prefix_dif[i];
     }
     ntt<Mod>().dit(n, buffer.data());
     for (int i = m; i < r; ++i) {
@@ -225,7 +239,7 @@ protected:
     }
   }
 
-  typename Ctx::Vector buffer, buffer1;
+  typename Ctx::Vector buffer;
 
 private:
   int size = 0, log_cache_size = 0;
@@ -458,8 +472,8 @@ template <typename P, typename Q> struct MulFull {
         middle_product(p, l, m, r, q.store().prefix_dif(n));
         middle_product(q, l, m, r, p.store().prefix_dif(n));
       } else {
-        auto *prefix_dif = Base::buffer1.data();
-        Base::copy_and_fill0(n, prefix_dif, q, 0, m - l);
+        auto *prefix_dif = Base::buffer.data();
+        copy_and_fill0(n, prefix_dif, q, 0, m - l);
         ntt<typename Ctx::Mod>().dif(n, prefix_dif);
         middle_product(p, l, m, r, prefix_dif);
       }
