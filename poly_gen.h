@@ -287,11 +287,9 @@ template <int Index> struct Var {
 
     auto operator[](int i) { return store()[i]; }
 
-    auto prefix_dif(int l) { return store().prefix_dif(l); }
-
-  private:
     auto &store() { return ctx.template var_root<Index>(); }
 
+  private:
     Ctx &ctx;
 
   public:
@@ -475,7 +473,6 @@ template <typename P, typename Q> struct MulSemi {
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
 
@@ -511,8 +508,8 @@ template <typename P, typename Q> struct MulFull {
     void cross(int l, int m, int r) {
       auto n = r - l;
       if (l) {
-        middle_product(p, l, m, r, q.prefix_dif(n));
-        middle_product(q, l, m, r, p.prefix_dif(n));
+        middle_product(p, l, m, r, q.store().prefix_dif(n));
+        middle_product(q, l, m, r, p.store().prefix_dif(n));
       } else {
         auto *prefix_dif = Base::prefix_dif.data();
         copy_and_fill0(n, prefix_dif, q, 0, m - l);
@@ -543,7 +540,7 @@ template <typename P> struct SqrFull {
     void cross(int l, int m, int r) {
       auto n = r - l;
       if (l) {
-        middle_product(p, l, m, r, q.prefix_dif(n));
+        middle_product(p, l, m, r, q.store().prefix_dif(n));
         for (int i = m; i < r; ++i) {
           cache[i] += Base::range_dif[i - l];
         }
