@@ -9,13 +9,12 @@
 #include <tuple>
 #include <vector>
 
-#include "debug.h"
-
 namespace poly_gen {
 
 enum class Type {
   VAR = 0,
   VAL = 1,
+  OTHER = 255,
 };
 
 template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
@@ -126,6 +125,8 @@ template <typename Mod> struct DynInvTable {
 };
 
 template <typename Ctx, typename P> struct UnaryOpStoreT {
+  static constexpr Type type = Type::OTHER;
+
   explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
 
 protected:
@@ -133,6 +134,8 @@ protected:
 };
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
+  static constexpr Type type = Type::OTHER;
+
   explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
 protected:
@@ -269,11 +272,13 @@ template <int Index> struct Var {
 
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
-    auto &store() { return ctx.template var_root<Index>(); }
-
     auto operator[](int i) { return store()[i]; }
 
+    auto prefix_dif(int l) { return store().prefix_dif(l); }
+
   private:
+    auto &store() { return ctx.template var_root<Index>(); }
+
     Ctx &ctx;
 
   public:
@@ -401,6 +406,8 @@ template <typename P, typename Q> struct LazyMulNoCache {
 
 template <typename P> struct Cache {
   template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
+    static constexpr Type type = Type::OTHER;
+
     explicit StoreT(Ctx &ctx)
         : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
@@ -455,8 +462,8 @@ template <typename P, typename Q> struct MulFull {
     void cross(int l, int m, int r) {
       auto n = r - l;
       if (l) {
-        middle_product(p, l, m, r, q.store().prefix_dif(n));
-        middle_product(q, l, m, r, p.store().prefix_dif(n));
+        middle_product(p, l, m, r, q.prefix_dif(n));
+        middle_product(q, l, m, r, p.prefix_dif(n));
       } else {
         auto *prefix_dif = Base::prefix_dif.data();
         copy_and_fill0(n, prefix_dif, q, 0, m - l);
@@ -485,7 +492,7 @@ template <typename P> struct SqrFull {
     void cross(int l, int m, int r) {
       auto n = r - l;
       if (l) {
-        middle_product(p, l, m, r, q.store().prefix_dif(n));
+        middle_product(p, l, m, r, q.prefix_dif(n));
         for (int i = m; i < r; ++i) {
           cache[i] += Base::range_dif[i - l];
         }
