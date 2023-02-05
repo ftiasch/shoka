@@ -11,8 +11,6 @@ template <int Index> using C = dsl::Val<Index>;
 
 namespace dsl {
 template <typename P> struct CustomOp {
-  static constexpr Type type = Type::OTHER;
-
   template <typename Ctx>
   struct StoreT : public CacheBaseT<Ctx, StoreT>, public UnaryOpStoreT<Ctx, P> {
     using CacheBaseT<Ctx, StoreT>::cache;
