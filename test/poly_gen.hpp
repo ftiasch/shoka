@@ -11,6 +11,8 @@ template <int Index> using C = dsl::Val<Index>;
 
 namespace dsl {
 template <typename P> struct CustomOp {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx>
   struct StoreT : public CacheBaseT<Ctx, StoreT>, public UnaryOpStoreT<Ctx, P> {
     using CacheBaseT<Ctx, StoreT>::cache;
@@ -187,7 +189,7 @@ TEST_CASE("poly_gen") {
     // NOTE: slower, because `prefix_dif` is not shared
     BENCHMARK("alias") {
       using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<1>>, 1>, C<0>>,
-                           Var<0>>;
+                           AsyncProxy<0>>;
       Ctx ctx{{Vector{Mod{1}}}};
       auto &f = ctx.var_root<0>();
       return f[100000];

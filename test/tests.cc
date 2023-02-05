@@ -1,4 +1,4 @@
-#if 0
+#if 1
 #include "binpow.hpp"
 #include "debug.hpp"
 #include "io.hpp"
@@ -6,6 +6,7 @@
 #include "mod.hpp"
 #include "nd_vector.hpp"
 #include "poly.hpp"
+#include "poly_gen.hpp"
 #include "poly_gen_dyn.hpp"
 #include "polynomial_interpolation.hpp"
 #include "rmq.hpp"
@@ -15,5 +16,4 @@
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
 #else
-#include "poly_gen.hpp"
 #endif

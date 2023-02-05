@@ -14,6 +14,7 @@ namespace poly_gen {
 enum class Type {
   VAR = 0,
   VAL = 1,
+  ASYNC_PROXY = 2,
   OTHER = 255,
 };
 
@@ -96,12 +97,28 @@ public:
 template <typename P> struct VarRootT {
   template <typename Ctx>
   struct StoreT : public PrefixDifT<StoreT<Ctx>, typename Ctx::Mod> {
-    explicit StoreT(Ctx &ctx)
-        : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+    explicit StoreT(Ctx &ctx_)
+        : ctx{ctx_}, p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
 
-    auto operator[](int i) { return p[i]; }
+    auto operator[](int i) {
+      if constexpr (P::type == Type::ASYNC_PROXY) {
+        return ctx.template var_root<P::Index>()[i];
+      } else {
+        return p[i];
+      }
+    }
+
+    auto prefix_dif(int l) {
+      if constexpr (P::type == Type::ASYNC_PROXY) {
+        return ctx.template var_root<P::Index>().prefix_dif(l);
+      } else {
+        return PrefixDifT<StoreT<Ctx>, typename Ctx::Mod>::prefix_dif(l);
+      }
+    }
 
   private:
+    Ctx &ctx;
+
     typename P::template StoreT<Ctx> p;
 
   public:
@@ -125,8 +142,6 @@ template <typename Mod> struct DynInvTable {
 };
 
 template <typename Ctx, typename P> struct UnaryOpStoreT {
-  static constexpr Type type = Type::OTHER;
-
   explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
 
 protected:
@@ -134,8 +149,6 @@ protected:
 };
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
-  static constexpr Type type = Type::OTHER;
-
   explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
 protected:
@@ -267,9 +280,9 @@ namespace dsl {
 using namespace poly_gen;
 
 template <int Index> struct Var {
-  template <typename Ctx> struct StoreT {
-    static constexpr Type type = Type::VAR;
+  static constexpr Type type = Type::VAR;
 
+  template <typename Ctx> struct StoreT {
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
     auto operator[](int i) { return store()[i]; }
@@ -286,10 +299,25 @@ template <int Index> struct Var {
   };
 };
 
-template <int Index> struct Val {
-  template <typename Ctx> struct StoreT {
-    static constexpr Type type = Type::VAL;
+// NOTE: A proxy to `Var<Index>` to reuse computed `prefix_dif`.
+// TODO: Since it has another `VarRootT` stores, the `range_dif` can be
+// asynchronous.
+template <int Index_> struct AsyncProxy {
+  static constexpr Type type = Type::ASYNC_PROXY;
 
+  static constexpr int Index = Index_;
+
+  template <typename Ctx> struct StoreT {
+    explicit StoreT(Ctx &) {}
+
+    const int min_deg = 0, max_deg = INT_MAX;
+  };
+};
+
+template <int Index> struct Val {
+  static constexpr Type type = Type::VAL;
+
+  template <typename Ctx> struct StoreT {
     using Vector = typename Ctx::Vector;
 
     explicit StoreT(Ctx &ctx_)
@@ -308,6 +336,8 @@ template <int Index> struct Val {
 };
 
 template <typename P, int S> struct Shift {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
@@ -324,6 +354,8 @@ template <typename P, int S> struct Shift {
 };
 
 template <typename P> struct Neg {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
@@ -338,6 +370,8 @@ template <typename P> struct Neg {
 };
 
 template <typename P> struct Integral {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
@@ -352,6 +386,8 @@ template <typename P> struct Integral {
 };
 
 template <typename P, typename Q> struct Add {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -368,6 +404,8 @@ template <typename P, typename Q> struct Add {
 };
 
 template <typename P, typename Q> struct Sub {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -384,6 +422,8 @@ template <typename P, typename Q> struct Sub {
 };
 
 template <typename P, typename Q> struct LazyMulNoCache {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
@@ -405,6 +445,8 @@ template <typename P, typename Q> struct LazyMulNoCache {
 };
 
 template <typename P> struct Cache {
+  static constexpr Type type = Type::OTHER;
+
   template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
     static constexpr Type type = Type::OTHER;
 
@@ -426,9 +468,13 @@ template <typename P> struct Cache {
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 template <typename P, typename Q> struct MulSemi {
+  static constexpr Type type = Type::OTHER;
+
+  static_assert(P::type == Type::VAR, "P is not a Var");
+  static_assert(Q::type == Type::VAL, "Q is not a Val");
+
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-    static_assert(Q::template StoreT<Ctx>::type == Type::VAL, "Q is not Val");
 
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
@@ -444,10 +490,13 @@ template <typename P, typename Q> struct MulSemi {
 };
 
 template <typename P, typename Q> struct MulFull {
+  static constexpr Type type = Type::OTHER;
+
+  static_assert(P::type == Type::VAR, "P is not Var");
+  static_assert(Q::type == Type::VAR, "Q is not Var");
+
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
-    static_assert(P::template StoreT<Ctx>::type == Type::VAR, "P is not Var");
-    static_assert(Q::template StoreT<Ctx>::type == Type::VAR, "Q is not Var");
 
     using Base = NttMulBaseT<Ctx, P, Q, StoreT>;
     using typename Base::NttMulBaseT;
@@ -475,10 +524,12 @@ template <typename P, typename Q> struct MulFull {
 };
 
 template <typename P> struct SqrFull {
+  static constexpr Type type = Type::OTHER;
+
+  static_assert(P::type == Type::VAR, "P is not Var");
+
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, P, StoreT> {
-    static_assert(P::template StoreT<Ctx>::type == Type::VAR, "P is not Var");
-
     using Base = NttMulBaseT<Ctx, P, P, StoreT>;
     using typename Base::NttMulBaseT;
 
