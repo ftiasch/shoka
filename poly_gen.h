@@ -138,7 +138,7 @@ template <typename P> struct VarRootT {
 
   private:
     static constexpr bool is_async_proxy =
-        is_specialization_of_v<dsl::AsyncProxy, P>;
+        poly_gen::is_specialization_of_v<dsl::AsyncProxy, P>;
 
     Ctx &ctx;
 
@@ -454,8 +454,8 @@ template <typename P> struct Cache {
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 template <typename P, typename Q> struct MulSemi {
-  static_assert(is_specialization_of_v<Var, P>, "P is not a Var");
-  static_assert(is_specialization_of_v<Val, Q>, "Q is not a Val");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -473,8 +473,8 @@ template <typename P, typename Q> struct MulSemi {
 };
 
 template <typename P, typename Q> struct MulFull {
-  static_assert(is_specialization_of_v<Var, P>, "P is not a Var");
-  static_assert(is_specialization_of_v<Var, Q>, "Q is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, Q>, "Q is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -505,7 +505,7 @@ template <typename P, typename Q> struct MulFull {
 };
 
 template <typename P> struct SqrFull {
-  static_assert(is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, P, StoreT> {
