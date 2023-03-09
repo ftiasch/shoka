@@ -59,8 +59,9 @@ template <typename T> ostream &operator<<(ostream &out, const Binary<T> &b) {
 
 #if (__cplusplus >= 202002L)
 template <ranges::forward_range RangeT>
-ostream &operator<<(ostream &out, RangeT &&range) requires(
-    !same_as<ranges::range_value_t<RangeT>, char>) {
+ostream &operator<<(ostream &out, RangeT &&range)
+  requires(!same_as<ranges::range_value_t<RangeT>, char>)
+{
   out << "[";
   bool first = true;
   for (auto &&elem : range) {
@@ -88,4 +89,7 @@ ostream &operator<<(ostream &out, priority_queue<T, S, C> pq) {
 } // namespace std
 
 #define KV(x) #x << "=" << (x) << ";"
-#define KV1(x) #x << "=" << (x) + 1 << ";"
+#define DEBUG(x)                                                               \
+  (std::cerr << KV(x) << " <" << __func__ << ":" << __LINE__ << ">"            \
+             << std::endl,                                                     \
+   (x))
