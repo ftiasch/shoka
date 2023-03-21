@@ -4,7 +4,7 @@
 struct HeavyLightDecompositionBase {
   using Tree = std::vector<std::vector<int>>;
 
-  HeavyLightDecompositionBase(const Tree &tree, int root)
+  explicit HeavyLightDecompositionBase(const Tree &tree, int root)
       : n(tree.size()), parent(n), size(n), depth(n), top(n), bottom(n) {
     parent[root] = -1;
     build(tree, root);
