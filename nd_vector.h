@@ -1,27 +1,18 @@
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <vector>
 
-template <typename T, int N> struct NDVector {
+template <typename T, std::size_t N = 2>
+struct NDVector : public std::vector<NDVector<T, N - 1>> {
   using Nested = NDVector<T, N - 1>;
-  using Vector = std::vector<typename Nested::Vector>;
 
-  template <typename... Args> static Vector create(int n, Args &&...args) {
-    return Vector(n, Nested::create(std::forward<Args>(args)...));
-  }
-
-  static void fill(Vector &v, T v0) {
-    std::for_each(v.begin(), v.end(),
-                  std::bind(Nested::fill, std::placeholders::_1, v0));
-  }
+  template <typename... Args>
+  NDVector(std::size_t n, Args &&...args)
+      : std::vector<Nested>(n, Nested(std::forward<Args>(args)...)) {}
 };
 
-template <typename T> struct NDVector<T, 1> {
-  using Vector = std::vector<T>;
-
-  template <typename... Args> static Vector create(Args &&...args) {
-    return Vector(std::forward<Args>(args)...);
-  }
-
-  static void fill(Vector &v, T v0) { std::fill(v.begin(), v.end(), v0); }
+template <typename T> struct NDVector<T, 1> : public std::vector<T> {
+  template <typename... Args>
+  NDVector(Args &&...args) : std::vector<T>(std::forward<Args>(args)...) {}
 };
