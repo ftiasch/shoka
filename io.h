@@ -4,11 +4,18 @@
 
 #include <iostream>
 
+#ifndef YES
+#define YES "Yes"
+#endif
+#ifndef NO
+#define NO "No"
+#endif
+
 struct IO : public IOBaseT<IO> {
   friend class IOBaseT<IO>;
 
   explicit IO(bool sync = false) {
-    if (sync) {
+    if (!sync) {
       std::ios::sync_with_stdio(false);
       std::cin.tie(nullptr);
       std::cout.tie(nullptr);
@@ -17,7 +24,7 @@ struct IO : public IOBaseT<IO> {
 
   template <typename T> std::ostream &operator<<(const T &o) {
     if constexpr (std::is_same_v<bool, T>) {
-      return std::cout << (o ? "Yes" : "No");
+      return std::cout << (o ? YES : NO);
     } else if constexpr (is_specialization_of_v<std::vector, T>) {
       bool first = true;
       for (auto &&e : o) {

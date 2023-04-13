@@ -80,6 +80,8 @@ public:
     return ModWrapperT{static_cast<M>(x % mod())};
   }
 
+  constexpr ModWrapperT() : x{construct(0)} {}
+
   template <typename T = M>
   explicit constexpr ModWrapperT(T x_ = 0) : x{construct(static_cast<M>(x_))} {
     static_assert(std::numeric_limits<T>::digits <=

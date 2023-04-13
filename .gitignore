@@ -1,3 +1,4 @@
+/.cache
 /.ccls-cache
 /Build
 /compile_commands.json
