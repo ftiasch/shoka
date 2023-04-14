@@ -13,7 +13,7 @@ TEST_CASE("arbitrary_ntt") {
   std::minstd_rand gen{Catch::getSeed()};
   std::uniform_int_distribution<> dist{0, Mod::mod() - 1};
 
-  static constexpr int N = 10;
+  static constexpr int N = 50;
 
   auto sum_deg = GENERATE(range(0, N));
   auto f_deg = GENERATE(range(0, N));

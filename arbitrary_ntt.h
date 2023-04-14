@@ -31,13 +31,11 @@ template <typename Mod> struct ArbitraryNTT {
     dif(n, b);
     for (int m = 1; m <= n; m <<= 1) {
       for (int i = m >> 1; i < m; i++) {
+        auto coef = .5 * b[i];
         auto j = m + (m >> 1) - 1 - i;
-        auto da = (a[i] - std::conj(a[j])) * Complex{0, -0.5};
-        auto db = (a[i] + std::conj(a[j])) * Complex{0.5, 0};
-        auto dc = (b[i] - std::conj(b[j])) * Complex{0, -0.5};
-        auto dd = (b[i] + std::conj(b[j])) * Complex{0.5, 0};
-        c[i] = da * dd + da * dc * Complex{0, 1};
-        d[i] = db * dd + db * dc * Complex{0, 1};
+        auto t = a[i] - std::conj(a[j]);
+        c[i] = coef * Complex{t.imag(), -t.real()};
+        d[i] = coef * (a[i] + std::conj(a[j]));
       }
     }
     dit(n, c);
