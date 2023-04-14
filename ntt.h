@@ -64,8 +64,8 @@ template <typename Mod, int NUMBER_OF_BUFFER = 5> struct NttT {
       auto step = max_n / (m << 1);
       for (int i = 0; i < n; i += m << 1) {
         int tid = 0;
-        for (int r = i; r < i + m; ++r) {
-          Mod tmp = twiddles[tid] * a[r + m];
+        for (int r = i; r < i + m; r++) {
+          auto tmp = twiddles[tid] * a[r + m];
           a[r + m] = a[r];
           a[r + m] -= tmp;
           a[r] += tmp;
@@ -81,8 +81,8 @@ template <typename Mod, int NUMBER_OF_BUFFER = 5> struct NttT {
       auto step = max_n / (m << 1);
       for (int i = 0; i < n; i += m << 1) {
         int tid = max_n;
-        for (int r = i; r < i + m; ++r) {
-          Mod tmp = a[r];
+        for (int r = i; r < i + m; r++) {
+          auto tmp = a[r];
           tmp -= a[r + m];
           a[r] += a[r + m];
           a[r + m] = twiddles[tid] * tmp;
