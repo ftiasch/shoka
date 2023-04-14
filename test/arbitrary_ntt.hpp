@@ -1,14 +1,14 @@
+#include "arbitrary_ntt.h"
 #include "mod.h"
-#include "poly_multiplier.h"
 
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("poly_multiplier") {
+TEST_CASE("arbitrary_ntt") {
   using Mod = ModT<1'000'000'007>;
 
-  PolyMultiplier<Mod> multiply;
+  ArbitraryNTT<Mod> multiply;
 
   std::minstd_rand gen{Catch::getSeed()};
   std::uniform_int_distribution<> dist{0, Mod::mod() - 1};

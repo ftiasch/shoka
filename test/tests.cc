@@ -16,5 +16,5 @@
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
 #else
-#include "poly_multiplier.hpp"
+#include "arbitrary_ntt.hpp"
 #endif

@@ -5,7 +5,7 @@
 #include <complex>
 #include <vector>
 
-template <typename Mod> struct PolyMultiplier {
+template <typename Mod> struct ArbitraryNTT {
   std::vector<Mod> operator()(const std::vector<Mod> &a_,
                               const std::vector<Mod> &b_) {
     int deg_plus_1 = a_.size() + b_.size() - 1;
@@ -27,16 +27,18 @@ template <typename Mod> struct PolyMultiplier {
     auto d = buffers[3].data();
     radix_split(n, a, a_);
     radix_split(n, b, b_);
-    dit(n, a);
-    dit(n, b);
-    for (int i = 0; i < n; ++i) {
-      auto j = i ? n - i : 0;
-      auto da = (a[i] - std::conj(a[j])) * Complex{0, -0.5};
-      auto db = (a[i] + std::conj(a[j])) * Complex{0.5, 0};
-      auto dc = (b[i] - std::conj(b[j])) * Complex{0, -0.5};
-      auto dd = (b[i] + std::conj(b[j])) * Complex{0.5, 0};
-      c[j] = da * dd + da * dc * Complex{0, 1};
-      d[j] = db * dd + db * dc * Complex{0, 1};
+    dif(n, a);
+    dif(n, b);
+    for (int m = 1; m <= n; m <<= 1) {
+      for (int i = m >> 1; i < m; i++) {
+        auto j = m + (m >> 1) - 1 - i;
+        auto da = (a[i] - std::conj(a[j])) * Complex{0, -0.5};
+        auto db = (a[i] + std::conj(a[j])) * Complex{0.5, 0};
+        auto dc = (b[i] - std::conj(b[j])) * Complex{0, -0.5};
+        auto dd = (b[i] + std::conj(b[j])) * Complex{0.5, 0};
+        c[i] = da * dd + da * dc * Complex{0, 1};
+        d[i] = db * dd + db * dc * Complex{0, 1};
+      }
     }
     dit(n, c);
     dit(n, d);
@@ -72,14 +74,6 @@ private:
   }
 
   void dit(int n, Complex *a) {
-    for (int i = 1, j = 0; i < n - 1; ++i) {
-      for (int s = n; j ^= s >>= 1, ~j & s;)
-        ;
-      if (i < j) {
-        swap(a[i], a[j]);
-      }
-    }
-
     for (int m = 1; m < n; m <<= 1) {
       auto step = max_n / (m << 1);
       for (int i = 0; i < n; i += m << 1) {
@@ -90,6 +84,22 @@ private:
           a[r + m] -= tmp;
           a[r] += tmp;
           tid += step;
+        }
+      }
+    }
+  }
+
+  void dif(int n, Complex *a) {
+    for (int m = n; m >>= 1;) {
+      auto step = max_n / (m << 1);
+      for (int i = 0; i < n; i += m << 1) {
+        int tid = max_n;
+        for (int r = i; r < i + m; r++) {
+          auto tmp = a[r];
+          tmp -= a[r + m];
+          a[r] += a[r + m];
+          a[r + m] = twiddles[tid] * tmp;
+          tid -= step;
         }
       }
     }
