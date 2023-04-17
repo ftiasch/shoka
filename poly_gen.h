@@ -19,8 +19,6 @@ template <int Index_> struct AsyncProxy {
 
   template <typename Ctx> struct StoreT {
     explicit StoreT(Ctx &) {}
-
-    const int min_deg = 0, max_deg = INT_MAX;
   };
 };
 
@@ -37,16 +35,6 @@ struct is_specialization_of<Template, Template<I1>> : std::true_type {};
 template <template <int> class Template, typename T>
 inline constexpr bool is_specialization_of_v =
     is_specialization_of<Template, T>::value;
-
-template <template <int, int> class Template, typename T>
-struct is_specialization2_of : std::false_type {};
-
-template <template <int, int> class Template, int I1, int I2>
-struct is_specialization2_of<Template, Template<I1, I2>> : std::true_type {};
-
-template <template <int, int> class Template, typename T>
-inline constexpr bool is_specialization2_of_v =
-    is_specialization2_of<Template, T>::value;
 
 template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
 
@@ -117,15 +105,13 @@ struct ValRootT : public PrefixDifT<ValRootT<Mod>, Mod> {
 
   std::vector<Mod> c;
 
-public:
   const int min_deg, max_deg;
 };
 
 template <typename P> struct VarRootT {
   template <typename Ctx>
   struct StoreT : public PrefixDifT<StoreT<Ctx>, typename Ctx::Mod> {
-    explicit StoreT(Ctx &ctx_)
-        : ctx{ctx_}, p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+    explicit StoreT(Ctx &ctx_) : ctx{ctx_}, p{ctx} {}
 
     auto operator[](int i) {
       if constexpr (is_async_proxy) {
@@ -147,10 +133,7 @@ template <typename P> struct VarRootT {
         poly_gen::is_specialization_of_v<dsl::AsyncProxy, P>;
 
     Ctx &ctx;
-
     typename P::template StoreT<Ctx> p;
-
-    const int min_deg, max_deg;
   };
 };
 
@@ -221,10 +204,7 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
   using BinaryOp::p, BinaryOp::q;
   using Mod = typename Ctx::Mod;
 
-  explicit NttMulBaseT(Ctx &ctx)
-      : BinaryOp{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {
-    cache.resize(1);
-  }
+  explicit NttMulBaseT(Ctx &ctx) : BinaryOp{ctx} { cache.resize(1); }
 
   void compute_next() {
     int next = size;
@@ -246,8 +226,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
   }
 
   auto computed() const { return size; }
-
-  const int min_deg, max_deg;
 
   template <typename F>
   void middle_product(F &f, int l, int m, int r, const Mod *prefix_dif) {
@@ -300,7 +278,7 @@ namespace dsl {
 
 using namespace poly_gen;
 
-template <int Index, int MIN_DEG_HINT = 0> struct Var {
+template <int Index> struct Var {
   template <typename Ctx> struct StoreT {
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
@@ -309,30 +287,23 @@ template <int Index, int MIN_DEG_HINT = 0> struct Var {
     auto &store() { return ctx.template var_root<Index>(); }
 
     Ctx &ctx;
-
-  public:
-    const int min_deg = MIN_DEG_HINT, max_deg = INT_MAX;
   };
 };
 
 template <typename T>
-inline constexpr bool is_var_v = is_specialization2_of<Var, T>::value;
+inline constexpr bool is_var_v = is_specialization_of<Var, T>::value;
 
 template <int Index> struct Val {
   template <typename Ctx> struct StoreT {
     using Vector = typename Ctx::Vector;
 
-    explicit StoreT(Ctx &ctx_)
-        : ctx{ctx_}, min_deg{store().min_deg}, max_deg{store().max_deg} {}
+    explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
     auto &store() { return ctx.template val_root<Index>(); }
 
     auto operator[](int i) { return store()[i]; }
 
     Ctx &ctx;
-
-  public:
-    const int min_deg, max_deg;
   };
 };
 
@@ -341,14 +312,9 @@ template <typename P, int S> struct Shift {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
 
-    explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{p.min_deg + S}, max_deg{std::min(p.max_deg,
-                                                              INT_MAX - S) +
-                                                     S} {}
+    explicit StoreT(Ctx &ctx) : Base{ctx} {}
 
     auto operator[](int i) { return i < S ? Ctx::ZERO : p[i - S]; }
-
-    const int min_deg, max_deg;
   };
 };
 
@@ -357,12 +323,9 @@ template <typename P> struct Neg {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
 
-    explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+    explicit StoreT(Ctx &ctx) : Base{ctx} {}
 
     auto operator[](int i) { return -p[i]; }
-
-    const int min_deg, max_deg;
   };
 };
 
@@ -371,12 +334,9 @@ template <typename P> struct Integral {
     using Base = UnaryOpStoreT<Ctx, P>;
     using Base::p;
 
-    explicit StoreT(Ctx &ctx_)
-        : Base{ctx_}, min_deg{p.min_deg + 1}, max_deg{p.max_deg} {}
+    explicit StoreT(Ctx &ctx_) : Base{ctx_} {}
 
     auto operator[](int i) { return i ? p[i - 1] * Ctx::inv(i) : Ctx::ZERO; }
-
-    const int min_deg, max_deg;
   };
 };
 
@@ -385,14 +345,9 @@ template <typename P, typename Q> struct Add {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
-    explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{std::min(p.min_deg, q.min_deg)}, max_deg{std::max(
-                                                                  p.max_deg,
-                                                                  q.max_deg)} {}
+    explicit StoreT(Ctx &ctx) : Base{ctx} {}
 
     auto operator[](int i) { return p[i] + q[i]; }
-
-    const int min_deg, max_deg;
   };
 };
 
@@ -401,56 +356,50 @@ template <typename P, typename Q> struct Sub {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
-    explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{std::min(p.min_deg, q.min_deg)}, max_deg{std::max(
-                                                                  p.max_deg,
-                                                                  q.max_deg)} {}
+    explicit StoreT(Ctx &ctx) : Base{ctx} {}
 
     auto operator[](int i) { return p[i] - q[i]; }
-
-    const int min_deg, max_deg;
   };
 };
 
-template <typename P, typename Q> struct LazyMulNoCache {
+template <typename P, typename Q, bool P_MIN_DEG = 0> struct ShortMulNoCache {
+  static_assert(is_var_v<P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
+
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
     using Base::p, Base::q;
 
-    explicit StoreT(Ctx &ctx)
-        : Base{ctx}, min_deg{p.min_deg + q.min_deg}, max_deg{INT_MAX} {}
+    explicit StoreT(Ctx &ctx) : Base{ctx} {}
 
     auto operator[](int k) {
       typename Ctx::Mod result{0};
-      for (int i = std::max(p.min_deg, k - q.max_deg);
-           i <= std::min(p.max_deg, k - q.min_deg); ++i) {
+      for (int i = std::max<int>(P_MIN_DEG, k - q.store().max_deg);
+           i + q.store().min_deg <= k; i++) {
         result += p[i] * q[k - i];
       }
       return result;
     }
-
-    const int min_deg, max_deg;
   };
 };
 
 template <typename P> struct Cache {
   template <typename Ctx> struct StoreT : public CacheBaseT<Ctx, StoreT> {
-    explicit StoreT(Ctx &ctx)
-        : p{ctx}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+    explicit StoreT(Ctx &ctx) : p{ctx} {}
 
     using CacheBaseT<Ctx, StoreT>::cache;
 
     void compute_next() { cache.push_back(p[cache.size()]); }
 
     typename P::template StoreT<Ctx> p;
-
-    const int min_deg, max_deg;
   };
 };
 
-template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
+template <typename P, typename Q, bool P_MIN_DEG = true>
+using ShortMul = Cache<ShortMulNoCache<P, Q, P_MIN_DEG>>;
 
-template <typename P, typename Q> struct MulSemi {
+template <typename P, typename Q, bool P_MIN_DEG = true, bool Q_MIN_DEG = true>
+struct MulSemi {
   static_assert(is_var_v<P>, "P is not a Var");
   static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
 
@@ -461,7 +410,7 @@ template <typename P, typename Q> struct MulSemi {
 
     using Base::cache, Base::p, Base::q;
 
-    void self(int i) { cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0]; }
+    void self(int i) { cache[i] += Q_MIN_DEG ? Ctx::ZERO : p[i] * q[0]; }
 
     void cross(int l, int m, int r) {
       Base::middle_product(p, l, m, r, q.store().prefix_dif(r - l));
@@ -469,7 +418,8 @@ template <typename P, typename Q> struct MulSemi {
   };
 };
 
-template <typename P, typename Q> struct MulFull {
+template <typename P, typename Q, bool P_MIN_DEG = true, bool Q_MIN_DEG = true>
+struct MulFull {
   static_assert(is_var_v<P>, "P is not a Var");
   static_assert(is_var_v<Q>, "Q is not a Var");
 
@@ -482,8 +432,8 @@ template <typename P, typename Q> struct MulFull {
     using Base::cache, Base::p, Base::q, Base::middle_product;
 
     void self(int i) {
-      cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
-      cache[i] += !i || p.min_deg ? Ctx::ZERO : p[0] * q[i];
+      cache[i] += Q_MIN_DEG ? Ctx::ZERO : p[i] * q[0];
+      cache[i] += !i || P_MIN_DEG ? Ctx::ZERO : p[0] * q[i];
     }
 
     void cross(int l, int m, int r) {
@@ -501,7 +451,7 @@ template <typename P, typename Q> struct MulFull {
   };
 };
 
-template <typename P> struct SqrFull {
+template <typename P, bool P_MIN_DEG = true> struct SqrFull {
   static_assert(is_var_v<P>, "P is not a Var");
 
   template <typename Ctx>
@@ -512,8 +462,8 @@ template <typename P> struct SqrFull {
     using Base::cache, Base::p, Base::q, Base::middle_product;
 
     void self(int i) {
-      cache[i] += q.min_deg ? Ctx::ZERO : p[i] * q[0];
-      cache[i] += !i || p.min_deg ? Ctx::ZERO : p[0] * q[i];
+      cache[i] += P_MIN_DEG ? Ctx::ZERO : p[i] * q[0];
+      cache[i] += !i || P_MIN_DEG ? Ctx::ZERO : p[0] * q[i];
     }
 
     void cross(int l, int m, int r) {

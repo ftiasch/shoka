@@ -17,15 +17,12 @@ template <typename P> struct CustomOp {
     using UnaryOp = UnaryOpStoreT<Ctx, P>;
     using UnaryOp::p;
 
-    explicit StoreT(Ctx &ctx)
-        : UnaryOp{ctx}, min_deg{p.min_deg}, max_deg{INT_MAX} {}
+    explicit StoreT(Ctx &ctx) : UnaryOp{ctx} {}
 
     void compute_next() {
       int k = cache.size();
       cache.push_back((k ? (*this)[k - 1] : Ctx::ZERO) + p[k]);
     }
-
-    const int min_deg, max_deg;
   };
 };
 } // namespace dsl
@@ -100,7 +97,7 @@ TEST_CASE("poly_gen") {
   Mod FIB_100000{56136314};
 
   SECTION("fib_lazy") {
-    using Ctx = PolyCtxT<Mod, 2, Add<LazyMul<Var<0>, C<0>>, C<1>>>;
+    using Ctx = PolyCtxT<Mod, 2, Add<ShortMul<Var<0>, C<0>, false>, C<1>>>;
     Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{1}}, {Mod{1}}}};
     auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 5) == FIBS_5);
@@ -152,7 +149,9 @@ TEST_CASE("poly_gen") {
 
   SECTION("catalan") {
     // f(z) = f(z) * f(z) * z + 1
-    using Ctx = PolyCtxT<Mod, 1, Add<Shift<MulFull<Var<0>, Var<0>>, 1>, C<0>>>;
+    using Ctx =
+        PolyCtxT<Mod, 1,
+                 Add<Shift<MulFull<Var<0>, Var<0>, false, false>, 1>, C<0>>>;
     Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 10) == CATALAN_10);
@@ -161,7 +160,7 @@ TEST_CASE("poly_gen") {
 
   SECTION("catalan_sqr") {
     // f(z) = f(z) * f(z) * z + 1
-    using Ctx = PolyCtxT<Mod, 1, Add<Shift<SqrFull<Var<0>>, 1>, C<0>>>;
+    using Ctx = PolyCtxT<Mod, 1, Add<Shift<SqrFull<Var<0>, false>, 1>, C<0>>>;
     Ctx ctx{{Vector{Mod{1}}}};
     auto &f = ctx.var_root<0>();
     REQUIRE(take(f, 10) == CATALAN_10);
