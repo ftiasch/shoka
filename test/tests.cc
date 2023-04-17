@@ -1,4 +1,5 @@
-#if 0
+#if 1
+#include "arbitrary_ntt.hpp"
 #include "binpow.hpp"
 #include "debug.hpp"
 #include "io.hpp"
@@ -16,5 +17,4 @@
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
 #else
-#include "arbitrary_ntt.hpp"
 #endif
