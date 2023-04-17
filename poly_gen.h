@@ -373,7 +373,7 @@ template <typename P> struct Integral {
     using Base::p;
 
     explicit StoreT(Ctx &ctx_)
-        : Base{ctx_}, min_deg{p.min_deg}, max_deg{p.max_deg} {}
+        : Base{ctx_}, min_deg{p.min_deg + 1}, max_deg{p.max_deg} {}
 
     auto operator[](int i) { return i ? p[i - 1] * Ctx::inv(i) : Ctx::ZERO; }
 
