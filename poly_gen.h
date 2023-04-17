@@ -31,12 +31,22 @@ namespace poly_gen {
 template <template <int> class Template, typename T>
 struct is_specialization_of : std::false_type {};
 
-template <template <int> class Template, int I>
-struct is_specialization_of<Template, Template<I>> : std::true_type {};
+template <template <int> class Template, int I1>
+struct is_specialization_of<Template, Template<I1>> : std::true_type {};
 
 template <template <int> class Template, typename T>
 inline constexpr bool is_specialization_of_v =
     is_specialization_of<Template, T>::value;
+
+template <template <int, int> class Template, typename T>
+struct is_specialization2_of : std::false_type {};
+
+template <template <int, int> class Template, int I1, int I2>
+struct is_specialization2_of<Template, Template<I1, I2>> : std::true_type {};
+
+template <template <int, int> class Template, typename T>
+inline constexpr bool is_specialization2_of_v =
+    is_specialization2_of<Template, T>::value;
 
 template <typename Mod> static auto &ntt() { return singleton<NttT<Mod, 0>>(); }
 
@@ -67,7 +77,6 @@ template <typename Impl, typename Mod> struct PrefixDifT {
     return cache.data() + l;
   }
 
-private:
   std::vector<Mod> cache;
 };
 
@@ -84,7 +93,6 @@ struct ValRootT : public PrefixDifT<ValRootT<Mod>, Mod> {
       return create(cvalues, std::make_index_sequence<N>());
     }
 
-  private:
     template <std::size_t... Index>
     static auto create(const Is &cvalues, std::index_sequence<Index...>) {
       return T{ValRootT{cvalues[Index]}...};
@@ -99,7 +107,6 @@ struct ValRootT : public PrefixDifT<ValRootT<Mod>, Mod> {
     return i < static_cast<int>(c.size()) ? c[i] : Mod{0};
   }
 
-private:
   static auto compute_min_deg(const std::vector<Mod> &c) {
     int deg = 0;
     while (deg < static_cast<int>(c.size()) && c[deg] == Mod{0}) {
@@ -136,7 +143,6 @@ template <typename P> struct VarRootT {
       }
     }
 
-  private:
     static constexpr bool is_async_proxy =
         poly_gen::is_specialization_of_v<dsl::AsyncProxy, P>;
 
@@ -144,7 +150,6 @@ template <typename P> struct VarRootT {
 
     typename P::template StoreT<Ctx> p;
 
-  public:
     const int min_deg, max_deg;
   };
 };
@@ -167,14 +172,12 @@ template <typename Mod> struct DynInvTable {
 template <typename Ctx, typename P> struct UnaryOpStoreT {
   explicit UnaryOpStoreT(Ctx &ctx) : p{ctx} {}
 
-protected:
   typename P::template StoreT<Ctx> p;
 };
 
 template <typename Ctx, typename P, typename Q> struct BinaryOpStoreT {
   explicit BinaryOpStoreT(Ctx &ctx) : p{ctx}, q{ctx} {}
 
-protected:
   typename P::template StoreT<Ctx> p;
   typename Q::template StoreT<Ctx> q;
 };
@@ -192,10 +195,8 @@ template <typename Ctx, template <typename> typename StoreT> struct CacheBaseT {
     return cache[k];
   }
 
-protected:
   typename Ctx::Vector cache;
 
-private:
   template <typename T>
   using has_computed_t = decltype(std::declval<T>().computed());
 
@@ -248,7 +249,6 @@ struct NttMulBaseT : public CacheBaseT<Ctx, StoreT>,
 
   const int min_deg, max_deg;
 
-protected:
   template <typename F>
   void middle_product(F &f, int l, int m, int r, const Mod *prefix_dif) {
     auto n = r - l;
@@ -266,7 +266,6 @@ protected:
 
   typename Ctx::Vector prefix_dif, range_dif;
 
-private:
   int size = 0, log_cache_size = 0;
 };
 
@@ -291,7 +290,6 @@ template <typename Mod_, int NUM_OF_VAL, typename... Var> struct PolyCtxT {
 
   template <int Index> auto &val_root() { return val_roots[Index]; }
 
-private:
   typename ValRoots::T val_roots;
 
   std::tuple<typename poly_gen::VarRootT<Var>::template StoreT<PolyCtxT>...>
@@ -302,7 +300,7 @@ namespace dsl {
 
 using namespace poly_gen;
 
-template <int Index> struct Var {
+template <int Index, int MIN_DEG_HINT = 0> struct Var {
   template <typename Ctx> struct StoreT {
     explicit StoreT(Ctx &ctx_) : ctx{ctx_} {}
 
@@ -310,13 +308,15 @@ template <int Index> struct Var {
 
     auto &store() { return ctx.template var_root<Index>(); }
 
-  private:
     Ctx &ctx;
 
   public:
-    const int min_deg = 0, max_deg = INT_MAX;
+    const int min_deg = MIN_DEG_HINT, max_deg = INT_MAX;
   };
 };
+
+template <typename T>
+inline constexpr bool is_var_v = is_specialization2_of<Var, T>::value;
 
 template <int Index> struct Val {
   template <typename Ctx> struct StoreT {
@@ -329,7 +329,6 @@ template <int Index> struct Val {
 
     auto operator[](int i) { return store()[i]; }
 
-  private:
     Ctx &ctx;
 
   public:
@@ -443,10 +442,8 @@ template <typename P> struct Cache {
 
     void compute_next() { cache.push_back(p[cache.size()]); }
 
-  protected:
     typename P::template StoreT<Ctx> p;
 
-  public:
     const int min_deg, max_deg;
   };
 };
@@ -454,7 +451,7 @@ template <typename P> struct Cache {
 template <typename P, typename Q> using LazyMul = Cache<LazyMulNoCache<P, Q>>;
 
 template <typename P, typename Q> struct MulSemi {
-  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(is_var_v<P>, "P is not a Var");
   static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
 
   template <typename Ctx>
@@ -473,8 +470,8 @@ template <typename P, typename Q> struct MulSemi {
 };
 
 template <typename P, typename Q> struct MulFull {
-  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
-  static_assert(poly_gen::is_specialization_of_v<Var, Q>, "Q is not a Var");
+  static_assert(is_var_v<P>, "P is not a Var");
+  static_assert(is_var_v<Q>, "Q is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -505,7 +502,7 @@ template <typename P, typename Q> struct MulFull {
 };
 
 template <typename P> struct SqrFull {
-  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(is_var_v<P>, "P is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, P, StoreT> {
