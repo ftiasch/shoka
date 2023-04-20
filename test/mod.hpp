@@ -16,10 +16,33 @@ constexpr uint32_t MOD_32 = 998'244'353;
 // https://primes.utm.edu/lists/2small/0bit.html
 constexpr uint64_t MOD_64 = (1ULL << 62) - 57;
 
-template <uint32_t MOD> constexpr uint32_t wrong_inv(uint32_t a) {
-  return a == 1 ? 1
-                : static_cast<uint64_t>(MOD - MOD / a) *
-                      wrong_inv<MOD>(MOD % a) % MOD;
+template <typename Mod> constexpr Mod slow_gauss(Mod a) {
+  const auto MOD = Mod::mod();
+  auto x = a.get();
+  Mod inv{1};
+  while (x > 1) {
+    inv *= Mod{MOD - MOD / x};
+    x = MOD % x;
+  }
+  return inv;
+}
+
+template <typename Mod> constexpr Mod gauss(Mod a) {
+  const auto MOD = Mod::mod();
+  auto t = a.get();
+  Mod inv{1};
+  while (t > 1) {
+    auto r = MOD % t;
+    auto q = MOD / t;
+    if (r + r <= t) {
+      inv *= Mod{MOD - q};
+      t = r;
+    } else {
+      inv *= Mod{q + 1};
+      t = t - r;
+    }
+  }
+  return inv;
 }
 
 } // namespace mod
@@ -27,16 +50,27 @@ template <uint32_t MOD> constexpr uint32_t wrong_inv(uint32_t a) {
 TEST_CASE("mod_inv") {
   constexpr uint32_t SMALL_MOD = (1 << 18) - 5;
 
-  BENCHMARK("baseline") {
-    uint32_t result{1};
+  BENCHMARK("gauss") {
+    using Mod = ModT<SMALL_MOD>;
+
+    Mod result{1};
     for (int i = 1; i < SMALL_MOD; ++i) {
-      result = static_cast<uint64_t>(result) * mod::wrong_inv<SMALL_MOD>(i) %
-               SMALL_MOD;
+      result *= mod::slow_gauss(Mod{i});
     }
-    REQUIRE(result + 1 == SMALL_MOD);
+    REQUIRE(result == -Mod{1});
   };
 
-  BENCHMARK("bench") {
+  BENCHMARK("gauss_faster") {
+    using Mod = ModT<SMALL_MOD>;
+
+    Mod result{1};
+    for (int i = 1; i < SMALL_MOD; ++i) {
+      result *= mod::gauss(Mod{i});
+    }
+    REQUIRE(result == -Mod{1});
+  };
+
+  BENCHMARK("fermat") {
     using Mod = ModT<SMALL_MOD>;
 
     Mod result{1};

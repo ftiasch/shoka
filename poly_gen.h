@@ -290,9 +290,6 @@ template <int Index> struct Var {
   };
 };
 
-template <typename T>
-inline constexpr bool is_var_v = is_specialization_of<Var, T>::value;
-
 template <int Index> struct Val {
   template <typename Ctx> struct StoreT {
     using Vector = typename Ctx::Vector;
@@ -363,7 +360,7 @@ template <typename P, typename Q> struct Sub {
 };
 
 template <typename P, typename Q, bool P_MIN_DEG = 0> struct ShortMulNoCache {
-  static_assert(is_var_v<P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
   static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
 
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
@@ -400,7 +397,7 @@ using ShortMul = Cache<ShortMulNoCache<P, Q, P_MIN_DEG>>;
 
 template <typename P, typename Q, bool P_MIN_DEG = true, bool Q_MIN_DEG = true>
 struct MulSemi {
-  static_assert(is_var_v<P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
   static_assert(poly_gen::is_specialization_of_v<Val, Q>, "Q is not a Val");
 
   template <typename Ctx>
@@ -420,8 +417,8 @@ struct MulSemi {
 
 template <typename P, typename Q, bool P_MIN_DEG = true, bool Q_MIN_DEG = true>
 struct MulFull {
-  static_assert(is_var_v<P>, "P is not a Var");
-  static_assert(is_var_v<Q>, "Q is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, Q>, "Q is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, Q, StoreT> {
@@ -452,7 +449,7 @@ struct MulFull {
 };
 
 template <typename P, bool P_MIN_DEG = true> struct SqrFull {
-  static_assert(is_var_v<P>, "P is not a Var");
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
 
   template <typename Ctx>
   struct StoreT : public NttMulBaseT<Ctx, P, P, StoreT> {
