@@ -15,10 +15,10 @@ struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
   explicit FixedSizeMatrixT(std::initializer_list<Row> rows)
       : std::array<Row, N>{
             reinterpret_cast<const std::array<Row, N> &>(*rows.begin())} {}
-            
+
   static FixedSizeMatrixT mul_id() {
     FixedSizeMatrixT e;
-    for (int i = 0; i < N; ++ i) {
+    for (int i = 0; i < N; ++i) {
       e[i][i] = T::mul_id();
     }
     return e;
@@ -70,3 +70,15 @@ struct FixedSizeMatrixT : std::array<std::array<T, N>, N> {
     return *this = *this * o;
   }
 };
+
+template <typename T, int N>
+auto operator*(const typename FixedSizeMatrixT<T, N>::Row &r,
+               const FixedSizeMatrixT<T, N> &o) {
+  typename FixedSizeMatrixT<T, N>::Row result;
+  for (int k = 0; k < N; k++) {
+    for (int j = 0; j < N; j++) {
+      result[j] += r[k] * o[k][j];
+    }
+  }
+  return result;
+}
