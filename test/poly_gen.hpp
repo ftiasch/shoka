@@ -92,6 +92,27 @@ TEST_CASE("poly_gen") {
     REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{3}, Mod{3}});
   }
 
+  SECTION("diff") {
+    using Ctx = PolyCtxT<Mod, 1, Diff<C<0>>>;
+    Ctx ctx{{Vector{Mod{0}, Mod{1}, Mod{2}}}};
+    auto &f = ctx.var_root<0>();
+    REQUIRE(take(f, 3) == Vector{Mod{1}, Mod{4}, Mod{0}});
+  }
+
+  SECTION("exp") {
+    using Ctx =
+        PolyCtxT<Mod, 2,
+                 Add<Integral<MulFull<Var<0>, Var<1>, false, false>>, C<1>>,
+                 Diff<C<0>>>;
+    Ctx ctx{{Vector{Mod{0}, Mod{1}}, {Mod{1}}}};
+    auto &f = ctx.var_root<0>();
+    REQUIRE(f[0] == Mod{1});
+    REQUIRE(f[1] == Mod{1});
+    REQUIRE(f[2] * Mod{2} == Mod{1});
+    REQUIRE(f[3] * Mod{6} == Mod{1});
+    REQUIRE(f[4] * Mod{24} == Mod{1});
+  }
+
   // f(z) = f(z) * (z + z^2) + 1
   const Vector FIBS_5{Mod{1}, Mod{1}, Mod{2}, Mod{3}, Mod{5}};
   Mod FIB_100000{56136314};

@@ -307,9 +307,7 @@ template <int Index> struct Val {
 template <typename P, int S> struct Shift {
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
-    using Base::p;
-
-    explicit StoreT(Ctx &ctx) : Base{ctx} {}
+    using Base::UnaryOpStoreT, Base::p;
 
     auto operator[](int i) { return i < S ? Ctx::ZERO : p[i - S]; }
   };
@@ -318,9 +316,7 @@ template <typename P, int S> struct Shift {
 template <typename P> struct Neg {
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
-    using Base::p;
-
-    explicit StoreT(Ctx &ctx) : Base{ctx} {}
+    using Base::UnaryOpStoreT, Base::p;
 
     auto operator[](int i) { return -p[i]; }
   };
@@ -329,11 +325,18 @@ template <typename P> struct Neg {
 template <typename P> struct Integral {
   template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
     using Base = UnaryOpStoreT<Ctx, P>;
-    using Base::p;
-
-    explicit StoreT(Ctx &ctx_) : Base{ctx_} {}
+    using Base::UnaryOpStoreT, Base::p;
 
     auto operator[](int i) { return i ? p[i - 1] * Ctx::inv(i) : Ctx::ZERO; }
+  };
+};
+
+template <typename P> struct Diff {
+  template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
+    using Base = UnaryOpStoreT<Ctx, P>;
+    using Base::UnaryOpStoreT, Base::p;
+
+    auto operator[](int i) { return typename Ctx::Mod{i + 1} * p[i + 1]; }
   };
 };
 
@@ -351,9 +354,7 @@ template <typename P, typename Q> struct Add {
 template <typename P, typename Q> struct Sub {
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
-    using Base::p, Base::q;
-
-    explicit StoreT(Ctx &ctx) : Base{ctx} {}
+    using Base::BinaryOpStoreT, Base::p, Base::q;
 
     auto operator[](int i) { return p[i] - q[i]; }
   };
@@ -365,9 +366,7 @@ template <typename P, typename Q, bool P_MIN_DEG = 0> struct ShortMulNoCache {
 
   template <typename Ctx> struct StoreT : public BinaryOpStoreT<Ctx, P, Q> {
     using Base = BinaryOpStoreT<Ctx, P, Q>;
-    using Base::p, Base::q;
-
-    explicit StoreT(Ctx &ctx) : Base{ctx} {}
+    using Base::BinaryOpStoreT, Base::p, Base::q;
 
     auto operator[](int k) {
       typename Ctx::Mod result{0};
@@ -484,6 +483,19 @@ template <typename P, bool P_MIN_DEG = true> struct SqrFull {
           cache[i] += prefix_dif[i];
         }
       }
+    }
+  };
+};
+
+template <typename P> struct Exp {
+  static_assert(poly_gen::is_specialization_of_v<Var, P>, "P is not a Var");
+
+  template <typename Ctx> struct StoreT : public UnaryOpStoreT<Ctx, P> {
+    using Base = UnaryOpStoreT<Ctx, P>;
+    using typename Base::UnaryOpStoreT;
+
+    auto operator[](int k) {
+      // TODO
     }
   };
 };
