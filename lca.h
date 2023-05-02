@@ -3,8 +3,8 @@
 #include <functional>
 #include <vector>
 
-struct Solver {
-  explicit Solver(const std::vector<std::vector<int>> &tree, int root)
+struct Lca {
+  explicit Lca(const std::vector<std::vector<int>> &tree, int root)
       : n(tree.size()), max_d{get_max_d(n)}, depth(n),
         jump(n, std::vector<int>(max_d, -1)) {
     std::function<void(int, int)> dfs = [&](int p, int u) -> void {
