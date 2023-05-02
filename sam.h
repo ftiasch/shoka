@@ -8,7 +8,7 @@ struct EmptyNode {};
 } // namespace sam
 
 template <int C, typename BaseNode = sam::EmptyNode> struct SAM {
-  struct Node : BaseNode {
+  struct Node : public BaseNode {
     Node(int length_ = 0) : length(length_), parent(nullptr) {
       memset(go, 0, sizeof(go));
     }
@@ -17,7 +17,7 @@ template <int C, typename BaseNode = sam::EmptyNode> struct SAM {
     Node *parent, *go[C];
   };
 
-  SAM(int n) : node_count(1), nodes(n << 1) {}
+  explicit SAM(int n) : node_count(1), nodes(n << 1) {}
 
   Node *root() { return nodes.data(); }
 

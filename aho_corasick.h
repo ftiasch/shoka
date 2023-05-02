@@ -1,45 +1,49 @@
+#include <algorithm>
+#include <array>
 #include <queue>
 
-template <int N, int C> struct AhoCorasick {
-  AhoCorasick() : n(1) {
-    memset(weight, 0, sizeof(weight));
-    memset(go, -1, sizeof(go));
+namespace ac {
+
+struct EmptyNode {};
+
+} // namespace ac
+
+template <int C, typename BaseNode = ac::EmptyNode> struct AhoCorasick {
+  struct Node : public BaseNode {
+    Node() { std::fill(go.begin(), go.end(), nullptr); }
+
+    Node *fail;
+    std::array<Node *, C> go;
+  };
+
+  explicit AhoCorasick(int n) : node_count{1}, nodes(1 + n) {}
+
+  Node *root() { return nodes.data(); }
+
+  Node *extend(Node *p, int c) {
+    if (p->go[c] == nullptr) {
+      p->go[c] = new (nodes.data() + (node_count++)) Node();
+    }
+    return p->go[c];
   }
 
-  void insert(const char *s, int w = 1) {
-    int p = 0;
-    for (int i = 0; s[i]; ++i) {
-      int c = s[i] - 'a';
-      if (go[p][c] == -1) {
-        go[p][c] = n++;
-      }
-      p = go[p][c];
-    }
-    weight[p] += w;
-  }
-
-  void initialize() {
-    std::queue<int> queue;
-    for (int c = 0; c < C; ++c) {
-      int &v = go[0][c];
-      if (~v) {
-        queue.push(v);
-      }
-      (~v ? fail[v] : v) = 0;
-    }
+  void build() {
+    std::queue<Node *> queue;
+    queue.push(root());
     while (!queue.empty()) {
-      int u = queue.front();
+      auto u = queue.front();
       queue.pop();
-      weight[u] += weight[fail[u]];
       for (int c = 0; c < C; ++c) {
-        int &v = go[u][c];
-        if (~v) {
+        auto &v = u->go[c];
+        if (v != nullptr) {
           queue.push(v);
         }
-        (~v ? fail[v] : v) = go[fail[u]][c];
+        (v != nullptr ? v->fail : v) = u->fail->go[c];
       }
     }
   }
 
-  int n, weight[N], go[N][C], fail[N];
+protected:
+  int node_count;
+  std::vector<Node> nodes;
 };
