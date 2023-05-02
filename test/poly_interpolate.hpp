@@ -1,12 +1,12 @@
 #include "mod.h"
-#include "polynomial_interpolation.h"
+#include "poly_interpolate.h"
 
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators_all.hpp>
 
-TEST_CASE("polynomial_interpolation") {
+TEST_CASE("poly_interpolate") {
   static constexpr int d = 100;
   static constexpr uint32_t MOD = 998'244'353;
   using Mod = ModT<MOD>;
@@ -30,8 +30,7 @@ TEST_CASE("polynomial_interpolation") {
   }
 
   auto n = GENERATE(take(d, random(0U, MOD - 1)));
-  PolynomialInterpolation<Mod> interpolate(d);
-  auto result = interpolate(values, Mod{n});
+  auto result = poly_interpolate1(values, Mod{n});
   auto expected = eval(coef, Mod{n});
   REQUIRE(result == expected);
 }

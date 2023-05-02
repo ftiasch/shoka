@@ -9,7 +9,7 @@
 #include "poly.hpp"
 #include "poly_gen.hpp"
 #include "poly_gen_dyn.hpp"
-#include "polynomial_interpolation.hpp"
+#include "poly_interpolate.hpp"
 #include "rmq.hpp"
 #include "rolling_hash.hpp"
 #include "segment_tree.hpp"
