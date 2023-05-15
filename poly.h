@@ -95,7 +95,6 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
       }
       return result;
     }
-
     int n = min_power_of_two(deg_plus_1);
     reserve(n);
     Mod *b0 = raw_buffer<0>();

@@ -76,6 +76,10 @@ public:
 
   static constexpr ModWrapperT mul_id() { return ModWrapperT::normalize(1); }
 
+  static constexpr ModWrapperT neg_id(uint64_t n) {
+    return (n & 1) ? -ModWrapperT{1} : ModWrapperT{1};
+  }
+
   static constexpr ModWrapperT normalize(M2 x) {
     return ModWrapperT{static_cast<M>(x % mod())};
   }

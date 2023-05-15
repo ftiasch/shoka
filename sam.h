@@ -1,4 +1,4 @@
-#include <cstring>
+#include <array>
 #include <vector>
 
 namespace sam {
@@ -7,17 +7,16 @@ struct EmptyNode {};
 
 } // namespace sam
 
-template <int C, typename BaseNode = sam::EmptyNode> struct SAM {
+template <int C, typename BaseNode = sam::EmptyNode> struct SamT {
   struct Node : public BaseNode {
-    Node(int length_ = 0) : length(length_), parent(nullptr) {
-      memset(go, 0, sizeof(go));
-    }
+    explicit Node(int length_ = 0) : length{length_}, go{} {}
 
     int length;
-    Node *parent, *go[C];
+    Node *parent = nullptr;
+    std::array<Node *, C> go;
   };
 
-  explicit SAM(int n) : node_count(1), nodes(n << 1) {}
+  explicit SamT(int n) : node_count(1), nodes(n << 1) {}
 
   Node *root() { return nodes.data(); }
 
@@ -35,7 +34,7 @@ template <int C, typename BaseNode = sam::EmptyNode> struct SAM {
         np->parent = q;
       } else {
         Node *nq = new (nodes.data() + (node_count++)) Node(p->length + 1);
-        memcpy(nq->go, q->go, sizeof(q->go));
+        nq->go = q->go;
         nq->parent = q->parent;
         np->parent = q->parent = nq;
         while (p && p->go[c] == q) {
