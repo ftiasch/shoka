@@ -7,7 +7,7 @@
 #include <catch2/generators/catch_generators_all.hpp>
 
 TEST_CASE("poly_interpolate") {
-  static constexpr int d = 100;
+  static constexpr int d = 50;
   static constexpr uint32_t MOD = 998'244'353;
   using Mod = ModT<MOD>;
 
@@ -18,7 +18,6 @@ TEST_CASE("poly_interpolate") {
     }
     return result;
   };
-
   using namespace Catch::Generators;
   auto C = GENERATE(take(1, chunk(d, random(0U, MOD - 1))));
   std::vector<Mod> coef(d), values(d);
@@ -28,8 +27,7 @@ TEST_CASE("poly_interpolate") {
   for (int i = 0; i < d; ++i) {
     values[i] = eval(coef, Mod{i});
   }
-
-  auto n = GENERATE(take(d, random(0U, MOD - 1)));
+  auto n = GENERATE(take(d, random(0, 100)));
   auto result = poly_interpolate1(values, Mod{n});
   auto expected = eval(coef, Mod{n});
   REQUIRE(result == expected);

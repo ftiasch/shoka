@@ -17,6 +17,6 @@ template <typename Mod> struct DynInvTable {
   std::vector<Mod> b;
 };
 
-template <typename Mod> static Mod inv(Mod a) {
-  return singleton<DynInvTable<Mod>>()[a.get()];
+template <typename Mod> static Mod inv(int a) {
+  return singleton<DynInvTable<Mod>>()[a];
 }
