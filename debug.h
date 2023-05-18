@@ -88,8 +88,16 @@ ostream &operator<<(ostream &out, priority_queue<T, S, C> pq) {
 
 } // namespace std
 
+struct DebugLine {
+  explicit DebugLine(int lineno) { std::cerr << lineno << "L "; }
+
+  ~DebugLine() { std::cerr << std::endl; }
+
+  template <typename T> DebugLine &operator<<(T &&v) {
+    std::cerr << std::forward<T>(v);
+    return *this;
+  }
+};
+
 #define KV(x) #x << "=" << (x) << ";"
-#define DEBUG(x)                                                               \
-  (std::cerr << KV(x) << " <" << __func__ << ":" << __LINE__ << ">"            \
-             << std::endl,                                                     \
-   (x))
+#define DEBUG DebugLine(__LINE__)
