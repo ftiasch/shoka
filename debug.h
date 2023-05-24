@@ -99,5 +99,5 @@ struct DebugLine {
   }
 };
 
-#define KV(x) #x << "=" << (x) << ";"
+#define KV(x) #x "=" << (x) << ";"
 #define DEBUG DebugLine(__LINE__)

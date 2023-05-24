@@ -22,9 +22,9 @@ struct IO : public IOBaseT<IO> {
     }
   }
 
-  template <typename T> std::ostream &operator<<(const T &o) {
+  template <typename T> IO &operator<<(const T &o) {
     if constexpr (std::is_same_v<bool, T>) {
-      return std::cout << (o ? YES : NO);
+      return std::cout << (o ? YES : NO), *this;
     } else if constexpr (is_specialization_of_v<std::vector, T>) {
       bool first = true;
       for (auto &&e : o) {
@@ -35,9 +35,9 @@ struct IO : public IOBaseT<IO> {
         }
         std::cout << e;
       }
-      return std::cout;
+      return *this;
     } else {
-      return std::cout << o;
+      return std::cout << o, *this;
     }
   }
 
