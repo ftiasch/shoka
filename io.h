@@ -4,13 +4,6 @@
 
 #include <iostream>
 
-#ifndef YES
-#define YES "Yes"
-#endif
-#ifndef NO
-#define NO "No"
-#endif
-
 struct IO : public IOBaseT<IO> {
   friend class IOBaseT<IO>;
 
@@ -22,25 +15,7 @@ struct IO : public IOBaseT<IO> {
     }
   }
 
-  template <typename T> IO &operator<<(const T &o) {
-    if constexpr (std::is_same_v<bool, T>) {
-      return std::cout << (o ? YES : NO), *this;
-    } else if constexpr (is_specialization_of_v<std::vector, T>) {
-      bool first = true;
-      for (auto &&e : o) {
-        if (first) {
-          first = false;
-        } else {
-          std::cout << " ";
-        }
-        std::cout << e;
-      }
-      return *this;
-    } else {
-      return std::cout << o, *this;
-    }
-  }
-
 private:
-  template <typename T> void read1(T &&v) { std::cin >> v; }
+  template <typename T> void read1(T &&v) { std::cin >> std::forward<T>(v); }
+  template <typename T> void write1(T &&v) { std::cout << std::forward<T>(v); }
 };
