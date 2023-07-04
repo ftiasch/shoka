@@ -2,13 +2,11 @@
 #include <array>
 #include <queue>
 
-namespace ac {
+namespace aho {
 
 struct EmptyNode {};
 
-} // namespace ac
-
-template <int C, typename BaseNode = ac::EmptyNode> struct AhoCorasick {
+template <int C, typename BaseNode = EmptyNode> struct AhoCorasick {
   struct Node : public BaseNode {
     Node() { std::fill(go.begin(), go.end(), nullptr); }
 
@@ -27,23 +25,32 @@ template <int C, typename BaseNode = ac::EmptyNode> struct AhoCorasick {
     return p->go[c];
   }
 
-  void build() {
-    std::queue<Node *> queue;
-    queue.push(root());
-    while (!queue.empty()) {
-      auto u = queue.front();
-      queue.pop();
-      for (int c = 0; c < C; ++c) {
+  auto build() {
+    std::vector<Node *> queue;
+    auto r = root();
+    for (int c = 0; c < C; c++) {
+      auto &v = r->go[c];
+      if (v != nullptr) {
+        queue.push_back(v);
+      }
+      (v != nullptr ? v->fail : v) = r;
+    }
+    for (int hd = 0; hd < queue.size(); hd++) {
+      auto u = queue[hd];
+      for (int c = 0; c < C; c++) {
         auto &v = u->go[c];
         if (v != nullptr) {
-          queue.push(v);
+          queue.push_back(v);
         }
         (v != nullptr ? v->fail : v) = u->fail->go[c];
       }
     }
+    return queue;
   }
 
 protected:
   int node_count;
   std::vector<Node> nodes;
 };
+
+} // namespace aho

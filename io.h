@@ -16,6 +16,6 @@ struct IO : public IOBaseT<IO> {
   }
 
 private:
-  template <typename T> void read1(T &&v) { std::cin >> std::forward<T>(v); }
-  template <typename T> void write1(T &&v) { std::cout << std::forward<T>(v); }
+  template <typename T> void read1(T &&v) { std::cin >> v; }
+  template <typename T> void write1(T &&v) { std::cout << v; }
 };
