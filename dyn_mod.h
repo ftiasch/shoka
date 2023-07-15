@@ -7,7 +7,7 @@
 
 namespace mod {
 
-template <typename M_, int PHANTOM> struct DynModBaseT {
+template <typename M_, int Phantom> struct DynModBaseT {
   using M = M_;
 
   void set_mod(M mod_) { mod = mod_; }
@@ -24,10 +24,10 @@ private:
   M mod;
 };
 
-template <int PHANTOM = 0>
-using DynMod64T = ModWrapperT<DynModBaseT<uint64_t, PHANTOM>>;
-template <int PHANTOM = 0>
-using DynModT = ModWrapperT<DynModBaseT<uint32_t, PHANTOM>>;
+template <int Phantom = 0>
+using DynMod64T = ModWrapperT<DynModBaseT<uint64_t, Phantom>>;
+template <int Phantom = 0>
+using DynModT = ModWrapperT<DynModBaseT<uint32_t, Phantom>>;
 
 } // namespace mod
 

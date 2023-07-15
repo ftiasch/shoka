@@ -4,7 +4,7 @@
 
 namespace mod {
 
-template <typename M_, int PHANTOM> struct BarrettBaseT {
+template <typename M_, int Phantom> struct BarrettBaseT {
   using M = M_;
 
   void set_mod(M mod_) {
@@ -29,10 +29,10 @@ private:
   M2 inv_mod;
 };
 
-template <int PHANTOM = 0>
-using Barrett64T = ModWrapperT<BarrettBaseT<uint64_t, PHANTOM>>;
-template <int PHANTOM = 0>
-using BarrettT = ModWrapperT<BarrettBaseT<uint32_t, PHANTOM>>;
+template <int Phantom = 0>
+using Barrett64T = ModWrapperT<BarrettBaseT<uint64_t, Phantom>>;
+template <int Phantom = 0>
+using BarrettT = ModWrapperT<BarrettBaseT<uint32_t, Phantom>>;
 
 } // namespace mod
 
