@@ -3,17 +3,12 @@
 #include <cassert>
 #include <vector>
 
-namespace poly_gen {
-
-template <typename NodeBase> struct AVLNodeT : public NodeBase {
-  int height, size;
-  AVLNodeT *left, *right;
-};
-
-} // namespace poly_gen
-
 template <typename NodeBase, typename Impl> struct AVLTreeBase {
-  using Node = poly_gen::AVLNodeT<NodeBase>;
+  struct Node : public NodeBase {
+    int height;
+    size_t size;
+    Node *left, *right;
+  };
 
   explicit AVLTreeBase(int n_) : nodes(n_ << 1), free_queue(n_ << 1) {
     assert(free_queue.allocate() == 0);
@@ -58,7 +53,7 @@ template <typename NodeBase, typename Impl> struct AVLTreeBase {
     }
   }
 
-  std::pair<Node *, Node *> split(Node *u, int k) {
+  std::pair<Node *, Node *> split(Node *u, size_t k) {
     if (k == 0) {
       return {null_node(), u};
     }
