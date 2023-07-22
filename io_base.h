@@ -2,6 +2,8 @@
 
 #include "is_specialization_of.h"
 
+#include <experimental/type_traits>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -17,9 +19,9 @@ template <typename IO> struct IOBaseT {
     using DT = std::decay_t<T>;
     if constexpr (is_specialization_of_v<std::tuple, DT>) {
       read_t_(v, std::make_index_sequence<std::tuple_size_v<DT>>());
-    } else if constexpr (is_specialization_of_v<std::vector, DT>) {
-      for (auto &e : v) {
-        read(e);
+    } else if constexpr (is_vector_like<DT>()) {
+      for (auto it = v.begin(); it != v.end(); it++) {
+        read(*it);
       }
     } else {
       static_cast<IO *>(this)->template read1(std::forward<T>(v));
@@ -30,15 +32,15 @@ template <typename IO> struct IOBaseT {
   template <typename T> IOBaseT &operator<<(const T &o) {
     if constexpr (std::is_same_v<bool, T>) {
       return static_cast<IO *>(this)->write1(o ? YES : NO), *this;
-    } else if constexpr (is_specialization_of_v<std::vector, T>) {
+    } else if constexpr (is_vector_like<T>()) {
       bool first = true;
-      for (auto &&e : o) {
+      for (auto it = o.begin(); it != o.end(); it++) {
         if (first) {
           first = false;
         } else {
           static_cast<IO *>(this)->template write1(' ');
         }
-        static_cast<IO *>(this)->template write1(e);
+        static_cast<IO *>(this)->template write1(*it);
       }
       return *this;
     } else {
@@ -57,6 +59,13 @@ template <typename IO> struct IOBaseT {
   }
 
 private:
+  template <typename T> using has_begin_t = decltype(std::declval<T>().begin());
+
+  template <typename T> static constexpr bool is_vector_like() {
+    return !std::is_same_v<T, std::string> &&
+           std::experimental::is_detected_v<has_begin_t, T>;
+  }
+
   template <typename Tuple, std::size_t... Index>
   void read_t_(Tuple &t, std::index_sequence<Index...>) {
     (..., (std::get<Index>(t) = read(std::tuple_element_t<Index, Tuple>{})));
