@@ -1,5 +1,7 @@
 #include "io_base.h"
-#include "iota/jeaiii_to_text.h"
+#ifdef SHOKA_FAST_ITOA
+#include "itoa/jeaiii_to_text.h"
+#endif
 
 #include <cctype>
 #include <cstdint>
@@ -65,7 +67,11 @@ private:
     if constexpr (std::is_same_v<DecayedT, char>) {
       putc(v);
     } else if constexpr (std::is_integral_v<DecayedT>) {
+#ifdef SHOKA_FAST_ITOA
       *jeaiii::to_text_from_integer(text, v) = '\0';
+#else
+      sprintf(text, "%lld", static_cast<long long>(v));
+#endif
       for (int i = 0; text[i]; i++) {
         putc(text[i]);
       }

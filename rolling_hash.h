@@ -31,6 +31,8 @@ template <typename... Mods> struct RollingHashT {
 
   bool operator==(const RollingHashT &o) const { return hash == o.hash; }
 
+  bool operator<(const RollingHashT &o) const { return get() < o.get(); }
+
   RollingHashT operator+(const RollingHashT &o) const {
     return RollingHashT{
         zip_with([]<typename Mod>(Mod h, Mod p, Mod oh) { return h * p + oh; },
@@ -52,6 +54,10 @@ template <typename... Mods> struct RollingHashT {
 private:
   template <typename Fun> static inline Hash make_with(Fun &&fun) {
     return zip_with(std::forward<Fun>(fun), Hash{});
+  }
+
+  auto get() const {
+    return zip_with([]<typename Mod>(Mod h) { return h.get(); }, hash);
   }
 
   struct SeedStore {

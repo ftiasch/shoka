@@ -16,10 +16,10 @@
 
 template <typename IO> struct IOBaseT {
   template <typename T = int> T read(T &&v = T{}) {
-    using DT = std::decay_t<T>;
-    if constexpr (is_specialization_of_v<std::tuple, DT>) {
-      read_t_(v, std::make_index_sequence<std::tuple_size_v<DT>>());
-    } else if constexpr (is_vector_like<DT>()) {
+    using DecayedT = std::decay_t<T>;
+    if constexpr (is_specialization_of_v<std::tuple, DecayedT>) {
+      read_t_(v, std::make_index_sequence<std::tuple_size_v<DecayedT>>());
+    } else if constexpr (is_vector_like<DecayedT>()) {
       for (auto it = v.begin(); it != v.end(); it++) {
         read(*it);
       }

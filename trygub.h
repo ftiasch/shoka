@@ -44,6 +44,14 @@ struct TrygubNumber {
     return v < 0 ? v + base() : v;
   }
 
+  BaseT most_significant_digit() const {
+    auto i = digits.rbegin()->first;
+    while (!(*this)[i]) {
+      i--;
+    }
+    return i;
+  }
+
   BaseT b;
   std::map<IndexT, BaseT> digits;
 };
