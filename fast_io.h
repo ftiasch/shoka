@@ -1,7 +1,6 @@
 #include "io_base.h"
-#ifdef SHOKA_FAST_ITOA
+#define SHOKA_FAST_ITOA
 #include "itoa/jeaiii_to_text.h"
-#endif
 
 #include <cctype>
 #include <cstdint>

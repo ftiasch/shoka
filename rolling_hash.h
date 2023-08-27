@@ -92,7 +92,7 @@ namespace std {
 
 template <typename... Mods>
 ostream &operator<<(ostream &out, const RollingHashT<Mods...> &h) {
-  return out << h.hash;
+  return out << h.hash << ':' << h.length;
 }
 
 } // namespace std

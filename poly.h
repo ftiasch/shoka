@@ -44,6 +44,8 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
 
   using Vector::vector;
 
+  PolyT() : std::vector<Mod>{Mod{}} {}
+
   explicit PolyT(const Vector &v) : std::vector<Mod>{v} {}
 
   const Vector &vector() const { return *this; }
@@ -54,17 +56,20 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   bool operator!=(const PolyT &o) const { return !(*this == o); }
 
   PolyT operator+(const PolyT &o) const {
-    if (deg() < o.deg()) {
-      return o + *this;
-    }
-    auto r = *this;
-    for (int i = 0; i <= o.deg(); ++i) {
-      r[i] += o[i];
-    }
-    return r;
+    auto copy = *this;
+    copy += o;
+    return copy;
   }
 
-  PolyT &operator+=(PolyT &o) { return *this = *this += o; }
+  PolyT &operator+=(const PolyT &o) {
+    if (deg() < o.deg()) {
+      this->resize(o.size());
+    }
+    for (int i = 0; i <= o.deg(); i++) {
+      (*this)[i] += o[i];
+    }
+    return *this;
+  }
 
   PolyT operator-(const PolyT &o) const {
     int max_deg = std::max(deg(), o.deg());
@@ -82,7 +87,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     return r;
   }
 
-  PolyT &operator-=(PolyT &o) { return *this = *this -= o; }
+  PolyT &operator-=(const PolyT &o) { return *this = *this - o; }
 
   PolyT operator*(const PolyT &o) const {
     int deg_plus_1 = deg() + o.deg() + 1;
