@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <queue>
+#include <ranges>
 
 namespace trie {
 struct EmptyNode {};
@@ -8,7 +9,7 @@ struct EmptyNode {};
 
 template <int C, typename BaseNode = trie::EmptyNode> struct TrieT {
   struct Node : public BaseNode {
-    Node() { std::fill(go.begin(), go.end(), nullptr); }
+    Node() { std::ranges::fill(go, nullptr); }
 
     std::array<Node *, C> go;
   };
