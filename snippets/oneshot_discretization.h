@@ -9,7 +9,7 @@ template <typename T> void oneshot_discretization(std::vector<T> &a) {
   for (int i = 0; i < n; i++) {
     ordered_a[i] = {a[i], i};
   }
-  std::sort(ordered_a.begin(), ordered_a.end());
+  std::ranges::sort(ordered_a);
   if (n) {
     a[ordered_a[0].second] = 0;
     for (int i = 1, j = 0; i < n; i++) {

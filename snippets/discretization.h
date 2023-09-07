@@ -13,11 +13,11 @@ struct Discretization : public std::vector<T> {
   }
 
   void normalize() {
-    std::sort(begin(), end(), Compare{});
-    std::vector<T>::erase(std::unique(begin(), end()), end());
+    std::ranges::sort(*this, Compare{});
+    this->erase(std::ranges::unique(*this).begin(), end());
   }
 
   int index(T x) const {
-    return std::lower_bound(begin(), end(), x, Compare{}) - begin();
+    return std::ranges::lower_bound(*this, x, Compare{}) - begin();
   }
 };
