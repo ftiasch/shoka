@@ -3,9 +3,6 @@
 
 template <typename T, typename Compare = std::less<T>>
 struct Discretization : public std::vector<T> {
-  using std::vector<T>::begin;
-  using std::vector<T>::end;
-
   explicit Discretization() = default;
 
   explicit Discretization(const std::vector<T> &a_) : std::vector<T>(a_) {
@@ -14,10 +11,11 @@ struct Discretization : public std::vector<T> {
 
   void normalize() {
     std::ranges::sort(*this, Compare{});
-    this->erase(std::ranges::unique(*this).begin(), end());
+    auto [first, last] = std::ranges::unique(*this);
+    this->erase(first, last);
   }
 
   int index(T x) const {
-    return std::ranges::lower_bound(*this, x, Compare{}) - begin();
+    return std::ranges::lower_bound(*this, x, Compare{}) - this->begin();
   }
 };

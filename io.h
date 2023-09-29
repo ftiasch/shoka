@@ -11,7 +11,6 @@ struct IO : public IOBaseT<IO> {
     if (!sync) {
       std::ios::sync_with_stdio(false);
       std::cin.tie(nullptr);
-      std::cout.tie(nullptr);
     }
   }
 
