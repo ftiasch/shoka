@@ -42,11 +42,11 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     ntt().dit(n, out);
   }
 
-  using Vector::vector;
-
   PolyT() : std::vector<Mod>{Mod{}} {}
-
+  explicit PolyT(size_t size) : std::vector<Mod>(size) {}
+  explicit PolyT(Vector &&v) : std::vector<Mod>{std::move(v)} {}
   explicit PolyT(const Vector &v) : std::vector<Mod>{v} {}
+  explicit PolyT(const std::initializer_list<Mod> &v) : std::vector<Mod>{v} {}
 
   const Vector &vector() const { return *this; }
 
@@ -109,7 +109,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
     copy_and_fill0(n, b1, o);
     dif(n, b1);
     dot_product_and_dit(n, b0, b0, b1);
-    return {b0, b0 + deg_plus_1};
+    return PolyT(std::vector<Mod>{b0, b0 + deg_plus_1});
   }
 
   PolyT &operator*=(const PolyT &o) { return *this = *this * o; }
