@@ -22,8 +22,8 @@ public:
   using Poly = PolyT<Mod>;
 
   explicit RandomPoly()
-      : gen{Catch::getSeed()}, dist0{0, Mod::mod() - 1}, dist1{1, Mod::mod() -
-                                                                      1} {}
+      : gen{Catch::getSeed()}, dist0{0, Mod::mod() - 1},
+        dist1{1, Mod::mod() - 1} {}
 
   Poly operator()(int deg, bool invertible = false) {
     Poly r(deg + 1);
@@ -64,7 +64,8 @@ TEMPLATE_TEST_CASE("poly", "[template]", ModT<poly::MOD>, MontT<poly::MOD>) {
 
   SECTION("constructor") {
     REQUIRE(Poly{Mod{1}, Mod{2}}.deg() == 1);
-    REQUIRE(Poly{std::vector<Mod>{Mod{1}, Mod{2}}}.deg() == 1);
+    std::vector<Mod> v{Mod{1}, Mod{2}};
+    REQUIRE(Poly(v).deg() == 1);
     REQUIRE(Poly(3).deg() == 2);
   }
 
