@@ -1,13 +1,9 @@
+#include "empty_class.h"
+
 #include <array>
 #include <vector>
 
-namespace sam {
-
-struct EmptyNode {};
-
-} // namespace sam
-
-template <int C, typename BaseNode = sam::EmptyNode> struct SamT {
+template <int C, typename BaseNode = EmptyClass> struct SamT {
   struct Node : public BaseNode {
     explicit Node(int length_ = 0) : length{length_}, go{} {}
 

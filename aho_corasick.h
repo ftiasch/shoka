@@ -1,12 +1,10 @@
+#include "empty_class.h"
+
 #include <algorithm>
 #include <array>
 #include <queue>
 
-namespace aho {
-
-struct EmptyNode {};
-
-template <int C, typename BaseNode = EmptyNode> struct AhoCorasick {
+template <int C, typename BaseNode = EmptyClass> struct AhoCorasick {
   struct Node : public BaseNode {
     Node() { std::fill(go.begin(), go.end(), nullptr); }
 
@@ -52,5 +50,3 @@ protected:
   int node_count;
   std::vector<Node> nodes;
 };
-
-} // namespace aho

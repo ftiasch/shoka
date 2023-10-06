@@ -1,13 +1,11 @@
+#include "empty_class.h"
+
 #include <algorithm>
 #include <array>
 #include <queue>
 #include <ranges>
 
-namespace trie {
-struct EmptyNode {};
-} // namespace trie
-
-template <int C, typename BaseNode = trie::EmptyNode> struct TrieT {
+template <int C, typename BaseNode = EmptyClass> struct TrieT {
   struct Node : public BaseNode {
     Node() { std::ranges::fill(go, nullptr); }
 
