@@ -28,7 +28,7 @@ TEST_CASE("poly_interpolate") {
     values[i] = eval(coef, Mod{i});
   }
   auto n = GENERATE(take(d, random(0, 100)));
-  auto result = poly_interpolate1(values, Mod{n});
+  auto result = poly_interpolate(values, Mod{n});
   auto expected = eval(coef, Mod{n});
   REQUIRE(result == expected);
 }
