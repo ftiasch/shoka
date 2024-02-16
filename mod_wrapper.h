@@ -138,6 +138,10 @@ public:
     return *this;
   }
 
+  constexpr ModWrapperT operator/=(const ModWrapperT &other) {
+    return *this *= other.inv();
+  }
+
   constexpr ModWrapperT inv() const { return binpow(*this, mod() - 2); }
 
   // helper arith
@@ -165,6 +169,11 @@ public:
   constexpr ModWrapperT operator*(const ModWrapperT &other) const {
     ModWrapperT copy = *this;
     return copy *= other;
+  }
+
+  constexpr ModWrapperT operator/(const ModWrapperT &other) const {
+    ModWrapperT copy = *this;
+    return copy /= other;
   }
 
 private:
