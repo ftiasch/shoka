@@ -2,6 +2,7 @@
 
 #include "io_base.h"
 
+#include <iomanip>
 #include <iostream>
 
 struct IO : public IOBaseT<IO> {
@@ -12,6 +13,7 @@ struct IO : public IOBaseT<IO> {
       std::ios::sync_with_stdio(false);
       std::cin.tie(nullptr);
     }
+    std::cout << std::fixed << std::setprecision(12);
   }
 
 private:
