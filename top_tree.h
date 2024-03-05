@@ -4,6 +4,29 @@
 using Tree = std::vector<std::vector<int>>;
 
 template <typename NodeBase, typename Impl> struct TopTreeBase {
+  // assume vertices is numbered by 0 ... n - 1
+  explicit TopTreeBase(const Tree &tree_)
+      : tree{tree_}, n(tree.size()), parent(n, -1), size(n), preferred_child(n),
+        cluster(n) {
+    cluster.reserve(n + n);
+  }
+
+  NodeBase &root() { return *root_; }
+
+  void build(int r = 0) {
+    prepare(r);
+    root_ = build_tree(r);
+  }
+
+  void update_one(int u) {
+    auto p = cluster.data() + u;
+    while (p != nullptr) {
+      update(p);
+      p = p->parent;
+    }
+  }
+
+private:
   enum class Type {
     BASE,
     COMPRESS,
@@ -23,29 +46,6 @@ template <typename NodeBase, typename Impl> struct TopTreeBase {
     std::array<TreeNode *, 2> child{nullptr, nullptr};
   };
 
-  // assume vertices is numbered by 0 ... n - 1
-  explicit TopTreeBase(const Tree &tree_)
-      : tree{tree_}, n(tree.size()), parent(n, -1), size(n), preferred_child(n),
-        cluster(n) {
-    cluster.reserve(n + n);
-  }
-
-  void build(int r = 0) {
-    prepare(r);
-    root = build_tree(r);
-  }
-
-  void update_one(int u) {
-    auto p = cluster.data() + u;
-    while (p != nullptr) {
-      update(p);
-      p = p->parent;
-    }
-  }
-
-  TreeNode *root;
-
-private:
   void prepare(int u) {
     size[u] = 1;
     std::pair<int, int> best{0, u};
@@ -101,17 +101,18 @@ private:
   }
 
   TreeNode *update(TreeNode *u) {
+    auto [lc, rc] = u->child;
     switch (u->type) {
     case Type::BASE: {
-      static_cast<Impl *>(this)->base(u, u - cluster.data());
+      static_cast<Impl *>(this)->base(*u, u - cluster.data());
       break;
     }
     case Type::COMPRESS: {
-      static_cast<Impl *>(this)->compress(u, u->child[0], u->child[1]);
+      static_cast<Impl *>(this)->compress(*u, *lc, *rc);
       break;
     }
     case Type::RAKE: {
-      static_cast<Impl *>(this)->rake(u, u->child[0], u->child[1]);
+      static_cast<Impl *>(this)->rake(*u, *lc, *rc);
       break;
     }
     }
@@ -122,4 +123,5 @@ private:
   int n;
   std::vector<int> parent, size, preferred_child;
   std::vector<TreeNode> cluster;
+  TreeNode *root_;
 };
