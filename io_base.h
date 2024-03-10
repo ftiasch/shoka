@@ -31,20 +31,20 @@ template <typename IO> struct IOBaseT {
 
   template <typename T> IOBaseT &operator<<(const T &o) {
     if constexpr (std::is_same_v<bool, T>) {
-      return static_cast<IO *>(this)->write1(o ? YES : NO), *this;
+      return write1(o ? YES : NO), *this;
     } else if constexpr (is_vector_like<T>()) {
       bool first = true;
       for (auto it = o.begin(); it != o.end(); it++) {
         if (first) {
           first = false;
         } else {
-          static_cast<IO *>(this)->template write1(' ');
+          write1(' ');
         }
-        static_cast<IO *>(this)->template write1(*it);
+        write1(*it);
       }
       return *this;
     } else {
-      return static_cast<IO *>(this)->template write1(o), *this;
+      return write1(o), *this;
     }
   }
 
@@ -59,6 +59,10 @@ template <typename IO> struct IOBaseT {
   }
 
 private:
+  template <typename T> void write1(T &&v) {
+    static_cast<IO *>(this)->template write1(std::forward<T>(v));
+  }
+
   template <typename T> using has_begin_t = decltype(std::declval<T>().begin());
 
   template <typename T> static constexpr bool is_vector_like() {

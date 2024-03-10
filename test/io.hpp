@@ -1,8 +1,8 @@
-#include "fast_io.h"
+#include <catch2/catch_all.hpp>
 
 #include <bits/stdc++.h>
 
-#include <catch2/catch_all.hpp>
+#include "fast_io.h"
 
 TEST_CASE("fast_io") {
   SECTION("input") {
