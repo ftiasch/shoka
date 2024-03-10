@@ -5,6 +5,7 @@
 #include <experimental/type_traits>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #ifndef YES
@@ -29,23 +30,26 @@ template <typename IO> struct IOBaseT {
     return v;
   }
 
-  template <typename T> IOBaseT &operator<<(const T &o) {
-    if constexpr (std::is_same_v<bool, T>) {
-      return write1(o ? YES : NO), *this;
-    } else if constexpr (is_vector_like<T>()) {
-      bool first = true;
-      for (auto it = o.begin(); it != o.end(); it++) {
-        if (first) {
-          first = false;
-        } else {
-          write1(' ');
-        }
-        write1(*it);
+  IOBaseT &operator<<(bool o) { return *this << (o ? YES : NO); }
+
+  template <std::ranges::forward_range RangeT>
+  IOBaseT &operator<<(RangeT &&o)
+    requires(!std::same_as<std::ranges::range_value_t<RangeT>, char>)
+  {
+    bool first = true;
+    for (auto &&v : o) {
+      if (first) {
+        first = false;
+      } else {
+        *this << ' ';
       }
-      return *this;
-    } else {
-      return write1(o), *this;
+      *this << v;
     }
+    return *this;
+  }
+
+  template <typename T> IOBaseT &operator<<(T &&o) {
+    return static_cast<IO *>(this)->template write1(std::forward<T>(o)), *this;
   }
 
   // helper
@@ -59,10 +63,6 @@ template <typename IO> struct IOBaseT {
   }
 
 private:
-  template <typename T> void write1(T &&v) {
-    static_cast<IO *>(this)->template write1(std::forward<T>(v));
-  }
-
   template <typename T> using has_begin_t = decltype(std::declval<T>().begin());
 
   template <typename T> static constexpr bool is_vector_like() {
