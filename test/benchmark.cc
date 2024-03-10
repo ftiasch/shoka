@@ -1,5 +1,7 @@
 #include <catch2/catch_all.hpp>
 
+#include <random>
+
 TEST_CASE("log_2") {
   constexpr int N = 200'000;
   constexpr int M = 200'000;
