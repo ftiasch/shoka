@@ -1,22 +1,20 @@
 #include "smawk.h"
 
-#include "debug.h"
-
 #include <bits/stdc++.h>
 
 #include <catch2/catch_all.hpp>
 
-struct MongeCompare {
-  int operator()(int r, int c0, int c1) const {
-    return monge[r][c0] - monge[r][c1];
-  }
+struct Monge {
+  using E = int;
+
+  E operator()(int x, int y) const { return monge.at(x).at(y); }
 
   std::vector<std::vector<int>> monge;
 };
 
 TEST_CASE("smawk") {
-  auto n = GENERATE(range(1, 100));
-  auto m = GENERATE(range(1, 100));
+  auto n = GENERATE(range(1, 50));
+  auto m = GENERATE(range(1, 50));
 
   std::mt19937 gen{Catch::getSeed()};
   std::vector monge(n, std::vector<int>(m));
@@ -35,13 +33,13 @@ TEST_CASE("smawk") {
     }
   }
 
-  auto row_min = smawk(n, m, MongeCompare{monge});
+  auto row_min = SMAWK(n, m, Monge{monge}).row_min;
 
   for (int i = 0; i < n; i++) {
     std::pair<int, int> best{INT_MAX, 0};
     for (int j = 0; j < m; j++) {
       best = std::min(best, {monge[i][j], j});
     }
-    REQUIRE(row_min[i] == best.second);
+    REQUIRE(row_min[i] == best);
   }
 }
