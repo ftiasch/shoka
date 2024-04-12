@@ -13,6 +13,7 @@
 #include "rmq.hpp"
 #include "rolling_hash.hpp"
 #include "segment_tree.hpp"
+#include "smawk.hpp"
 #include "universal_euclidean.hpp"
 #include "y_combinator.hpp"
 #include "zip_with.hpp"
