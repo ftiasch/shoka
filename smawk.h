@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "debug.h"
-
 template <typename A>
 concept IsTM = requires(A m) {
   {
