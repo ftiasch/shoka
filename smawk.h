@@ -1,19 +1,7 @@
-#include <concepts>
-#include <numeric>
-#include <ranges>
-#include <span>
-#include <type_traits>
-#include <vector>
+#include "types/total_monotone.h"
 
-template <typename A>
-concept IsTM = requires(A m) {
-  {
-    m(std::declval<int>(), std::declval<int>())
-  } -> std::convertible_to<typename A::E>;
-  {
-    std::declval<typename A::E>() > std::declval<typename A::E>()
-  } -> std::convertible_to<bool>;
-};
+#include <numeric>
+#include <vector>
 
 template <IsTM A> struct SMAWK {
   explicit SMAWK(int n_, int m_, const A &a_)
@@ -34,7 +22,8 @@ template <IsTM A> struct SMAWK {
       stack.clear();
       for (int i = begin; i < end; i++) {
         auto c = cols[i];
-        while (!stack.empty() && stack.back() > get((stack.size() << k), c)) {
+        while (!stack.empty() &&
+               stack.back().first > get((stack.size() << k), c).first) {
           stack.pop_back();
         }
         auto r1 = (stack.size() + 1) << k;
