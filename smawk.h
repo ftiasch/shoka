@@ -6,13 +6,14 @@
 template <IsTM A> struct SMAWK {
   using E = typename A::E;
   using EI = std::pair<E, int>;
-  using Result = std::vector<EI>;
+  using Result = std::vector<E>;
 
   void operator()(Result &row_min, const A &a, int n, int m) {
     stack.resize(n);
     cols.resize(m + n + n);
     std::iota(cols.begin(), cols.begin() + m, 0);
     row_min.resize(n);
+    row_argmin.resize(n);
     recur(row_min, a, n, m, 0, 0, m);
   }
 
@@ -26,10 +27,11 @@ template <IsTM A> struct SMAWK {
              int end) {
     if (n < (2 << k)) {
       auto r = (1 << k) - 1;
-      auto &ref = row_min[r] = query(a, r, cols[begin]);
+      auto ref = query(a, r, cols[begin]);
       for (int i = begin + 1; i < end; i++) {
         ref = std::min(ref, query(a, r, cols[i]));
       }
+      std::tie(row_min[r], row_argmin[r]) = ref;
     } else {
       int top{0};
       for (int i = begin; i < end; i++) {
@@ -47,11 +49,12 @@ template <IsTM A> struct SMAWK {
       recur(row_min, a, n, m, k + 1, begin, end);
       auto offset = 1 << k;
       for (int r = offset - 1, p = begin; r < n; r += offset << 1) {
-        auto high = r + offset < n ? row_min[r + offset].second + 1 : m;
-        auto &ref = row_min[r] = query(a, r, cols[p]);
+        auto high = r + offset < n ? row_argmin[r + offset] + 1 : m;
+        auto ref = query(a, r, cols[p]);
         while (p + 1 < end && cols[p + 1] < high) {
           ref = std::min(ref, query(a, r, cols[++p]));
         }
+        std::tie(row_min[r], row_argmin[r]) = ref;
       }
     }
   }
@@ -59,5 +62,5 @@ template <IsTM A> struct SMAWK {
   EI query(const A &a, int r, int c) { return {a(r, c), c}; }
 
   std::vector<E> stack;
-  std::vector<int> cols;
+  std::vector<int> cols, row_argmin;
 };

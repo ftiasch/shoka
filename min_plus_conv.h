@@ -3,12 +3,12 @@
 #include <limits>
 #include <vector>
 
-template <typename E_> struct MinPlusConv {
+template <typename T> struct MinPlusConv {
   struct Monge {
-    using E = E_;
+    using E = T;
 
-    E operator()(int k, int i) const {
-      constexpr E inf = std::numeric_limits<E>::max();
+    T operator()(int k, int i) const {
+      constexpr T inf = std::numeric_limits<T>::max();
       auto j = k - i;
       if (0 <= j && j < w.size()) {
         return a[i] + w[k - i];
@@ -16,20 +16,14 @@ template <typename E_> struct MinPlusConv {
       return j < 0 ? inf : inf - i;
     }
 
-    const std::vector<E> &a, &w;
+    const std::vector<T> &a, &w;
   };
 
-  using Seq = std::vector<E_>;
+  using Seq = std::vector<T>;
 
   // Assume that w[i] - w[i - 1] <= w[i + 1] - w[i]
   Seq operator()(const Seq &a, const Seq &w) {
-    int n = a.size() + w.size() - 1;
-    auto row_min = smawk(Monge{a, w}, n, a.size());
-    Seq c(n);
-    for (int i = 0; i < n; i++) {
-      c[i] = row_min[i].first;
-    }
-    return c;
+    return smawk(Monge{a, w}, a.size() + w.size() - 1, a.size());
   }
 
   SMAWK<Monge> smawk;
