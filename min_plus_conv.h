@@ -1,9 +1,7 @@
-#include "smawk.h"
-
 #include <limits>
 #include <vector>
 
-template <typename T> struct MinPlusConv {
+template <typename T, template <typename> class SolverT> struct MinPlusConv {
   struct Monge {
     using E = T;
 
@@ -23,8 +21,8 @@ template <typename T> struct MinPlusConv {
 
   // Assume that w[i] - w[i - 1] <= w[i + 1] - w[i]
   Seq operator()(const Seq &a, const Seq &w) {
-    return smawk(Monge{a, w}, a.size() + w.size() - 1, a.size());
+    return solve(Monge{a, w}, a.size() + w.size() - 1, a.size());
   }
 
-  SMAWK<Monge> smawk;
+  SolverT<Monge> solve;
 };
