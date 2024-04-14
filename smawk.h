@@ -4,61 +4,60 @@
 #include <vector>
 
 template <IsTM A> struct SMAWK {
-  explicit SMAWK(int n_, int m_, const A &a_)
-      : n{n_}, m{m_}, a{a_}, row_min(n), cols(m + 2 * n) {
-    stack.reserve(n);
+  using E = typename A::E;
+  using EI = std::pair<E, int>;
+  using Result = std::vector<EI>;
+
+  void operator()(Result &row_min, const A &a, int n, int m) {
+    stack.resize(n);
+    cols.resize(m + n + n);
     std::iota(cols.begin(), cols.begin() + m, 0);
-    recur(0, 0, m);
+    row_min.resize(n);
+    recur(row_min, a, n, m, 0, 0, m);
   }
 
-  void recur(int k, int begin, int end) {
+  Result operator()(const A &a, int n, int m) {
+    Result row_min;
+    operator()(row_min, a, n, m);
+    return row_min;
+  }
+
+  void recur(Result &row_min, const A &a, int n, int m, int k, int begin,
+             int end) {
     if (n < (2 << k)) {
       auto r = (1 << k) - 1;
-      row_min[r] = get(r + 1, cols[begin]);
+      auto &ref = row_min[r] = query(a, r, cols[begin]);
       for (int i = begin + 1; i < end; i++) {
-        check_min(row_min[r], get(r + 1, cols[i]));
+        ref = std::min(ref, query(a, r, cols[i]));
       }
     } else {
-      stack.clear();
+      int top{0};
       for (int i = begin; i < end; i++) {
         auto c = cols[i];
-        while (!stack.empty() &&
-               stack.back().first > get((stack.size() << k), c).first) {
-          stack.pop_back();
+        while (top && stack[top - 1] > a((top << k) - 1, c)) {
+          top--;
         }
-        auto r1 = (stack.size() + 1) << k;
-        if (r1 <= n) {
-          stack.push_back(get(r1, c));
+        auto r = ((top + 1) << k) - 1;
+        if (r < n) {
+          cols[end + top] = c;
+          stack[top++] = a(r, c);
         }
       }
-      for (int i = 0; i < stack.size(); i++) {
-        cols[end + i] = stack[i].second;
-      }
-      begin = end, end += stack.size();
-      recur(k + 1, begin, end);
+      begin = end, end += top;
+      recur(row_min, a, n, m, k + 1, begin, end);
       auto offset = 1 << k;
       for (int r = offset - 1, p = begin; r < n; r += offset << 1) {
         auto high = r + offset < n ? row_min[r + offset].second + 1 : m;
-        row_min[r] = get(r + 1, cols[p]);
+        auto &ref = row_min[r] = query(a, r, cols[p]);
         while (p + 1 < end && cols[p + 1] < high) {
-          check_min(row_min[r], get(r + 1, cols[++p]));
+          ref = std::min(ref, query(a, r, cols[++p]));
         }
       }
     }
   }
 
-  using TP = std::pair<typename A::E, int>;
+  EI query(const A &a, int r, int c) { return {a(r, c), c}; }
 
-  TP get(int x1, int y) { return {a(x1 - 1, y), y}; }
-
-  static void check_min(TP &x, TP a) {
-    if (x > a) {
-      x = a;
-    }
-  }
-
-  int n, m;
-  const A &a;
-  std::vector<TP> row_min, stack;
+  std::vector<E> stack;
   std::vector<int> cols;
 };

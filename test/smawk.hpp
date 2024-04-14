@@ -13,6 +13,8 @@ struct Monge {
 };
 
 TEST_CASE("smawk") {
+  SMAWK<Monge> smawk;
+
   auto n = GENERATE(range(1, 50));
   auto m = GENERATE(range(1, 50));
 
@@ -33,7 +35,7 @@ TEST_CASE("smawk") {
     }
   }
 
-  auto row_min = SMAWK(n, m, Monge{monge}).row_min;
+  auto row_min = smawk(Monge{monge}, n, m);
 
   for (int i = 0; i < n; i++) {
     std::pair<int, int> best{INT_MAX, 0};
