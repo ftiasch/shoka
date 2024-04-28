@@ -1,9 +1,12 @@
+#include "types/tree_monoid.h"
+
 #include <algorithm>
 #include <vector>
 
 using Tree = std::vector<std::vector<int>>;
 
-template <typename NodeBase, typename Impl> struct TopTreeBase {
+// Assume that there's an imaginary edge (-1)->0
+template <IsTreeMonoid M> struct TopTreeBase {
   // assume vertices is numbered by 0 ... n - 1
   explicit TopTreeBase(const Tree &tree_)
       : tree{tree_}, n(tree.size()), parent(n, -1), size(n), preferred_child(n),
@@ -11,15 +14,20 @@ template <typename NodeBase, typename Impl> struct TopTreeBase {
     cluster.reserve(n + n);
   }
 
-  NodeBase &root() { return *root_; }
+  M root() const { return root_->sum; }
 
-  void build(int r = 0) {
+  void build(const std::vector<M> &edge, int r = 0) {
     prepare(r);
+    for (int i = 0; i < n; i++) {
+      cluster[i].sum = edge[i];
+    }
     root_ = build_tree(r);
   }
 
-  void update_one(int u) {
+  void update1(int u, const M &m) {
     auto p = cluster.data() + u;
+    p->sum = m;
+    p = p->parent;
     while (p != nullptr) {
       update(p);
       p = p->parent;
@@ -33,7 +41,7 @@ private:
     RAKE,
   };
 
-  struct TreeNode : public NodeBase {
+  struct TreeNode {
     explicit TreeNode() : type{Type::BASE} {}
 
     explicit TreeNode(Type type_, TreeNode *lc, TreeNode *rc)
@@ -41,6 +49,7 @@ private:
       lc->parent = rc->parent = this;
     }
 
+    M sum;
     Type type;
     TreeNode *parent{nullptr};
     std::array<TreeNode *, 2> child{nullptr, nullptr};
@@ -63,9 +72,9 @@ private:
   using Chain = std::vector<std::pair<int, TreeNode *>>;
 
   TreeNode *build_tree(int u) {
-    Chain compress_chain{{1, update(cluster.data() + u)}};
+    Chain compress_chain{{1, cluster.data() + u}};
     while (preferred_child[u] != u) {
-      Chain rake_chain{{1, update(cluster.data() + preferred_child[u])}};
+      Chain rake_chain{{1, cluster.data() + preferred_child[u]}};
       rake_chain.reserve(tree[u].size());
       for (auto &&v : tree[u]) {
         if (v != parent[u] && v != preferred_child[u]) {
@@ -103,16 +112,12 @@ private:
   TreeNode *update(TreeNode *u) {
     auto [lc, rc] = u->child;
     switch (u->type) {
-    case Type::BASE: {
-      static_cast<Impl *>(this)->base(*u, u - cluster.data());
-      break;
-    }
     case Type::COMPRESS: {
-      static_cast<Impl *>(this)->compress(*u, *lc, *rc);
+      u->sum = M::compress(lc->sum, rc->sum);
       break;
     }
     case Type::RAKE: {
-      static_cast<Impl *>(this)->rake(*u, *lc, *rc);
+      u->sum = M::rake(lc->sum, rc->sum);
       break;
     }
     }
