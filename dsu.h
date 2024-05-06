@@ -1,24 +1,37 @@
 #include <vector>
 
-class Dsu : public std::vector<int> {
+class Dsu {
 public:
-  explicit Dsu(int n) : std::vector<int>(n, -1) {}
+  explicit Dsu(int n) : node(n) {
+    for (int i = 0; i < n; i++) {
+      node[i] = {i, 0};
+    }
+  }
 
   int find(int u) {
-    if ((*this)[u] == -1) {
-      return u;
+    while (node[u].p != u) {
+      u = node[u].p = node[node[u].p].p;
     }
-    if ((*this)[u] != u) {
-      (*this)[u] = find((*this)[u]);
-    }
-    return (*this)[u];
+    return u;
   }
 
   bool merge(int a, int b) {
-    if (find(a) == find(b)) {
+    a = find(a), b = find(b);
+    if (a == b) {
       return false;
     }
-    (*this)[find(a)] = find(b);
+    if (node[a].r < node[b].r) {
+      std::swap(a, b);
+    }
+    node[b].p = a;
+    node[a].r += node[a].r == node[b].r;
     return true;
   }
+
+private:
+  struct Node {
+    int p, r;
+  };
+
+  std::vector<Node> node;
 };
