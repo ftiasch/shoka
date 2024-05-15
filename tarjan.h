@@ -13,7 +13,7 @@ public:
     return graph;
   }
 
-  Tarjan(const Graph &graph_)
+  explicit Tarjan(const Graph &graph_)
       : n(graph_.size()), dfn(n, -1), scc_id(n), low(n), graph(graph_) {
     int dfs_count = 0;
     std::vector<int> stack;
@@ -23,7 +23,7 @@ public:
   }
 
   Graph scc_graph() const {
-    Graph result(number_of_scc);
+    Graph result(num_scc);
     for (int u = 0; u < n; ++u) {
       for (int v : graph[u]) {
         if (scc_id[u] != scc_id[v]) {
@@ -34,7 +34,7 @@ public:
     return result;
   }
 
-  int n, number_of_scc = 0;
+  int n, num_scc = 0;
   std::vector<int> dfn, scc_id;
 
 private:
@@ -52,10 +52,10 @@ private:
         do {
           v = stack.back();
           stack.pop_back();
-          scc_id[v] = number_of_scc;
+          scc_id[v] = num_scc;
           low[v] = n;
         } while (u != v);
-        number_of_scc++;
+        num_scc++;
       }
     }
   }
