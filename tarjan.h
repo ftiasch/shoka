@@ -1,65 +1,44 @@
+#include "types/graph.h"
+
 #include <utility>
 #include <vector>
 
+template <IsGraph G>
+  requires std::is_convertible_v<GraphEdge<G>, int>
 class Tarjan {
 public:
-  using Graph = std::vector<std::vector<int>>;
-
-  static Graph to_graph(int n, const std::vector<std::pair<int, int>> &edges) {
-    Graph graph(n);
-    for (auto &&[u, v] : edges) {
-      graph[u].push_back(v);
-    }
-    return graph;
-  }
-
-  explicit Tarjan(const Graph &graph_)
-      : n(graph_.size()), dfn(n, -1), scc_id(n), low(n), graph(graph_) {
-    int dfs_count = 0;
+  explicit Tarjan(const G &graph_)
+      : n(graph_.size()), graph(graph_), scc(n, -(n + 1)) {
+    int clock = -n;
     std::vector<int> stack;
     for (int r = 0; r < n; ++r) {
-      dfs(dfs_count, stack, r);
+      dfs(clock, stack, r);
     }
   }
 
-  Graph scc_graph() const {
-    Graph result(num_scc);
-    for (int u = 0; u < n; ++u) {
-      for (int v : graph[u]) {
-        if (scc_id[u] != scc_id[v]) {
-          result[scc_id[u]].push_back(scc_id[v]);
-        }
-      }
-    }
-    return result;
-  }
-
-  int n, num_scc = 0;
-  std::vector<int> dfn, scc_id;
-
-private:
-  void dfs(int &dfs_count, std::vector<int> &stack, int u) {
-    if (dfn[u] == -1) {
-      int tmp = dfn[u] = low[u] = dfs_count++;
+  void dfs(int &clock, std::vector<int> &stack, int u) {
+    if (scc[u] + n < 0) {
+      int tmp, dfn;
+      tmp = dfn = scc[u] = clock++;
       stack.push_back(u);
       for (int v : graph[u]) {
-        dfs(dfs_count, stack, v);
-        tmp = std::min(tmp, low[v]);
+        dfs(clock, stack, v);
+        tmp = std::min(tmp, scc[v]);
       }
-      low[u] = tmp;
-      if (dfn[u] == low[u]) {
+      scc[u] = tmp;
+      if (dfn == scc[u]) {
         int v;
         do {
           v = stack.back();
           stack.pop_back();
-          scc_id[v] = num_scc;
-          low[v] = n;
+          scc[v] = num_scc;
         } while (u != v);
         num_scc++;
       }
     }
   }
 
-  std::vector<int> low;
-  const Graph &graph;
+  int n, num_scc = 0;
+  const G &graph;
+  std::vector<int> scc;
 };
