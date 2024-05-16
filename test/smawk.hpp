@@ -42,6 +42,6 @@ TEST_CASE("smawk") {
     for (int j = 0; j < m; j++) {
       best = std::min(best, {monge[i][j], j});
     }
-    REQUIRE(row_min[i] == best);
+    REQUIRE(row_min[i] == best.first);
   }
 }
