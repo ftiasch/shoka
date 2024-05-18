@@ -1,44 +1,43 @@
 #include "types/graph.h"
 
-#include <utility>
 #include <vector>
 
 template <IsGraph G>
   requires std::is_convertible_v<GraphEdge<G>, int>
 class Tarjan {
 public:
-  explicit Tarjan(const G &graph_)
-      : n(graph_.size()), graph(graph_), scc(n, -(n + 1)) {
-    int clock = -n;
-    std::vector<int> stack;
-    for (int r = 0; r < n; ++r) {
-      dfs(clock, stack, r);
-    }
-  }
-
-  void dfs(int &clock, std::vector<int> &stack, int u) {
+  void dfs(int u) {
     if (scc[u] + n < 0) {
       int tmp, dfn;
-      tmp = dfn = scc[u] = clock++;
-      stack.push_back(u);
-      for (int v : graph[u]) {
-        dfs(clock, stack, v);
+      tmp = dfn = scc[u] = now++;
+      stk[top++] = u;
+      for (int v : g[u]) {
+        dfs(v);
         tmp = std::min(tmp, scc[v]);
       }
       scc[u] = tmp;
       if (dfn == scc[u]) {
-        int v;
         do {
-          v = stack.back();
-          stack.pop_back();
-          scc[v] = num_scc;
-        } while (u != v);
+          scc[stk[--top]] = num_scc;
+        } while (stk[top] != u);
         num_scc++;
       }
     }
   }
 
-  int n, num_scc = 0;
-  const G &graph;
+  const G &g;
+  int n, now, top;
+  std::vector<int> stk;
+
+public:
+  explicit Tarjan(const G &g_)
+      : g{g_}, n(g.size()), now{-n}, top{0}, stk(n), num_scc{0},
+        scc(n, -(n + 1)) {
+    for (int r = 0; r < n; ++r) {
+      dfs(r);
+    }
+  }
+
+  int num_scc;
   std::vector<int> scc;
 };
