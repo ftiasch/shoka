@@ -12,7 +12,7 @@ class MaxCartesianTree {
   std::vector<int> stack;
 
 public:
-  explicit MaxCartesianTree(std::ranges::random_access_range auto const &&a,
+  explicit MaxCartesianTree(std::ranges::random_access_range auto a,
                             C compare = {})
       : n(std::ranges::size(a)), stack(n + 1), root{-1}, child(n) {
     int top = 0;
