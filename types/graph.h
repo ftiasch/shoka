@@ -4,9 +4,9 @@
 #include <ranges>
 
 template <typename G>
-concept IsGraph = requires(const G &g) {
+concept IsGraph = requires(G g) {
   { g.size() } -> std::convertible_to<int>;
-} && requires(const G &g, int u) {
+} && requires(G g, int u) {
   requires std::ranges::forward_range<decltype(g[u])>;
 };
 

@@ -1,34 +1,33 @@
+#include "types/compare.h"
+
 #include <array>
 #include <functional>
+#include <ranges>
 #include <vector>
 
-template <typename T, typename Compare = std::less<T>>
-struct MaxCartesianTree : public std::vector<std::array<int, 2>> {
-  explicit MaxCartesianTree(const std::vector<T> &a,
-                            Compare compare = Compare{})
-      : std::vector<std::array<int, 2>>(a.size(), std::array<int, 2>{-1, -1}) {
-    int n = a.size();
-    std::vector<int> stack;
-    stack.reserve(n);
-    for (int i = 0; i < n; ++i) {
-      int left = -1;
-      while (!stack.empty() && compare(a[stack.back()], a[i])) {
-        int j = stack.back();
-        stack.pop_back();
-        (*this)[j][1] = left;
-        left = j;
+template <typename T, typename C = std::less<T>>
+  requires IsComparator<C, T>
+class MaxCartesianTree {
+  int n;
+  std::vector<int> stack;
+
+public:
+  explicit MaxCartesianTree(std::ranges::random_access_range auto const &&a,
+                            C compare = {})
+      : n(std::ranges::size(a)), stack(n + 1), root{-1}, child(n) {
+    int top = 0;
+    stack[0] = -1;
+    for (int i = 0; i < n; i++) {
+      while (~stack[top] && compare(a[stack[top]], a[i])) {
+        top--;
       }
-      (*this)[i][0] = left;
-      stack.push_back(i);
-    }
-    root = -1;
-    while (!stack.empty()) {
-      int i = stack.back();
-      stack.pop_back();
-      (*this)[i][1] = root;
-      root = i;
+      int &r = top ? child[stack[top]][1] : root;
+      child[i] = {r, -1};
+      r = i;
+      stack[++top] = i;
     }
   }
 
-  int root;
+  int root; // virtually child[-1][1]
+  std::vector<std::array<int, 2>> child;
 };
