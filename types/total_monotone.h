@@ -3,14 +3,12 @@
 #include <concepts>
 
 template <typename A, typename E>
-concept IsTM2 = requires(A m, int i, int j) {
+concept IsTMElem = requires(A m, int i, int j) {
   { m(i, j) } -> std::same_as<E>;
-} && requires(E u, E v) {
-  { u < v } -> std::convertible_to<bool>;
-};
+} && std::totally_ordered<E>;
 
 template <typename A>
-concept IsTM = requires(A m) {
+concept IsTM = requires {
   typename A::E;
-  requires IsTM2<A, typename A::E>;
+  requires IsTMElem<A, typename A::E>;
 };

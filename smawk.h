@@ -3,28 +3,10 @@
 #include <numeric>
 #include <vector>
 
-template <IsTM A> struct SMAWK {
+template <IsTM A> class SMAWK {
   using E = typename A::E;
-  using EI = std::pair<E, int>;
-  using Result = std::vector<E>;
 
-  void operator()(Result &row_min, const A &a, int n, int m) {
-    stack.resize(n);
-    cols.resize(m + n + n);
-    std::iota(cols.begin(), cols.begin() + m, 0);
-    row_min.resize(n);
-    row_argmin.resize(n);
-    recur(row_min, a, n, m, 0, 0, m);
-  }
-
-  Result operator()(const A &a, int n, int m) {
-    Result row_min;
-    operator()(row_min, a, n, m);
-    return row_min;
-  }
-
-  void recur(Result &row_min, const A &a, int n, int m, int k, int begin,
-             int end) {
+  void recur(const A &a, int n, int m, int k, int begin, int end) {
     if (n < (2 << k)) {
       auto r = (1 << k) - 1;
       auto ref = query(a, r, cols[begin]);
@@ -46,7 +28,7 @@ template <IsTM A> struct SMAWK {
         }
       }
       begin = end, end += top;
-      recur(row_min, a, n, m, k + 1, begin, end);
+      recur(a, n, m, k + 1, begin, end);
       auto offset = 1 << k;
       for (int r = offset - 1, p = begin; r < n; r += offset << 1) {
         auto high = r + offset < n ? row_argmin[r + offset] + 1 : m;
@@ -59,8 +41,21 @@ template <IsTM A> struct SMAWK {
     }
   }
 
-  EI query(const A &a, int r, int c) { return {a(r, c), c}; }
+  std::pair<E, int> query(const A &a, int r, int c) const {
+    return {a(r, c), c};
+  }
 
-  std::vector<E> stack;
   std::vector<int> cols, row_argmin;
+  std::vector<E> row_min, stack;
+
+public:
+  auto const &operator()(const A &a, int n, int m) {
+    cols.resize(m + n + n);
+    std::iota(cols.begin(), cols.begin() + m, 0);
+    row_min.resize(n);
+    row_argmin.resize(n);
+    stack.resize(n);
+    recur(a, n, m, 0, 0, m);
+    return row_min;
+  }
 };
