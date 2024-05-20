@@ -1,21 +1,12 @@
+#include "types/graph.h"
 #include "types/tree_monoid.h"
 
 #include <utility>
 #include <vector>
 
-template <IsTreeMonoid M> struct RerootDp {
-  using Tree = std::vector<std::vector<std::pair<int, M>>>;
-
-  static std::vector<M> get_sum(const Tree &tree) {
-    return RerootDp<M>{tree}.sum;
-  }
-
-  explicit RerootDp(const Tree &tree_)
-      : tree{tree_}, n(tree.size()), up_edge(n), down(n), up(n), sum(n) {
-    dfs_down(-1, 0);
-    dfs_up(-1, 0);
-  }
-
+template <IsTreeMonoid M, IsGraph Tree>
+  requires std::is_same_v<GraphEdge<Tree>, std::pair<int, M>>
+class RerootDp {
   void dfs_down(int p, int u) {
     for (auto &&[v, e] : tree[u]) {
       if (v != p) {
@@ -23,7 +14,7 @@ template <IsTreeMonoid M> struct RerootDp {
         down[v] = M::compress(e, down[v]);
         down[u] = M::rake(down[u], down[v]);
       } else {
-        up_edge[u] = &e;
+        up_edge[u] = e;
       }
     }
   }
@@ -39,7 +30,7 @@ template <IsTreeMonoid M> struct RerootDp {
     for (int i = 0; i < tree[u].size(); i++) {
       auto &&[v, _] = tree[u][i];
       if (v != p) {
-        up[v] = M::compress(*up_edge[v], M::rake(prefix, suffix[i + 1]));
+        up[v] = M::compress(up_edge[v], M::rake(prefix, suffix[i + 1]));
         prefix = M::rake(prefix, down[v]);
       }
     }
@@ -53,6 +44,14 @@ template <IsTreeMonoid M> struct RerootDp {
 
   const Tree &tree;
   int n;
-  std::vector<const M *> up_edge;
-  std::vector<M> down, up, sum, suffix;
+  std::vector<M> up_edge, down, up, suffix;
+
+public:
+  explicit RerootDp(const Tree &tree_)
+      : tree{tree_}, n(tree.size()), up_edge(n), down(n), up(n), sum(n) {
+    dfs_down(-1, 0);
+    dfs_up(-1, 0);
+  }
+
+  std::vector<M> sum;
 };
