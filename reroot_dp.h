@@ -6,7 +6,7 @@
 
 template <IsTreeMonoid M, IsGraph Tree>
   requires std::is_same_v<GraphEdge<Tree>, std::pair<int, M>>
-class RerootDp {
+class RerootDp : public std::vector<M> {
   void dfs_down(int p, int u) {
     for (auto &&[v, e] : tree[u]) {
       if (v != p) {

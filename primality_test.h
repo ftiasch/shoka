@@ -1,9 +1,8 @@
 #pragma once
 
-#include <type_traits>
+#include <concepts>
 
-template <typename T> static inline constexpr T is_prime(T n) {
-  static_assert(std::is_integral_v<T>);
+template <std::integral T> static inline constexpr T is_prime(T n) {
   if (n < 2) {
     return false;
   }
