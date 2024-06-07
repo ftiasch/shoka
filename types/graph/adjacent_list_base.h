@@ -2,7 +2,7 @@
 
 #include <vector>
 
-template <typename Edge> class AdjacentListBase {
+template <typename Edge = int> class AdjacentListBase {
 public:
   explicit AdjacentListBase(int n_, int m = 0) : n{n_}, head(n, -1) {
     next.reserve(m);

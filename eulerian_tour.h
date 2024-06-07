@@ -20,11 +20,10 @@ class Eulerian : public AdjacentListBase<int> {
   std::vector<bool> used;
 
 public:
-  explicit Eulerian(int n_, int s,
-                    const std::vector<std::pair<int, int>> &edges_)
-      : AdjacentListBase<int>{n_, static_cast<int>(edges_.size()) << 1}, n{n_},
-        used(edges_.size() << 1) {
-    for (auto [a, b] : edges_) {
+  explicit Eulerian(int n, int s, const std::vector<std::pair<int, int>> &edges)
+      : AdjacentListBase<int>{n, static_cast<int>(edges.size()) << 1}, n{n},
+        used(edges.size() << 1) {
+    for (auto [a, b] : edges) {
       add(a, b);
       add(b, a);
     }
