@@ -2,11 +2,8 @@
 
 #include "primitive_root.h"
 
-#include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdint>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -18,10 +15,6 @@ template <typename Mod, int NUMBER_OF_BUFFER = 5> struct NttT {
     if (n & (n - 1)) {
       throw std::invalid_argument(std::to_string(n) + " is not a power of two");
     }
-  }
-
-  static constexpr int min_power_of_two(int n) {
-    return n == 1 ? 1 : 1 << (32 - __builtin_clz(n - 1));
   }
 
   static constexpr Mod get_primitive_root() { return G; }

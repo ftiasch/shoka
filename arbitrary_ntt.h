@@ -1,5 +1,7 @@
 #pragma once
 
+#include "snippets/min_pow_of_two.h"
+
 #include <array>
 #include <cmath>
 #include <complex>
@@ -9,7 +11,7 @@ template <typename Mod> struct ArbitraryNTT {
   std::vector<Mod> operator()(const std::vector<Mod> &a_,
                               const std::vector<Mod> &b_) {
     int deg_plus_1 = a_.size() + b_.size() - 1;
-    int n = min_power_of_two(deg_plus_1);
+    int n = min_pow_of_two(deg_plus_1);
     if (max_n < n) {
       max_n = n;
       twiddles.resize(max_n + 1);
@@ -57,10 +59,6 @@ private:
 
   static constexpr int B = 15;
   static constexpr int NUMBER_OF_BUFFER = 4;
-
-  static constexpr int min_power_of_two(int n) {
-    return n == 1 ? 1 : 1 << (32 - __builtin_clz(n - 1));
-  }
 
   void radix_split(int n, Complex *b, const std::vector<Mod> &a) {
     for (int i = 0; i < a.size(); i++) {

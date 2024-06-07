@@ -1,24 +1,35 @@
 #pragma once
 
-#include <functional>
+#include "snippets/min_pow_of_two.h"
+#include "types/graph.h"
+
 #include <vector>
 
-struct Lca {
-  explicit Lca(const std::vector<std::vector<int>> &tree, int root)
-      : n(tree.size()), max_d{get_max_d(n)}, depth(n),
+template <IsGraph Graph>
+  requires std::is_same_v<GraphEdge<Graph>, int>
+class Lca {
+  void dfs(int p, int u) {
+    depth[u] = ~p ? depth[p] + 1 : 0;
+    jump[u][0] = p;
+    for (int i = 0; ~jump[u][i] && i + 1 < max_d; i++) {
+      jump[u][i + 1] = jump[jump[u][i]][i];
+    }
+    for (auto &&v : tree[u]) {
+      if (v != p) {
+        dfs(u, v);
+      }
+    }
+  };
+
+  const Graph &tree;
+  int n, max_d;
+  std::vector<int> depth;
+  std::vector<std::vector<int>> jump;
+
+public:
+  explicit Lca(const Graph &tree_, int root)
+      : tree{tree_}, n(tree.size()), max_d{min_pow_of_two(n)}, depth(n),
         jump(n, std::vector<int>(max_d, -1)) {
-    std::function<void(int, int)> dfs = [&](int p, int u) -> void {
-      depth[u] = ~p ? depth[p] + 1 : 0;
-      jump[u][0] = p;
-      for (int i = 0; ~jump[u][i] && i + 1 < max_d; i++) {
-        jump[u][i + 1] = jump[jump[u][i]][i];
-      }
-      for (auto &&v : tree[u]) {
-        if (v != p) {
-          dfs(u, v);
-        }
-      }
-    };
     dfs(-1, root);
   }
 
@@ -42,16 +53,4 @@ struct Lca {
     }
     return jump[x][0];
   }
-
-  static constexpr int get_max_d(int n) {
-    int d = 1;
-    while ((1 << d) < n) {
-      d++;
-    }
-    return d;
-  }
-
-  int n, max_d;
-  std::vector<int> depth;
-  std::vector<std::vector<int>> jump;
 };

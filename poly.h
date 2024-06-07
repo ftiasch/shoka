@@ -2,10 +2,9 @@
 
 #include "ntt.h"
 #include "singleton.h"
+#include "snippets/min_pow_of_two.h"
 
 #include <cstdlib>
-#include <memory>
-#include <stdexcept>
 #include <vector>
 
 template <typename Mod_> struct PolyT : public std::vector<Mod_> {
@@ -13,9 +12,6 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
   using Vector = std::vector<Mod>;
 
   static void assert_power_of_two(int n) { Ntt::assert_power_of_two(n); }
-  static constexpr int min_power_of_two(int n) {
-    return Ntt::min_power_of_two(n);
-  }
   static void reserve(int n) { return ntt().reserve(n); }
   template <int i> static Mod *raw_buffer() {
     return ntt().template raw_buffer<i>();
@@ -100,7 +96,7 @@ template <typename Mod_> struct PolyT : public std::vector<Mod_> {
       }
       return result;
     }
-    int n = min_power_of_two(deg_plus_1);
+    int n = min_pow_of_two(deg_plus_1);
     reserve(n);
     Mod *b0 = raw_buffer<0>();
     Mod *b1 = raw_buffer<1>();

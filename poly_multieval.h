@@ -1,8 +1,10 @@
 #include "binpow.h"
 #include "poly_inv.h"
 #include "primitive_root.h"
+#include "snippets/min_pow_of_two.h"
 
 #include <algorithm>
+#include <vector>
 
 template <typename Poly>
 struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
@@ -13,7 +15,7 @@ struct PolyMultiEval : public PolyOp<Poly, PolyMultiEval> {
   // output: f(a_0) f(a_1) ...
   std::vector<Mod> operator()(const std::vector<Mod> &c,
                               const std::vector<Mod> &a) {
-    int m = Poly::min_power_of_two(std::max<size_t>({c.size(), a.size(), 2}));
+    int m = min_pow_of_two(std::max<size_t>({c.size(), a.size(), 2}));
     Poly::reserve(m << 1);
     int log_m = (__builtin_ctz(m)) + 1;
     std::vector<std::vector<Mod>> dif_rev_q(log_m, std::vector<Mod>(m << 1));

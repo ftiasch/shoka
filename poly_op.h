@@ -1,12 +1,12 @@
 #pragma once
 
-#include "poly.h"
+#include "snippets/min_pow_of_two.h"
 
 template <typename Poly, template <typename> class Impl> struct PolyOp {
   using Mod = typename Poly::Mod;
 
   template <int index> Poly single(const Poly &f) {
-    int n = Poly::min_power_of_two(f.size());
+    int n = min_pow_of_two(f.size());
     Poly::reserve(n);
     Poly out(n);
     auto b2 = Poly::template raw_buffer<index>();

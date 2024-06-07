@@ -1,5 +1,7 @@
 #pragma once
 
+#include "snippets/min_pow_of_two.h"
+
 #include "poly_inv.h"
 
 template <typename Poly> struct PolyDiv {
@@ -7,7 +9,7 @@ template <typename Poly> struct PolyDiv {
 
   Poly operator()(const Poly &f, const Poly &g) {
     int max_size = std::max(f.size(), g.size());
-    int n = Poly::min_power_of_two(max_size);
+    int n = min_pow_of_two(max_size);
     Poly::reserve(n);
     Poly out(n);
     const auto fb = Poly::template raw_buffer<3>();

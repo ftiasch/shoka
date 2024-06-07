@@ -1,5 +1,7 @@
 #pragma once
 
+#include "snippets/min_pow_of_two.h"
+
 #include <vector>
 
 template <typename Poly> struct PolyCompose {
@@ -8,7 +10,7 @@ template <typename Poly> struct PolyCompose {
   // F(G(z))
   Poly operator()(const Poly &f, const Poly &g) {
     int n = f.size();
-    int n2 = Poly::min_power_of_two(n + n - 1);
+    int n2 = min_pow_of_two(n + n - 1);
     Poly::reserve(n2);
     int sqrt_n = 1;
     while (sqrt_n * sqrt_n < n) {
