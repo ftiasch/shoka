@@ -1,37 +1,32 @@
+#include "types/graph/adjacent_list_base.h"
+
 #include <utility>
 #include <vector>
 
-class Eulerian {
+class Eulerian : public AdjacentListBase<int> {
   void dfs(int u) {
     while (~head[u]) {
       int i = head[u];
       head[u] = next[head[u]];
       if (!used[i >> 1]) {
         used[i >> 1] = true;
-        int v = (i & 1) ? edges[i >> 1].first : edges[i >> 1].second;
-        dfs(v);
+        dfs(edges[i]);
       }
     }
     tour.push_back(u);
   }
 
-  int n, m;
-  std::vector<int> head, next;
+  int n;
   std::vector<bool> used;
-  const std::vector<std::pair<int, int>> &edges;
 
 public:
   explicit Eulerian(int n_, int s,
                     const std::vector<std::pair<int, int>> &edges_)
-      : n{n_}, m(edges_.size()), head(n, -1), next(m << 1), used(m),
-        edges{edges_} {
-    for (int i = 0; i < m << 1; ++i) {
-      auto [u, v] = edges[i >> 1];
-      if (i & 1) {
-        std::swap(u, v);
-      }
-      next[i] = head[u];
-      head[u] = i;
+      : AdjacentListBase<int>{n_, static_cast<int>(edges_.size()) << 1}, n{n_},
+        used(edges_.size() << 1) {
+    for (auto [a, b] : edges_) {
+      add(a, b);
+      add(b, a);
     }
     dfs(s);
   }
