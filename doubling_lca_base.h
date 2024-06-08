@@ -11,7 +11,7 @@ class DoublingLcaBase {
 
 public:
   explicit DoublingLcaBase(int n_)
-      : n(n_), max_d{min_pow_of_two(n)}, depth(n),
+      : n(n_), max_d{log_min_pow_of_two(n)}, depth(n),
         jump(n, std::vector<int>(max_d, -1)) {}
 
   void add_leaf(int u, int p) {
