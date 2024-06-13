@@ -39,7 +39,7 @@ class TriEdgeConnected : public AdjacentListBase<int> {
   }
 
   int m;
-  std::mt19937_64 gen;
+  std::mt19937_64 &gen;
   std::vector<bool> used;
   std::vector<uint64_t> cov, circ;
   std::vector<std::pair<int, int>> dfs_order;
@@ -48,9 +48,9 @@ class TriEdgeConnected : public AdjacentListBase<int> {
 public:
   explicit TriEdgeConnected(int n,
                             const std::vector<std::pair<int, int>> &edges,
-                            uint64_t seed = 0)
+                            std::mt19937_64 &gen_)
       : AdjacentListBase{n, static_cast<int>(edges.size()) << 1},
-        m(edges.size()), gen{seed}, used(m), cov(n), circ(n, -1), label(n, 0) {
+        m(edges.size()), gen{gen_}, used(m), cov(n), circ(n, -1), label(n, 0) {
     for (auto [a, b] : edges) {
       add(a, b);
       add(b, a);
