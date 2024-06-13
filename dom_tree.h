@@ -1,81 +1,65 @@
 #include "monoid_dsu.h"
-#include "snippets/update_min.h"
 #include "types/graph.h"
 
 #include <climits>
 
 template <IsGraph Graph> class DomTree {
-  struct MinMonoid {
-    static MinMonoid plus(MinMonoid a, MinMonoid b) {
-      return {std::min<int>(a, b)};
-    }
+  using Pair = std::pair<int, int>;
 
-    operator int() const { return value; }
+  struct Min {
+    static Min plus(Min a, Min b) { return {std::min<Pair>(a, b)}; }
 
-    int value = INT_MAX;
+    operator Pair() const { return value; }
+
+    Pair value{INT_MAX, INT_MAX};
   };
 
   void prepare(int u) {
-    visit[u] = 1;
+    visited[u] = true;
     dfn[u] = order.size();
     order.push_back(u);
     for (int v : graph[u]) {
-      if (visit[v] == 0) {
+      if (!visited[v]) {
         parent[v] = u;
         prepare(v);
       }
     }
-    visit[u] = 2;
-  }
-
-  void dfs(int u, int top) {
-    visit[u] = 3;
-    top = std::upper_bound(stack.begin(), stack.begin() + top, sdom[u]) -
-          stack.begin();
-    // cover (sdom[u], u)
-    idom[u] = order[stack[top - 1]];
-    auto backup = stack[top];
-    stack[top] = dfn[u];
-    for (int v : graph[u]) {
-      if (visit[v] != 3) {
-        dfs(v, top + 1);
-      }
-    }
-    stack[top] = backup;
   }
 
   const Graph &graph;
-
   int n;
-  std::vector<int> parent, visit, dfn, sdom, stack;
-  // 0 - not visited
-  // 1 - visiting
-  // 2 - visited
+  std::vector<bool> visited;
+  std::vector<int> parent, dfn, sdom_dfn, sdom_head, sdom_next;
 
 public:
   explicit DomTree(const Graph &graph_, const Graph &rgraph, int source = 0)
-      : graph{graph_}, n(graph.size()), parent(n, -1), visit(n), dfn(n),
-        sdom(n, n), stack(n), idom(n, -1) {
+      : graph{graph_}, n(graph.size()), visited(n), parent(n, -1), dfn(n),
+        sdom_dfn(n, n), sdom_head(n, -1), sdom_next(n), idom(n, -1) {
     order.reserve(n);
     prepare(source);
-    {
-      MonoidDsu<MinMonoid> dsu(n);
-      for (int v : order | std::views::reverse) {
-        for (int u : rgraph[v]) {
-          update_min(sdom[v],
-                     dfn[u] <= dfn[v] ? dfn[u] : (int)dsu.find(u).second);
-        }
-        if (~parent[v]) {
-          dsu.link(v, parent[v], MinMonoid{sdom[v]});
+    MonoidDsu<Min> dsu(n);
+    for (int v : order | std::views::drop(1) | std::views::reverse) {
+      for (int u : rgraph[v]) {
+        if (visited[u]) {
+          sdom_dfn[v] = std::min(
+              sdom_dfn[v], dfn[u] <= dfn[v]
+                               ? dfn[u]
+                               : static_cast<Pair>(dsu.find(u).second).first);
         }
       }
+      dsu.link(v, parent[v], Min{Pair{sdom_dfn[v], v}});
+      // add sdom[v] -> v
+      auto sdom = order[sdom_dfn[v]];
+      sdom_next[v] = sdom_head[sdom];
+      sdom_head[sdom] = v;
+      for (int u = sdom_head[parent[v]]; ~u; u = sdom_next[u]) {
+        idom[u] = static_cast<Pair>(dsu.find(u).second).second;
+      }
+      sdom_head[parent[v]] = -1;
     }
-    stack[0] = 0;
-    visit[source] = 3;
-    for (int v : graph[source]) {
-      if (visit[v] != 3) {
-        dfs(v, 1);
-      }
+    for (int v : order | std::views::drop(1)) {
+      idom[v] =
+          sdom_dfn[v] <= sdom_dfn[idom[v]] ? order[sdom_dfn[v]] : idom[idom[v]];
     }
   }
 
