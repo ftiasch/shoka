@@ -1,6 +1,12 @@
 #include <vector>
 
 class Dsu {
+  struct Node {
+    int p, r;
+  };
+
+  std::vector<Node> node;
+
 public:
   explicit Dsu(int n) : node(n) {
     for (int i = 0; i < n; i++) {
@@ -27,11 +33,4 @@ public:
     node[a].r += node[a].r == node[b].r;
     return true;
   }
-
-private:
-  struct Node {
-    int p, r;
-  };
-
-  std::vector<Node> node;
 };

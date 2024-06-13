@@ -1,25 +1,26 @@
+#include <numeric>
 #include <vector>
 
-class PathCompressionDsu : public std::vector<int> {
+class PathCompressionDsu {
+  std::vector<int> parent;
+
 public:
-  explicit PathCompressionDsu(int n) : std::vector<int>(n, -1) {}
+  explicit PathCompressionDsu(int n) : parent(n) {
+    std::iota(parent.begin(), parent.end(), 0);
+  }
 
   int find(int u) {
-    auto &U = operator[](u);
-    if (U == -1) {
-      return u;
+    if (parent[u] != u) {
+      parent[u] = find(parent[u]);
     }
-    if (U != u) {
-      U = find(U);
-    }
-    return U;
+    return parent[u];
   }
 
   bool merge(int a, int b) {
     if (find(a) == find(b)) {
       return false;
     }
-    operator[](find(a)) = find(b);
+    parent[find(a)] = find(b);
     return true;
   }
 };
