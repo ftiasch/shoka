@@ -50,9 +50,9 @@ template <typename T> ostream &operator<<(ostream &out, const Binary<T> &b) {
   return out << ")_2";
 }
 
-template <ranges::forward_range RangeT>
-ostream &operator<<(ostream &out, RangeT &&range)
-  requires(!same_as<ranges::range_value_t<RangeT>, char>)
+template <ranges::forward_range Range>
+ostream &operator<<(ostream &out, Range &&range)
+  requires(!same_as<ranges::range_value_t<Range>, char>)
 {
   out << "[";
   bool first = true;

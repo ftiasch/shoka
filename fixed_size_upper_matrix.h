@@ -1,10 +1,8 @@
 #pragma once
 
 #include <array>
-#include <cstdint>
 #include <cstring>
 #include <initializer_list>
-#include <vector>
 
 template <typename T, int N>
 struct FixedSizeUpperMatrixT : std::array<std::array<T, N>, N> {
@@ -58,7 +56,7 @@ struct FixedSizeUpperMatrixT : std::array<std::array<T, N>, N> {
         buffer[i] = o[i][j];
       }
       for (int i = 0; i <= j; ++i) {
-        for (int k = i; k < N; ++k) {
+        for (int k = i; k <= j; ++k) {
           result[i][j] += (*this)[i][k] * buffer[k];
         }
       }
