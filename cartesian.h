@@ -14,14 +14,13 @@ class MaxCartesianTree {
 public:
   explicit MaxCartesianTree(std::ranges::random_access_range auto a,
                             C compare = {})
-      : n(std::ranges::size(a)), stack(n + 1), root{-1}, child(n) {
-    int top = 0;
-    stack[0] = -1;
+      : n(std::ranges::size(a)), stack(n), root{-1}, child(n) {
+    int top = -1;
     for (int i = 0; i < n; i++) {
-      while (~stack[top] && compare(a[stack[top]], a[i])) {
+      while (~top && compare(a[stack[top]], a[i])) {
         top--;
       }
-      int &r = top ? child[stack[top]][1] : root;
+      int &r = ~top ? child[stack[top]][1] : root;
       child[i] = {r, -1};
       r = i;
       stack[++top] = i;
