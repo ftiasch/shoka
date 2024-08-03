@@ -1,8 +1,8 @@
-#include "types/total_monotone.h"
+#include "types/matrix_2d.h"
 
 #include <vector>
 
-template <IsTM A> class TMDC {
+template <Is2dMatrix A> class TMDC {
   void recur(const A &a, int l, int r, int low, int high) {
     if (l < r) {
       int m = (l + r) >> 1;

@@ -1,9 +1,9 @@
-#include "types/total_monotone.h"
+#include "types/matrix_2d.h"
 
 #include <numeric>
 #include <vector>
 
-template <IsTM A> class SMAWK {
+template <Is2dMatrix A> class SMAWK {
   using E = typename A::E;
 
   void recur(const A &a, int n, int m, int k, int begin, int end) {
