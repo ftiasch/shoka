@@ -14,7 +14,7 @@
 template <typename IO> struct IOBaseT {
   template <typename T = int> T read() {
     T v;
-    static_cast<IO *>(this)->template read1(v);
+    static_cast<IO *>(this)->read1(v);
     return v;
   }
 
@@ -51,7 +51,7 @@ template <typename IO> struct IOBaseT {
   }
 
   template <typename T> IOBaseT &operator<<(T &&o) {
-    return static_cast<IO *>(this)->template write1(std::forward<T>(o)), *this;
+    return static_cast<IO *>(this)->write1(std::forward<T>(o)), *this;
   }
 
 private:
